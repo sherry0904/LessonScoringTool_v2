@@ -95,11 +95,12 @@
 
                 <!-- 底部工具 -->
                 <div class="absolute bottom-4 left-2 right-2">
-                    <div class="space-y-2">
+                    <div class="space-y-2 flex flex-col items-start">
                         <!-- 主題切換 -->
                         <button
                             @click="ui.toggleTheme()"
-                            class="w-full flex items-center p-3 rounded-lg hover:bg-base-300 text-base-content transition-colors"
+                            class="flex items-center p-3 rounded-lg hover:bg-base-300 text-base-content transition-colors"
+                            :class="ui.isSidebarOpen ? 'w-full' : 'w-auto'"
                             :title="!ui.isSidebarOpen ? '切換主題' : ''"
                         >
                             <LucideIcon
@@ -117,7 +118,8 @@
                         <!-- 側邊欄切換 -->
                         <button
                             @click="ui.toggleSidebar()"
-                            class="w-full flex items-center p-3 rounded-lg hover:bg-base-300 text-base-content transition-colors"
+                            class="flex items-center p-3 rounded-lg hover:bg-base-300 text-base-content transition-colors"
+                            :class="ui.isSidebarOpen ? 'w-full' : 'w-auto'"
                             :title="!ui.isSidebarOpen ? '展開選單' : '收合選單'"
                         >
                             <LucideIcon
