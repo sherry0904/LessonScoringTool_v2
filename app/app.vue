@@ -73,8 +73,9 @@
                 <nav class="p-2">
                     <ul class="space-y-1">
                         <li v-for="tab in ui.tabs" :key="tab.id">
-                            <button
-                                @click="ui.setCurrentTab(tab.id)"
+                            <NuxtLink
+                                :to="tabRoute(tab.id)"
+                                @click.prevent="goTab(tab.id)"
                                 :class="[
                                     'w-full flex items-center p-3 rounded-lg transition-colors duration-200',
                                     ui.currentTab === tab.id
@@ -84,13 +85,10 @@
                                 :title="!ui.isSidebarOpen ? tab.label : ''"
                             >
                                 <LucideIcon :name="tab.icon" class="w-5 h-5 shrink-0" />
-                                <span
-                                    v-if="ui.isSidebarOpen"
-                                    class="ml-3 font-medium whitespace-nowrap"
-                                >
+                                <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">
                                     {{ tab.label }}
                                 </span>
-                            </button>
+                            </NuxtLink>
                         </li>
                     </ul>
                 </nav>
@@ -213,14 +211,48 @@
 import { useUIStore } from '~/stores/ui'
 
 const ui = useUIStore()
+const route = useRoute()
+const router = useRouter()
+
+// 對應 tab id 與路徑
+const tabRoute = (id: string) => {
+    const map: Record<string, string> = {
+        dashboard: '/',
+        students: '/students',
+        groups: '/groups',
+        settings: '/settings',
+    }
+    return map[id] || '/'
+}
+
+// 點擊導覽
+const goTab = (id: string) => {
+    ui.setCurrentTab(id)
+    const target = tabRoute(id)
+    if (route.path !== target) router.push(target)
+}
+
+// 初始以路由決定 currentTab
+const syncFromRoute = () => {
+    const path = route.path
+    if (path.startsWith('/students')) ui.setCurrentTab('students')
+    else if (path.startsWith('/groups')) ui.setCurrentTab('groups')
+    else if (path.startsWith('/settings')) ui.setCurrentTab('settings')
+    else ui.setCurrentTab('dashboard')
+}
 
 // 初始化
 onMounted(() => {
     ui.initialize()
+    syncFromRoute()
 })
 
 onUnmounted(() => {
     ui.cleanup()
+})
+
+watch(() => route.path, () => {
+    syncFromRoute()
 })
 
 // Toast 圖示映射

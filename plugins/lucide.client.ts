@@ -5,9 +5,7 @@ import {
     Settings,
     Plus,
     Trash2,
-    Trash,
     Edit,
-    Pencil,
     Search,
     Filter,
     Download,
@@ -47,9 +45,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideSettings', Settings)
     nuxtApp.vueApp.component('LucidePlus', Plus)
     nuxtApp.vueApp.component('LucideTrash2', Trash2)
-    nuxtApp.vueApp.component('LucideTrash', Trash)
     nuxtApp.vueApp.component('LucideEdit', Edit)
-    nuxtApp.vueApp.component('LucidePencil', Pencil)
     nuxtApp.vueApp.component('LucideSearch', Search)
     nuxtApp.vueApp.component('LucideFilter', Filter)
     nuxtApp.vueApp.component('LucideDownload', Download)
