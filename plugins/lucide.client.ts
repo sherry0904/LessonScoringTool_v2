@@ -5,7 +5,9 @@ import {
     Settings,
     Plus,
     Trash2,
+    Trash,
     Edit,
+    Pencil,
     Search,
     Filter,
     Download,
@@ -25,6 +27,17 @@ import {
     UserCheck,
     Eye,
     EyeOff,
+    // 新增更語義化的圖示
+    LogIn,
+    ArrowRight,
+    Edit2,
+    Edit3,
+    GraduationCap,
+    BookOpen,
+    TrendingUp,
+    UserPlus,
+    ArrowLeft,
+    AlertCircle,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -34,7 +47,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideSettings', Settings)
     nuxtApp.vueApp.component('LucidePlus', Plus)
     nuxtApp.vueApp.component('LucideTrash2', Trash2)
+    nuxtApp.vueApp.component('LucideTrash', Trash)
     nuxtApp.vueApp.component('LucideEdit', Edit)
+    nuxtApp.vueApp.component('LucidePencil', Pencil)
     nuxtApp.vueApp.component('LucideSearch', Search)
     nuxtApp.vueApp.component('LucideFilter', Filter)
     nuxtApp.vueApp.component('LucideDownload', Download)
@@ -54,4 +69,15 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideUserCheck', UserCheck)
     nuxtApp.vueApp.component('LucideEye', Eye)
     nuxtApp.vueApp.component('LucideEyeOff', EyeOff)
+    // 新增圖示
+    nuxtApp.vueApp.component('LucideLogIn', LogIn)
+    nuxtApp.vueApp.component('LucideArrowRight', ArrowRight)
+    nuxtApp.vueApp.component('LucideEdit2', Edit2)
+    nuxtApp.vueApp.component('LucideEdit3', Edit3)
+    nuxtApp.vueApp.component('LucideGraduationCap', GraduationCap)
+    nuxtApp.vueApp.component('LucideBookOpen', BookOpen)
+    nuxtApp.vueApp.component('LucideTrendingUp', TrendingUp)
+    nuxtApp.vueApp.component('LucideUserPlus', UserPlus)
+    nuxtApp.vueApp.component('LucideArrowLeft', ArrowLeft)
+    nuxtApp.vueApp.component('LucideAlertCircle', AlertCircle)
 })

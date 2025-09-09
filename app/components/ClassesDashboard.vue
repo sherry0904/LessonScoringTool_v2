@@ -1,97 +1,190 @@
 <template>
-    <div class="p-6">
-        <!-- 頂部操作區 -->
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-base-content">班級經營動力站</h1>
-                <p class="text-base-content/70 mt-2">管理您的所有班級</p>
+    <div class="p-6 max-w-7xl mx-auto">
+        <!-- 頂部標題區 -->
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1
+                        class="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
+                    >
+                        班級管理
+                    </h1>
+                    <p class="text-base-content/70 text-lg mt-2">
+                        管理您的所有班級，開始精彩的教學旅程
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <!-- 搜尋框 -->
+                    <div class="relative">
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="搜尋班級..."
+                            class="input input-bordered pl-10 w-64"
+                        />
+                        <LucideIcon
+                            name="Search"
+                            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/50"
+                        />
+                    </div>
+
+                    <!-- 操作按鈕 -->
+                    <div class="flex gap-2">
+                        <button @click="importData" class="btn btn-outline gap-2">
+                            <LucideIcon name="Upload" class="w-4 h-4" />
+                            匯入資料
+                        </button>
+                        <button @click="exportData" class="btn btn-outline gap-2">
+                            <LucideIcon name="Download" class="w-4 h-4" />
+                            匯出資料
+                        </button>
+                        <button @click="createNewClass" class="btn btn-primary gap-2">
+                            <LucideIcon name="Plus" class="w-4 h-4" />
+                            新增班級
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="flex gap-3">
-                <button @click="importData" class="btn btn-ghost gap-2">
-                    <LucideIcon name="Upload" class="w-4 h-4" />
-                    載入
-                </button>
-                <button @click="exportData" class="btn btn-primary gap-2">
-                    <LucideIcon name="Download" class="w-4 h-4" />
-                    匯出
-                </button>
+
+            <!-- 統計卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-figure text-primary">
+                            <LucideIcon name="GraduationCap" class="w-8 h-8" />
+                        </div>
+                        <div class="stat-title">總班級數</div>
+                        <div class="stat-value text-primary">
+                            {{ classesStore?.totalClasses || 0 }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-figure text-secondary">
+                            <LucideIcon name="Users" class="w-8 h-8" />
+                        </div>
+                        <div class="stat-title">總學生數</div>
+                        <div class="stat-value text-secondary">{{ totalStudents }}</div>
+                    </div>
+                </div>
+
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-figure text-accent">
+                            <LucideIcon name="BookOpen" class="w-8 h-8" />
+                        </div>
+                        <div class="stat-title">活躍班級</div>
+                        <div class="stat-value text-accent">{{ activeClasses }}</div>
+                    </div>
+                </div>
+
+                <div class="stats shadow">
+                    <div class="stat">
+                        <div class="stat-figure text-success">
+                            <LucideIcon name="TrendingUp" class="w-8 h-8" />
+                        </div>
+                        <div class="stat-title">本週活動</div>
+                        <div class="stat-value text-success">{{ weeklyActivity }}</div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- 班級網格 -->
-        <div
-            v-if="classesStore.totalClasses > 0"
-            class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-        >
-            <div
-                v-for="classInfo in classesStore.classes"
-                :key="classInfo.id"
-                class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                @click="openClass(classInfo.id)"
-            >
-                <div class="card-body">
-                    <div class="flex justify-between items-start mb-4">
-                        <h2 class="card-title text-lg">{{ classInfo.name }}</h2>
-                        <div class="dropdown dropdown-end">
-                            <div
-                                tabindex="0"
-                                role="button"
-                                class="btn btn-ghost btn-sm btn-circle"
-                                @click.stop
-                            >
-                                <LucideIcon name="MoreVertical" class="w-4 h-4" />
+        <div v-if="filteredClasses && filteredClasses.length > 0" class="space-y-6">
+            <h2 class="text-2xl font-semibold text-base-content">您的班級</h2>
+
+            <div class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div
+                    v-for="classInfo in filteredClasses"
+                    :key="classInfo.id"
+                    class="group relative bg-gradient-to-br from-base-100 to-base-200 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-base-300"
+                >
+                    <!-- 班級內容 -->
+                    <div @click="openClass(classInfo.id)" class="cursor-pointer">
+                        <!-- 班級圖示 -->
+                        <div
+                            class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+                        >
+                            <LucideIcon name="GraduationCap" class="w-8 h-8 text-white" />
+                        </div>
+
+                        <!-- 班級資訊 -->
+                        <h3
+                            class="text-xl font-bold text-base-content mb-2 group-hover:text-primary transition-colors"
+                        >
+                            {{ classInfo.name }}
+                        </h3>
+
+                        <div class="space-y-2 text-sm text-base-content/70">
+                            <div class="flex items-center gap-2">
+                                <LucideIcon name="Users" class="w-4 h-4" />
+                                <span>{{ (classInfo.students || []).length }} 位學生</span>
                             </div>
-                            <ul
-                                tabindex="0"
-                                class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-                            >
-                                <li>
-                                    <a @click.stop="editClass(classInfo.id)">
-                                        <LucideIcon name="Edit" class="w-4 h-4" />
-                                        編輯班級
-                                    </a>
-                                </li>
-                                <li>
-                                    <a @click.stop="deleteClass(classInfo.id)" class="text-error">
-                                        <LucideIcon name="Trash2" class="w-4 h-4" />
-                                        刪除班級
-                                    </a>
-                                </li>
-                            </ul>
+
+                            <div class="flex items-center gap-2">
+                                <LucideIcon name="Calendar" class="w-4 h-4" />
+                                <span>{{ formatDate(classInfo.createdAt) }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <LucideIcon name="Clock" class="w-4 h-4" />
+                                <span>{{ formatDate(classInfo.updatedAt) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- 進度條 -->
+                        <div class="mt-4">
+                            <div class="flex justify-between text-xs text-base-content/60 mb-1">
+                                <span>課程進度</span>
+                                <span
+                                    >{{
+                                        Math.round(((classInfo.students || []).length / 30) * 100)
+                                    }}%</span
+                                >
+                            </div>
+                            <div class="w-full bg-base-300 rounded-full h-2">
+                                <div
+                                    class="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
+                                    :style="{
+                                        width: `${Math.min(((classInfo.students || []).length / 30) * 100, 100)}%`,
+                                    }"
+                                ></div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 班級統計 -->
-                    <div class="stats stats-vertical shadow mb-4">
-                        <div class="stat">
-                            <div class="stat-title">學生人數</div>
-                            <div class="stat-value text-primary">
-                                {{ classInfo.students.length }}
-                            </div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-title">作業數量</div>
-                            <div class="stat-value text-secondary">
-                                {{ classInfo.homeworks.length }}
-                            </div>
-                        </div>
+                    <!-- 快速操作按鈕 -->
+                    <div
+                        class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1"
+                    >
+                        <button
+                            @click.stop="editClass(classInfo.id)"
+                            class="btn btn-sm btn-ghost btn-circle bg-base-100/80 hover:bg-info hover:text-info-content"
+                            title="編輯班級"
+                        >
+                            <LucideIcon name="Edit" class="w-4 h-4" />
+                        </button>
+
+                        <button
+                            @click.stop="confirmDeleteClass(classInfo.id, classInfo.name)"
+                            class="btn btn-sm btn-ghost btn-circle bg-base-100/80 hover:bg-error hover:text-error-content"
+                            title="刪除班級"
+                        >
+                            <LucideIcon name="Trash2" class="w-4 h-4" />
+                        </button>
                     </div>
 
-                    <!-- 狀態指示器 -->
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <div v-if="classInfo.groupingActive" class="badge badge-success gap-1">
-                            <LucideIcon name="Users" class="w-3 h-3" />
-                            分組進行中
-                        </div>
-                        <div class="badge badge-outline">
-                            {{ formatDate(classInfo.updatedAt) }}
-                        </div>
-                    </div>
-
-                    <!-- 進入按鈕 -->
-                    <div class="card-actions justify-end">
-                        <button class="btn btn-primary btn-sm gap-2">
-                            <LucideIcon name="ArrowRight" class="w-4 h-4" />
+                    <!-- 底部快速進入按鈕 -->
+                    <div class="mt-6 pt-4 border-t border-base-300">
+                        <button
+                            @click="openClass(classInfo.id)"
+                            class="w-full btn btn-primary btn-sm group-hover:btn-accent transition-all"
+                        >
+                            <LucideIcon name="LogIn" class="w-4 h-4 mr-2" />
                             進入班級
                         </button>
                     </div>
@@ -100,18 +193,31 @@
         </div>
 
         <!-- 空狀態 -->
-        <div v-else class="text-center py-16">
-            <LucideIcon name="GraduationCap" class="w-24 h-24 mx-auto text-base-content/30 mb-6" />
-            <h3 class="text-xl font-semibold text-base-content mb-2">還沒有班級</h3>
-            <p class="text-base-content/70 mb-6">創建您的第一個班級來開始使用</p>
-            <button @click="createNewClass" class="btn btn-primary gap-2">
-                <LucideIcon name="Plus" class="w-4 h-4" />
-                新增班級
-            </button>
+        <div v-else class="text-center py-20">
+            <div
+                class="bg-gradient-to-br from-base-200 to-base-300 rounded-3xl p-12 max-w-md mx-auto"
+            >
+                <div
+                    class="w-24 h-24 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center mx-auto mb-6"
+                >
+                    <LucideIcon name="GraduationCap" class="w-12 h-12 text-primary" />
+                </div>
+                <h3 class="text-2xl font-bold text-base-content mb-3">開始您的教學旅程</h3>
+                <p class="text-base-content/70 mb-8 text-lg">
+                    創建您的第一個班級，開啟現代化的班級管理體驗
+                </p>
+                <button
+                    @click="createNewClass"
+                    class="btn btn-primary btn-lg gap-3 hover:scale-105 transition-transform"
+                >
+                    <LucideIcon name="Plus" class="w-5 h-5" />
+                    建立第一個班級
+                </button>
+            </div>
         </div>
 
         <!-- 新增班級按鈕（浮動） -->
-        <div v-if="classesStore.totalClasses > 0" class="fixed bottom-6 right-6">
+        <div v-if="(classesStore?.totalClasses || 0) > 0" class="fixed bottom-6 right-6">
             <button
                 @click="createNewClass"
                 class="btn btn-primary btn-lg btn-circle shadow-lg"
@@ -161,20 +267,26 @@
                     </div>
 
                     <div class="modal-action mt-8 pt-4 border-t border-base-200">
-                        <button
-                            v-if="editingClassId"
-                            type="button"
-                            @click="confirmDeleteClass"
-                            class="btn btn-error"
-                        >
-                            刪除班級
-                        </button>
-                        <button type="button" @click="closeModal" class="btn btn-ghost">
-                            取消
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            {{ editingClassId ? '更新' : '建立' }}
-                        </button>
+                        <div class="flex justify-between w-full">
+                            <div>
+                                <button
+                                    v-if="editingClassId"
+                                    type="button"
+                                    @click="confirmDeleteFromModal"
+                                    class="btn btn-error"
+                                >
+                                    刪除班級
+                                </button>
+                            </div>
+                            <div class="flex gap-3">
+                                <button type="button" @click="closeModal" class="btn btn-ghost">
+                                    取消
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    {{ editingClassId ? '更新' : '建立' }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -208,7 +320,6 @@
 
 <script setup lang="ts">
 const classesStore = useClassesStore()
-const ui = useUIStore()
 
 // Modal refs
 const classModal = ref<HTMLDialogElement>()
@@ -219,10 +330,47 @@ const fileInput = ref<HTMLInputElement>()
 const editingClassId = ref<string | null>(null)
 const deletingClassId = ref<string | null>(null)
 const deletingClassName = ref('')
+const searchQuery = ref('')
 
 const classForm = reactive({
     name: '',
     students: '',
+})
+
+// 計算屬性
+const filteredClasses = computed(() => {
+    if (!classesStore?.classes) return []
+
+    if (!searchQuery.value) {
+        return classesStore.classes
+    }
+
+    return classesStore.classes.filter((classInfo) =>
+        classInfo.name.toLowerCase().includes(searchQuery.value.toLowerCase()),
+    )
+})
+
+const totalStudents = computed(() => {
+    if (!classesStore?.classes) return 0
+    return classesStore.classes.reduce((total, classInfo) => {
+        return total + (classInfo.students?.length || 0)
+    }, 0)
+})
+
+const activeClasses = computed(() => {
+    if (!classesStore?.classes) return 0
+    return classesStore.classes.filter(
+        (classInfo) => classInfo.students && classInfo.students.length > 0,
+    ).length
+})
+
+const weeklyActivity = computed(() => {
+    if (!classesStore?.classes) return 0
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+
+    return classesStore.classes.filter((classInfo) => new Date(classInfo.updatedAt) > oneWeekAgo)
+        .length
 })
 
 // Methods
@@ -242,6 +390,12 @@ const editClass = (classId: string) => {
     classForm.students = classInfo.students.map((s) => `${s.id} ${s.name}`).join('\n')
 
     classModal.value?.showModal()
+}
+
+const confirmDeleteClass = (classId: string, className: string) => {
+    deletingClassId.value = classId
+    deletingClassName.value = className
+    deleteModal.value?.showModal()
 }
 
 const saveClass = () => {
@@ -285,10 +439,15 @@ const deleteClass = (classId: string) => {
     deleteModal.value?.showModal()
 }
 
-const confirmDeleteClass = () => {
+const confirmDeleteFromModal = () => {
     if (editingClassId.value) {
-        deleteClass(editingClassId.value)
-        closeModal()
+        const classInfo = classesStore.classes.find((c) => c.id === editingClassId.value)
+        if (classInfo) {
+            deletingClassId.value = editingClassId.value
+            deletingClassName.value = classInfo.name
+            closeModal()
+            deleteModal.value?.showModal()
+        }
     }
 }
 

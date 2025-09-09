@@ -41,6 +41,15 @@ import {
     Sun,
     Moon,
     Database,
+    // 新增缺少的圖示
+    LogIn,
+    ArrowRight,
+    BookOpen,
+    TrendingUp,
+    UserPlus,
+    ArrowLeft,
+    Edit2,
+    Edit3,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -86,6 +95,14 @@ const iconMap = {
     Sun: Sun,
     Moon: Moon,
     Database: Database,
+    LogIn: LogIn,
+    ArrowRight: ArrowRight,
+    BookOpen: BookOpen,
+    TrendingUp: TrendingUp,
+    UserPlus: UserPlus,
+    ArrowLeft: ArrowLeft,
+    Edit2: Edit2,
+    Edit3: Edit3,
 }
 
 const iconComponent = computed(() => {
