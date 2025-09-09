@@ -1,114 +1,104 @@
 import { defineStore } from 'pinia'
-import type { Toast, Modal, TabItem, ViewMode, UserPreferences } from '~/types'
+import { ref, computed, readonly } from 'vue'
+import type { ToastType, ToastMessage, ViewModeType, UserPreferences, Tab } from '~/types/class'
 
 export const useUIStore = defineStore('ui', () => {
     // State
-    const currentTab = ref('dashboard')
-    const viewMode = ref<ViewMode>('grid')
-    const toasts = ref<Toast[]>([])
-    const modals = ref<Modal[]>([])
+    const currentTab = ref<string>('dashboard')
+    const viewMode = ref<ViewModeType>('table')
+    const toasts = ref<ToastMessage[]>([])
+    const modals = ref<Map<string, boolean>>(new Map())
     const isLoading = ref(false)
     const isSidebarOpen = ref(false)
     const searchQuery = ref('')
-    const selectedStudents = ref<string[]>([])
-
+    const selectedStudents = ref<Set<string>>(new Set())
     const userPreferences = ref<UserPreferences>({
         theme: 'light',
         language: 'zh-TW',
-        soundEnabled: true,
-        animationsEnabled: true,
-        defaultView: 'grid',
+        enableAnimations: true,
+        enableSounds: false,
         autoSave: true,
-        compactMode: false,
+        showTutorials: true,
     })
-
-    const tabs: TabItem[] = [
-        { id: 'dashboard', label: '課堂總覽', icon: 'home' },
-        { id: 'students', label: '學生管理', icon: 'users' },
-        { id: 'grouping', label: '分組模式', icon: 'users-3' },
-        { id: 'statistics', label: '統計分析', icon: 'chart-bar' },
-        { id: 'settings', label: '設定', icon: 'cog-6-tooth' },
-    ]
+    const isMobile = ref(false)
+    const isTablet = ref(false)
+    const windowWidth = ref(0)
 
     // Computed
-    const currentTabInfo = computed(
-        () => tabs.find((tab) => tab.id === currentTab.value) || tabs[0],
-    )
+    const isDarkMode = computed(() => userPreferences.value.theme === 'dark')
 
-    const visibleToasts = computed(() => toasts.value.filter((toast) => toast.id))
+    const currentTabInfo = computed(() => {
+        const tabMap: Record<string, Tab> = {
+            dashboard: { id: 'dashboard', label: '總覽', icon: 'BarChart3', color: 'primary' },
+            students: { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
+            groups: { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
+            settings: { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
+        }
+        return tabMap[currentTab.value] || tabMap.dashboard
+    })
 
-    const openModals = computed(() => modals.value.filter((modal) => modal.isOpen))
+    const visibleToasts = computed(() => {
+        return toasts.value.slice(0, 5) // 只顯示最新的 5 個
+    })
 
-    const isDarkMode = computed(
-        () =>
-            userPreferences.value.theme === 'dark' ||
-            (userPreferences.value.theme === 'auto' &&
-                process.client &&
-                window.matchMedia('(prefers-color-scheme: dark)').matches),
-    )
+    const openModals = computed(() => {
+        return Array.from(modals.value.entries())
+            .filter(([_, isOpen]) => isOpen)
+            .map(([id, _]) => id)
+    })
+
+    const tabs = computed(() => {
+        return [
+            { id: 'dashboard', label: '總覽', icon: 'BarChart3', color: 'primary' },
+            { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
+            { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
+            { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
+        ]
+    })
 
     // Actions
-    const setCurrentTab = (tabId: string) => {
-        if (tabs.some((tab) => tab.id === tabId)) {
-            currentTab.value = tabId
-            savePreferences()
-        }
+    const setCurrentTab = (tab: string) => {
+        currentTab.value = tab
     }
 
-    const setViewMode = (mode: ViewMode) => {
+    const setViewMode = (mode: ViewModeType) => {
         viewMode.value = mode
-        userPreferences.value.defaultView = mode
-        savePreferences()
     }
 
     const toggleSidebar = () => {
         isSidebarOpen.value = !isSidebarOpen.value
     }
 
+    const setSidebarOpen = (open: boolean) => {
+        isSidebarOpen.value = open
+    }
+
     const setSearchQuery = (query: string) => {
         searchQuery.value = query
     }
 
-    const toggleStudentSelection = (studentId: string) => {
-        const index = selectedStudents.value.indexOf(studentId)
-        if (index > -1) {
-            selectedStudents.value.splice(index, 1)
-        } else {
-            selectedStudents.value.push(studentId)
-        }
-    }
-
-    const selectAllStudents = (studentIds: string[]) => {
-        selectedStudents.value = [...studentIds]
-    }
-
-    const clearStudentSelection = () => {
-        selectedStudents.value = []
-    }
-
-    // Toast 管理
-    const showToast = (toast: Omit<Toast, 'id'>) => {
-        const id = `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        const newToast: Toast = {
-            ...toast,
-            id,
-            duration: toast.duration || 3000,
+    // Toast methods
+    const showToast = (message: string, type: ToastType = 'info', duration: number = 3000) => {
+        const toast: ToastMessage = {
+            id: Date.now().toString(),
+            message,
+            type,
+            timestamp: new Date(),
+            duration,
         }
 
-        toasts.value.push(newToast)
+        toasts.value.unshift(toast)
 
         // 自動移除
-        if (newToast.duration > 0) {
+        if (duration > 0) {
             setTimeout(() => {
-                removeToast(id)
-            }, newToast.duration)
+                removeToast(toast.id)
+            }, duration)
         }
-
-        return id
     }
 
-    const removeToast = (toastId: string) => {
-        const index = toasts.value.findIndex((t) => t.id === toastId)
+    const removeToast = (id: string) => {
+        const index = toasts.value.findIndex((toast) => toast.id === id)
         if (index > -1) {
             toasts.value.splice(index, 1)
         }
@@ -118,117 +108,97 @@ export const useUIStore = defineStore('ui', () => {
         toasts.value = []
     }
 
-    // 便利方法
-    const showSuccess = (title: string, message?: string, duration?: number) => {
-        return showToast({ type: 'success', title, message, duration })
+    const showSuccess = (message: string) => showToast(message, 'success')
+    const showError = (message: string) => showToast(message, 'error', 5000)
+    const showWarning = (message: string) => showToast(message, 'warning', 4000)
+    const showInfo = (message: string) => showToast(message, 'info')
+
+    // Modal methods
+    const openModal = (id: string) => {
+        modals.value.set(id, true)
     }
 
-    const showError = (title: string, message?: string, duration?: number) => {
-        return showToast({ type: 'error', title, message, duration: duration || 5000 })
-    }
-
-    const showWarning = (title: string, message?: string, duration?: number) => {
-        return showToast({ type: 'warning', title, message, duration })
-    }
-
-    const showInfo = (title: string, message?: string, duration?: number) => {
-        return showToast({ type: 'info', title, message, duration })
-    }
-
-    // Modal 管理
-    const openModal = (modal: Omit<Modal, 'isOpen'>) => {
-        const existingModal = modals.value.find((m) => m.id === modal.id)
-        if (existingModal) {
-            existingModal.isOpen = true
-        } else {
-            modals.value.push({ ...modal, isOpen: true })
-        }
-    }
-
-    const closeModal = (modalId: string) => {
-        const modal = modals.value.find((m) => m.id === modalId)
-        if (modal) {
-            modal.isOpen = false
-        }
+    const closeModal = (id: string) => {
+        modals.value.set(id, false)
     }
 
     const closeAllModals = () => {
-        modals.value.forEach((modal) => {
-            modal.isOpen = false
-        })
+        for (const key of modals.value.keys()) {
+            modals.value.set(key, false)
+        }
     }
 
-    // Loading 狀態
+    // Loading methods
     const setLoading = (loading: boolean) => {
         isLoading.value = loading
     }
 
-    const withLoading = async <T>(asyncFn: () => Promise<T>): Promise<T> => {
+    const setLoadingState = (loading: boolean) => {
+        isLoading.value = loading
+    }
+
+    const withLoading = async <T>(promise: Promise<T>): Promise<T> => {
         setLoading(true)
         try {
-            return await asyncFn()
+            return await promise
         } finally {
             setLoading(false)
         }
     }
 
-    // 主題管理
-    const setTheme = (theme: UserPreferences['theme']) => {
+    // Theme methods
+    const setTheme = (theme: 'light' | 'dark') => {
         userPreferences.value.theme = theme
-        applyTheme()
-        savePreferences()
+        if (process.client) {
+            document.documentElement.setAttribute('data-theme', theme)
+            localStorage.setItem('theme', theme)
+        }
     }
 
     const toggleTheme = () => {
-        const themes: UserPreferences['theme'][] = ['light', 'dark', 'auto']
-        const currentIndex = themes.indexOf(userPreferences.value.theme)
-        const nextTheme = themes[(currentIndex + 1) % themes.length]
-        setTheme(nextTheme)
+        const newTheme = userPreferences.value.theme === 'light' ? 'dark' : 'light'
+        setTheme(newTheme)
     }
 
-    const applyTheme = () => {
+    const initializeTheme = () => {
         if (process.client) {
-            const html = document.documentElement
-
-            if (isDarkMode.value) {
-                html.setAttribute('data-theme', 'dark')
-                html.classList.add('dark')
+            const savedTheme = localStorage.getItem('theme')
+            if (savedTheme) {
+                userPreferences.value.theme = savedTheme as 'light' | 'dark'
             } else {
-                html.setAttribute('data-theme', 'light')
-                html.classList.remove('dark')
+                // 檢測系統主題偏好
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+                userPreferences.value.theme = prefersDark ? 'dark' : 'light'
             }
+
+            // 應用主題
+            document.documentElement.setAttribute('data-theme', userPreferences.value.theme)
+            localStorage.setItem('theme', userPreferences.value.theme)
         }
     }
 
-    // 設定管理
+    // Student selection methods
+    const toggleStudentSelection = (studentId: string) => {
+        if (selectedStudents.value.has(studentId)) {
+            selectedStudents.value.delete(studentId)
+        } else {
+            selectedStudents.value.add(studentId)
+        }
+    }
+
+    const clearStudentSelection = () => {
+        selectedStudents.value.clear()
+    }
+
+    const selectAllStudents = (studentIds: string[]) => {
+        selectedStudents.value = new Set(studentIds)
+    }
+
+    // Preferences methods
     const updatePreferences = (updates: Partial<UserPreferences>) => {
-        Object.assign(userPreferences.value, updates)
-        savePreferences()
-
-        // 立即套用某些設定
-        if (updates.theme) {
-            applyTheme()
-        }
-    }
-
-    const savePreferences = () => {
+        userPreferences.value = { ...userPreferences.value, ...updates }
         if (process.client) {
-            localStorage.setItem('user-preferences', JSON.stringify(userPreferences.value))
-        }
-    }
-
-    const loadPreferences = () => {
-        if (process.client) {
-            try {
-                const saved = localStorage.getItem('user-preferences')
-                if (saved) {
-                    const preferences = JSON.parse(saved)
-                    Object.assign(userPreferences.value, preferences)
-                    applyTheme()
-                }
-            } catch (error) {
-                console.error('載入使用者偏好設定失敗:', error)
-            }
+            localStorage.setItem('userPreferences', JSON.stringify(userPreferences.value))
         }
     }
 
@@ -236,81 +206,58 @@ export const useUIStore = defineStore('ui', () => {
         userPreferences.value = {
             theme: 'light',
             language: 'zh-TW',
-            soundEnabled: true,
-            animationsEnabled: true,
-            defaultView: 'grid',
+            enableAnimations: true,
+            enableSounds: false,
             autoSave: true,
-            compactMode: false,
+            showTutorials: true,
         }
-        applyTheme()
-        savePreferences()
-    }
-
-    // 鍵盤快捷鍵
-    const handleKeyboard = (event: KeyboardEvent) => {
-        // Ctrl/Cmd + 數字鍵切換分頁
-        if ((event.ctrlKey || event.metaKey) && event.key >= '1' && event.key <= '5') {
-            event.preventDefault()
-            const tabIndex = parseInt(event.key) - 1
-            if (tabs[tabIndex]) {
-                setCurrentTab(tabs[tabIndex].id)
-            }
-        }
-
-        // ESC 關閉所有 modal
-        if (event.key === 'Escape') {
-            closeAllModals()
-        }
-
-        // Ctrl/Cmd + / 開啟搜尋
-        if ((event.ctrlKey || event.metaKey) && event.key === '/') {
-            event.preventDefault()
-            // 觸發搜尋焦點事件
-            const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement
-            if (searchInput) {
-                searchInput.focus()
-            }
+        if (process.client) {
+            localStorage.removeItem('userPreferences')
         }
     }
 
-    // 響應式支援
-    const isMobile = ref(false)
-    const isTablet = ref(false)
-    const windowWidth = ref(0)
-
+    // Responsive methods
     const updateScreenSize = () => {
         if (process.client) {
             windowWidth.value = window.innerWidth
             isMobile.value = window.innerWidth < 768
             isTablet.value = window.innerWidth >= 768 && window.innerWidth < 1024
-
-            // 在小螢幕上自動關閉側邊欄
-            if (isMobile.value && isSidebarOpen.value) {
-                isSidebarOpen.value = false
-            }
         }
     }
 
-    // 初始化
-    const initialize = () => {
-        loadPreferences()
-        updateScreenSize()
+    const handleKeyboard = (event: KeyboardEvent) => {
+        // ESC 關閉所有 modal
+        if (event.key === 'Escape') {
+            closeAllModals()
+        }
+    }
 
+    // Lifecycle methods
+    const initialize = () => {
         if (process.client) {
+            // 初始化主題
+            initializeTheme()
+
+            // 載入用戶偏好
+            const savedPreferences = localStorage.getItem('userPreferences')
+            if (savedPreferences) {
+                try {
+                    userPreferences.value = {
+                        ...userPreferences.value,
+                        ...JSON.parse(savedPreferences),
+                    }
+                } catch (error) {
+                    console.warn('Failed to parse user preferences:', error)
+                }
+            }
+
+            // 初始化響應式
+            updateScreenSize()
             window.addEventListener('resize', updateScreenSize)
             window.addEventListener('keydown', handleKeyboard)
-
-            // 監聽系統主題變更
-            const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)')
-            darkModeQuery.addEventListener('change', () => {
-                if (userPreferences.value.theme === 'auto') {
-                    applyTheme()
-                }
-            })
         }
     }
 
-    // 清理
     const cleanup = () => {
         if (process.client) {
             window.removeEventListener('resize', updateScreenSize)
@@ -334,19 +281,18 @@ export const useUIStore = defineStore('ui', () => {
         windowWidth: readonly(windowWidth),
 
         // Computed
+        isDarkMode,
         currentTabInfo,
         visibleToasts,
         openModals,
-        isDarkMode,
         tabs,
 
         // Actions
         setCurrentTab,
         setViewMode,
         toggleSidebar,
+        setSidebarOpen,
         setSearchQuery,
-        toggleStudentSelection,
-        selectAllStudents,
         clearStudentSelection,
 
         // Toast methods
@@ -365,11 +311,17 @@ export const useUIStore = defineStore('ui', () => {
 
         // Loading methods
         setLoading,
+        setLoadingState,
         withLoading,
 
         // Theme methods
         setTheme,
         toggleTheme,
+        initializeTheme,
+
+        // Student selection methods
+        toggleStudentSelection,
+        selectAllStudents,
 
         // Preferences methods
         updatePreferences,

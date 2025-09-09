@@ -1,0 +1,492 @@
+<template>
+    <div class="space-y-6">
+        <!-- 作業管理面板 -->
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <div class="flex justify-between items-center">
+                    <h3 class="card-title">作業管理</h3>
+                    <button @click="showAddHomeworkModal" class="btn btn-primary gap-2">
+                        <LucideIcon name="Plus" class="w-4 h-4" />
+                        新增作業
+                    </button>
+                </div>
+
+                <!-- 作業列表 -->
+                <div v-if="classInfo.homeworks.length > 0" class="mt-4">
+                    <div class="tabs tabs-boxed">
+                        <button
+                            v-for="homework in classInfo.homeworks"
+                            :key="homework.id"
+                            :class="['tab', { 'tab-active': selectedHomework === homework.id }]"
+                            @click="selectedHomework = homework.id"
+                        >
+                            {{ homework.title }}
+                        </button>
+                    </div>
+                </div>
+
+                <div v-else class="text-center py-8 text-base-content/70">
+                    還沒有作業，點擊上方按鈕新增第一個作業
+                </div>
+            </div>
+        </div>
+
+        <!-- 作業狀態檢視 -->
+        <div v-if="currentHomework" class="space-y-4">
+            <!-- 統計概覽 -->
+            <div class="stats stats-horizontal shadow">
+                <div class="stat">
+                    <div class="stat-title">未繳交</div>
+                    <div class="stat-value text-error">{{ getStatusCount('pending') }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">已繳交</div>
+                    <div class="stat-value text-success">{{ getStatusCount('submitted') }}</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">待訂正</div>
+                    <div class="stat-value text-warning">
+                        {{ getStatusCount('needs_correction') }}
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-title">已完成</div>
+                    <div class="stat-value text-info">{{ getStatusCount('completed') }}</div>
+                </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">快速操作</span>
+                            </label>
+                            <div class="btn-group">
+                                <button
+                                    @click="batchUpdateStatus('submitted')"
+                                    class="btn btn-success btn-sm"
+                                    :disabled="selectedStudents.length === 0"
+                                >
+                                    批量標記已繳交
+                                </button>
+                                <button
+                                    @click="batchUpdateStatus('needs_correction')"
+                                    class="btn btn-warning btn-sm"
+                                    :disabled="selectedStudents.length === 0"
+                                >
+                                    批量標記待訂正
+                                </button>
+                                <button
+                                    @click="batchUpdateStatus('completed')"
+                                    class="btn btn-info btn-sm"
+                                    :disabled="selectedStudents.length === 0"
+                                >
+                                    批量標記已完成
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">匯出功能</span>
+                            </label>
+                            <div class="btn-group">
+                                <button
+                                    @click="exportIncompleteList"
+                                    class="btn btn-outline btn-sm"
+                                >
+                                    匯出未完成名單
+                                </button>
+                                <button @click="exportStatusReport" class="btn btn-outline btn-sm">
+                                    匯出狀態報告
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 學生狀態列表 -->
+            <div class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div
+                    v-for="student in classInfo.students"
+                    :key="student.id"
+                    :class="[
+                        'card bg-base-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer',
+                        { 'ring-2 ring-primary': selectedStudents.includes(student.id) },
+                    ]"
+                    @click="toggleStudentSelection(student.id)"
+                >
+                    <div class="card-body p-4">
+                        <!-- 學生信息 -->
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-semibold text-base">{{ student.name }}</h3>
+                                <p class="text-sm text-base-content/70">座號 {{ student.id }}</p>
+                            </div>
+                            <div class="dropdown dropdown-end">
+                                <div
+                                    tabindex="0"
+                                    role="button"
+                                    class="btn btn-ghost btn-xs btn-circle"
+                                    @click.stop
+                                >
+                                    <LucideIcon name="MoreVertical" class="w-3 h-3" />
+                                </div>
+                                <ul
+                                    tabindex="0"
+                                    class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
+                                >
+                                    <li>
+                                        <a @click.stop="exportStudentReport(student.id)">
+                                            <LucideIcon name="FileText" class="w-3 h-3" />
+                                            個人報告
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- 作業狀態 -->
+                        <div class="mb-3">
+                            <div
+                                :class="[
+                                    'badge w-full',
+                                    getStatusBadgeClass(getStudentStatus(student.id)),
+                                ]"
+                            >
+                                {{ getStatusText(getStudentStatus(student.id)) }}
+                            </div>
+                        </div>
+
+                        <!-- 狀態切換按鈕 -->
+                        <div class="grid grid-cols-2 gap-1">
+                            <button
+                                @click.stop="
+                                    updateStudentStatus(
+                                        student.id,
+                                        getNextStatus(getStudentStatus(student.id)),
+                                    )
+                                "
+                                class="btn btn-xs btn-primary"
+                            >
+                                切換狀態
+                            </button>
+                            <button
+                                @click.stop="resetStudentStatus(student.id)"
+                                class="btn btn-xs btn-ghost"
+                            >
+                                重設
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新增作業模態 -->
+        <dialog ref="addHomeworkModal" class="modal">
+            <div class="modal-box">
+                <h3 class="text-lg font-bold mb-4">新增作業</h3>
+
+                <form @submit.prevent="addHomework" class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">作業名稱</span>
+                        </label>
+                        <input
+                            v-model="homeworkForm.title"
+                            type="text"
+                            placeholder="例如：數學習作 P.30-32"
+                            class="input input-bordered"
+                            required
+                        />
+                    </div>
+
+                    <div class="modal-action">
+                        <button type="button" @click="closeAddHomeworkModal" class="btn btn-ghost">
+                            取消
+                        </button>
+                        <button type="submit" class="btn btn-primary">新增</button>
+                    </div>
+                </form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button @click="closeAddHomeworkModal">close</button>
+            </form>
+        </dialog>
+
+        <!-- 報告匯出模態 -->
+        <dialog ref="reportModal" class="modal">
+            <div class="modal-box w-11/12 max-w-2xl">
+                <h3 class="text-lg font-bold mb-4">{{ reportTitle }}</h3>
+
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">報告內容</span>
+                    </label>
+                    <textarea
+                        v-model="reportContent"
+                        class="textarea textarea-bordered h-64"
+                        readonly
+                    ></textarea>
+                </div>
+
+                <div class="modal-action">
+                    <button @click="copyReportToClipboard" class="btn btn-success">
+                        複製到剪貼簿
+                    </button>
+                    <button @click="closeReportModal" class="btn btn-ghost">關閉</button>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button @click="closeReportModal">close</button>
+            </form>
+        </dialog>
+    </div>
+</template>
+
+<script setup lang="ts">
+import type { ClassInfo, Homework } from '~/types'
+
+interface Props {
+    classInfo: ClassInfo
+}
+
+const props = defineProps<Props>()
+const classesStore = useClassesStore()
+
+// Modal refs
+const addHomeworkModal = ref<HTMLDialogElement>()
+const reportModal = ref<HTMLDialogElement>()
+
+// State
+const selectedHomework = ref<string | null>(null)
+const selectedStudents = ref<string[]>([])
+const reportTitle = ref('')
+const reportContent = ref('')
+
+const homeworkForm = reactive({
+    title: '',
+})
+
+// Computed
+const currentHomework = computed(() => {
+    if (!selectedHomework.value) return null
+    return props.classInfo.homeworks.find((h) => h.id === selectedHomework.value) || null
+})
+
+// Constants
+const statusOrder = ['pending', 'submitted', 'needs_correction', 'completed']
+const statusText = {
+    pending: '未繳交',
+    submitted: '已繳交',
+    needs_correction: '待訂正',
+    completed: '已完成',
+}
+
+// Methods
+const getStudentStatus = (studentId: string) => {
+    if (!currentHomework.value) return 'pending'
+    return currentHomework.value.studentStatus[studentId] || 'pending'
+}
+
+const getStatusText = (status: string) => {
+    return statusText[status as keyof typeof statusText] || '未知'
+}
+
+const getStatusBadgeClass = (status: string) => {
+    const classes = {
+        pending: 'badge-error',
+        submitted: 'badge-success',
+        needs_correction: 'badge-warning',
+        completed: 'badge-info',
+    }
+    return classes[status as keyof typeof classes] || 'badge-neutral'
+}
+
+const getStatusCount = (status: string) => {
+    if (!currentHomework.value) return 0
+    return Object.values(currentHomework.value.studentStatus).filter((s) => s === status).length
+}
+
+const getNextStatus = (currentStatus: string) => {
+    const currentIndex = statusOrder.indexOf(currentStatus)
+    const nextIndex = (currentIndex + 1) % statusOrder.length
+    return statusOrder[nextIndex]
+}
+
+const toggleStudentSelection = (studentId: string) => {
+    const index = selectedStudents.value.indexOf(studentId)
+    if (index > -1) {
+        selectedStudents.value.splice(index, 1)
+    } else {
+        selectedStudents.value.push(studentId)
+    }
+}
+
+const updateStudentStatus = (studentId: string, status: string) => {
+    if (!currentHomework.value) return
+
+    classesStore.updateHomeworkStatus(
+        props.classInfo.id,
+        currentHomework.value.id,
+        studentId,
+        status as any,
+    )
+}
+
+const resetStudentStatus = (studentId: string) => {
+    updateStudentStatus(studentId, 'pending')
+}
+
+const batchUpdateStatus = (status: string) => {
+    if (!currentHomework.value || selectedStudents.value.length === 0) return
+
+    selectedStudents.value.forEach((studentId) => {
+        updateStudentStatus(studentId, status)
+    })
+
+    selectedStudents.value = []
+}
+
+const showAddHomeworkModal = () => {
+    homeworkForm.title = ''
+    addHomeworkModal.value?.showModal()
+}
+
+const closeAddHomeworkModal = () => {
+    addHomeworkModal.value?.close()
+}
+
+const addHomework = () => {
+    if (!homeworkForm.title.trim()) return
+
+    const newHomework = classesStore.addHomework(props.classInfo.id, homeworkForm.title)
+    if (newHomework) {
+        selectedHomework.value = newHomework.id
+    }
+
+    closeAddHomeworkModal()
+}
+
+const exportIncompleteList = () => {
+    if (!currentHomework.value) return
+
+    const incompleteStudents = props.classInfo.students.filter((student) => {
+        const status = getStudentStatus(student.id)
+        return status === 'pending' || status === 'needs_correction'
+    })
+
+    const content = [
+        `作業：${currentHomework.value.title}`,
+        `匯出時間：${new Date().toLocaleString('zh-TW')}`,
+        '',
+        '未完成學生名單：',
+        ...incompleteStudents.map(
+            (student) =>
+                `${student.id} ${student.name} - ${getStatusText(getStudentStatus(student.id))}`,
+        ),
+        '',
+        `總計：${incompleteStudents.length} 位學生`,
+    ].join('\n')
+
+    reportTitle.value = '未完成作業名單'
+    reportContent.value = content
+    reportModal.value?.showModal()
+}
+
+const exportStatusReport = () => {
+    if (!currentHomework.value) return
+
+    const statusCounts = statusOrder.reduce(
+        (acc, status) => {
+            acc[status] = getStatusCount(status)
+            return acc
+        },
+        {} as Record<string, number>,
+    )
+
+    const content = [
+        `作業狀態報告`,
+        `作業：${currentHomework.value.title}`,
+        `匯出時間：${new Date().toLocaleString('zh-TW')}`,
+        '',
+        '狀態統計：',
+        ...statusOrder.map((status) => `${getStatusText(status)}：${statusCounts[status]} 人`),
+        '',
+        '詳細名單：',
+        ...props.classInfo.students.map(
+            (student) =>
+                `${student.id} ${student.name} - ${getStatusText(getStudentStatus(student.id))}`,
+        ),
+    ].join('\n')
+
+    reportTitle.value = '作業狀態報告'
+    reportContent.value = content
+    reportModal.value?.showModal()
+}
+
+const exportStudentReport = (studentId: string) => {
+    const student = props.classInfo.students.find((s) => s.id === studentId)
+    if (!student || !currentHomework.value) return
+
+    const incompleteHomeworks = props.classInfo.homeworks.filter((homework) => {
+        const status = homework.studentStatus[studentId] || 'pending'
+        return status === 'pending' || status === 'needs_correction'
+    })
+
+    const content = [
+        `個人作業報告`,
+        `學生：${student.name} (座號 ${student.id})`,
+        `匯出時間：${new Date().toLocaleString('zh-TW')}`,
+        '',
+        '未完成作業：',
+        ...incompleteHomeworks.map(
+            (homework) =>
+                `• ${homework.title} - ${getStatusText(homework.studentStatus[studentId] || 'pending')}`,
+        ),
+        '',
+        `總計：${incompleteHomeworks.length} 項作業需要完成`,
+    ].join('\n')
+
+    reportTitle.value = `${student.name} 的作業報告`
+    reportContent.value = content
+    reportModal.value?.showModal()
+}
+
+const copyReportToClipboard = async () => {
+    try {
+        await navigator.clipboard.writeText(reportContent.value)
+        alert('已複製到剪貼簿！')
+    } catch (error) {
+        console.error('複製失敗:', error)
+        alert('複製失敗，請手動選取文字複製。')
+    }
+}
+
+const closeReportModal = () => {
+    reportModal.value?.close()
+}
+
+// 初始化：選擇第一個作業
+onMounted(() => {
+    if (props.classInfo.homeworks.length > 0 && !selectedHomework.value) {
+        selectedHomework.value = props.classInfo.homeworks[0].id
+    }
+})
+
+// 監聽作業變化
+watch(
+    () => props.classInfo.homeworks,
+    (newHomeworks) => {
+        if (newHomeworks.length > 0 && !selectedHomework.value) {
+            selectedHomework.value = newHomeworks[0].id
+        } else if (newHomeworks.length === 0) {
+            selectedHomework.value = null
+        }
+    },
+)
+</script>
