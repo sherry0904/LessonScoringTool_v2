@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班級經營動力站 v10.1 (穩定版)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- App Screens -->
+    <div id="class-dashboard-screen" class="app-screen active">
+        <div class="container">
+            <div class="header">
+                <!-- <h1>班級經營動力站</h1> -->
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <button id="load-data-btn" class="btn btn-glass">載入</button>
+                    <button id="export-data-btn" class="btn btn-primary">匯出</button>
+                </div>
+            </div>
+            <div id="class-dashboard-grid" class="dashboard-grid"></div>
+        </div>
+    </div>
+
+    <div id="class-view-screen" class="app-screen">
+        <div class="container">
+            <div class="header">
+                <h1 id="class-view-title"></h1>
+                <button id="back-to-dashboard-btn" class="btn btn-glass">返回總覽</button>
+            </div>
+            <div class="class-view-nav">
+                <button class="nav-tab active" data-tab="scoring">個人計分</button>
+                <button class="nav-tab" data-tab="homework">作業訂正</button>
+                <button class="nav-tab" data-tab="grouping">分組模式</button>
+                <button class="nav-tab" data-tab="grades">成績結算</button>
+            </div>
+            <div id="scoring-tab" class="tab-content card"></div>
+            <div id="homework-tab" class="tab-content"></div>
+            <div id="grouping-tab" class="tab-content card"></div>
+            <div id="grades-tab" class="tab-content card"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="add-edit-class-modal" class="modal">
+        <div class="card">
+            <h2 id="class-modal-title"></h2>
+            <div class="form-group">
+                <label for="class-name-input">班級名稱</label>
+                <input type="text" id="class-name-input" placeholder="例如：三年一班">
+            </div>
+            <div class="form-group">
+                <label for="student-list-input">學生名單 (人數或名單)</label>
+                <textarea id="student-list-input" placeholder="輸入班級總人數 (例如 28)&#10;或&#10;1 王小明&#10;2 陳大華&#10;..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button id="delete-class-btn" class="btn btn-danger" style="display: none; margin-right: auto;">刪除班級</button>
+                <button id="cancel-class-modal-btn" class="btn btn-glass">取消</button>
+                <button id="save-class-btn" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="student-modal" class="modal">
+        <div class="card">
+            <h2 id="student-modal-title"></h2>
+            <div class="form-group">
+                <label for="student-id-input">座號</label>
+                <input type="text" id="student-id-input">
+            </div>
+            <div class="form-group">
+                <label for="student-name-input">姓名</label>
+                <input type="text" id="student-name-input">
+            </div>
+            <div class="modal-actions">
+                <button id="delete-student-btn" class="btn btn-danger" style="display: none; margin-right: auto;">刪除學生</button>
+                <button id="cancel-student-btn" class="btn btn-glass">取消</button>
+                <button id="save-student-btn" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-homework-modal" class="modal">
+        <div class="card">
+            <h2>新增作業</h2>
+            <div class="form-group">
+                <label for="homework-title-input">作業名稱</label>
+                <input type="text" id="homework-title-input" placeholder="例如：數學習作 P.30-32">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-add-homework-btn" class="btn btn-glass">取消</button>
+                <button id="confirm-add-homework-btn" class="btn btn-primary">確認新增</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-student-modal" class="modal">
+        <div class="card">
+            <h2>匯出個別學生報告</h2>
+            <div class="form-group">
+                <label for="student-select-dropdown">選擇學生</label>
+                <select id="student-select-dropdown"></select>
+            </div>
+            <div class="form-group">
+                <label for="single-student-export-content">未完成項目</label>
+                <textarea id="single-student-export-content" readonly></textarea>
+            </div>
+            <div class="modal-actions">
+                <button id="copy-single-student-export-btn" class="btn btn-success">複製到剪貼簿</button>
+                <button id="close-export-student-modal-btn" class="btn btn-glass">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="task-board-modal" class="modal">
+        <div class="card" style="max-width: 90%; width: 1200px; max-height: 90vh; overflow-y: auto;">
+            <div class="header" style="margin-bottom: 20px;">
+                <h2>互動任務板</h2>
+                <button id="close-task-board-btn" class="btn btn-glass">關閉</button>
+            </div>
+            <div id="task-board-grid" class="task-board-grid"></div>
+        </div>
+    </div>
+
+    <div id="podium-modal" class="modal">
+        <div class="card" style="max-width: 90%; width: 1200px;">
+            <div class="header" style="margin-bottom: 20px;">
+                <h2>小組積分儀表板</h2>
+                <button id="close-podium-btn" class="btn btn-glass">關閉</button>
+            </div>
+            <div id="group-ranking-podium"></div>
+        </div>
+    </div>
+    
+    <!-- Side Tools -->
+    <div class="side-tools-container">
+        <button class="side-tool-btn btn-primary" id="open-timer-tool-btn" title="課堂計時器">⏱️</button>
+        <button class="side-tool-btn btn-primary" id="open-picker-tool-btn" title="隨機抽籤">🎲</button>
+    </div>
+    <div id="timer-widget" class="tool-widget card">
+        <h2>計時器</h2>
+        <div id="timer-display">00:00</div>
+        <div class="timer-presets">
+            <button class="btn btn-glass" data-minutes="5">5分</button>
+            <button class="btn btn-glass" data-minutes="10">10分</button>
+            <button class="btn btn-glass" data-minutes="15">15分</button>
+        </div>
+        <div class="modal-actions" style="justify-content: center; gap: 15px;">
+            <button id="start-pause-timer-btn" class="btn btn-primary">開始</button>
+            <button id="reset-timer-btn" class="btn btn-danger">重設</button>
+        </div>
+    </div>
+    <div id="picker-widget" class="tool-widget card">
+        <h2>隨機抽籤</h2>
+        <div class="picker-viewport">
+            <div class="picker-wheel"></div>
+        </div>
+        <div class="modal-actions" style="justify-content: center;">
+            <button id="draw-student-btn" class="btn btn-success">抽籤！</button>
+        </div>
+    </div>
+    
+    <!-- Other Elements -->
+    <input type="file" id="file-input" style="display: none;" accept=".json">
+    <a href="https://www.facebook.com/FunFun.AI.Teacher/" target="_blank" rel="noopener noreferrer" class="creator-credit">Created by 方方老師</a>
+    <audio id="timer-alarm" src="assets/alarm.mp3"></audio>
+
+    <script src="js/script.js" defer></script>
+</body>
+</html>
