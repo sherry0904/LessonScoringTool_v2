@@ -68,19 +68,30 @@ export const useClassStore = defineStore('class', () => {
         saveToStorage()
     }
 
-    const addStudent = (name: string) => {
+    const addStudent = (studentData: { name: string; number: string; isPresent: boolean }) => {
         const newStudent: Student = {
             id: `student_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: name.trim(),
+            name: studentData.name.trim(),
+            number: studentData.number,
             scores: [],
             totalScore: 0,
             averageScore: 0,
             createdAt: new Date(),
-            isPresent: true,
+            isPresent: studentData.isPresent,
+            updatedAt: new Date(),
         }
         students.value.push(newStudent)
         saveToStorage()
         return newStudent
+    }
+
+    const updateStudent = (studentId: string, updates: Partial<Student>) => {
+        const index = students.value.findIndex((s) => s.id === studentId)
+        if (index > -1) {
+            students.value[index] = { ...students.value[index], ...updates }
+            console.log('[TEST] Student updated in store:', students.value[index])
+            saveToStorage()
+        }
     }
 
     const removeStudent = (studentId: string) => {
@@ -95,22 +106,21 @@ export const useClassStore = defineStore('class', () => {
         }
     }
 
-    const addScore = (studentId: string, score: number, categoryId?: string, reason?: string) => {
+    const addScore = (studentId: string, scoreData: { score: number; category: string; note?: string }) => {
         const student = students.value.find((s) => s.id === studentId)
         if (!student) return
 
         const category =
-            settings.value.scoreCategories.find((c) => c.id === categoryId) ||
+            settings.value.scoreCategories.find((c) => c.id === scoreData.category) ||
             settings.value.scoreCategories[0]
 
         const newScore: StudentScore = {
             id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            value: score,
-            categoryId: category.id,
-            categoryName: category.name,
-            reason: reason || '',
+            studentId: studentId,
+            score: scoreData.score,
+            category: category,
+            note: scoreData.note || '',
             timestamp: new Date(),
-            sessionId: currentSession.value?.id || null,
         }
 
         student.scores.push(newScore)
@@ -121,7 +131,7 @@ export const useClassStore = defineStore('class', () => {
     }
 
     const updateStudentStats = (student: Student) => {
-        const scores = student.scores.map((s) => s.value)
+        const scores = student.scores.map((s) => s.score)
         student.totalScore = scores.reduce((sum, score) => sum + score, 0)
         student.averageScore = scores.length > 0 ? student.totalScore / scores.length : 0
     }
@@ -418,11 +428,6 @@ export const useClassStore = defineStore('class', () => {
         }
     }
 
-    // 初始化
-    onMounted(() => {
-        loadFromStorage()
-    })
-
     return {
         // State
         currentSession: readonly(currentSession),
@@ -443,6 +448,7 @@ export const useClassStore = defineStore('class', () => {
         // Actions
         initializeClass,
         addStudent,
+        updateStudent,
         removeStudent,
         addScore,
         createGroup,

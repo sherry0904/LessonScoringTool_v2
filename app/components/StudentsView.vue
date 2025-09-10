@@ -488,10 +488,11 @@ const toggleSelectAll = () => {
 const toggleAttendance = (studentId: string) => {
     const student = classStore.students.find((s) => s.id === studentId)
     if (student) {
-        classStore.updateStudent(studentId, { isPresent: !student.isPresent })
+        const newIsPresent = !student.isPresent
+        classStore.updateStudent(studentId, { isPresent: newIsPresent })
         ui.showSuccess(
             '出席狀態已更新',
-            `${student.name} 已標記為${!student.isPresent ? '出席' : '缺席'}`,
+            `${student.name} 已標記為${newIsPresent ? '出席' : '缺席'}`,
         )
     }
 }

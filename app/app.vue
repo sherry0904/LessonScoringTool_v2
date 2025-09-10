@@ -212,8 +212,10 @@
 
 <script setup lang="ts">
 import { useUIStore } from '~/stores/ui'
+import { useClassStore } from '~/stores/class'
 
 const ui = useUIStore()
+const classStore = useClassStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -246,6 +248,7 @@ const syncFromRoute = () => {
 
 // 初始化
 onMounted(() => {
+    classStore.loadFromStorage()
     ui.initialize()
     syncFromRoute()
 })

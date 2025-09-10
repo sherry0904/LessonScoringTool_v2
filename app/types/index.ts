@@ -4,6 +4,8 @@ export interface Student {
     name: string
     number: string // 座號
     scores: StudentScore[]
+    totalScore: number
+    averageScore: number
     group?: string
     isPresent: boolean
     createdAt: Date

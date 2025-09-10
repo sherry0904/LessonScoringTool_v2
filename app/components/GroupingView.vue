@@ -365,8 +365,11 @@ const ungroupedStudentsCount = computed(() => {
 
 const ungroupedStudents = computed(() => {
     const groupedStudentIds = classStore.groups.flatMap((group) => group.studentIds)
-    // 僅顯示 isPresent 為 true 的學生（presentStudents 已經過濾 isPresent）
-    return classStore.presentStudents.filter((student) => !groupedStudentIds.includes(student.id))
+    const result = classStore.presentStudents.filter(
+        (student) => !groupedStudentIds.includes(student.id),
+    )
+    console.log('[TEST] Ungrouped students in view:', result.map(s => ({ name: s.name, isPresent: s.isPresent })))
+    return result
 })
 
 // 方法

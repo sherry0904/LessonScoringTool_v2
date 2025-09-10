@@ -326,6 +326,7 @@ const groups = ref<Group[]>([])
 const ungroupedStudents = computed(() => {
     return props.classInfo.students.filter(
         (student) =>
+            student.isPresent &&
             !groups.value.some((group) => group.members.some((member) => member.id === student.id)),
     )
 })
@@ -375,7 +376,8 @@ const randomAssignGroups = () => {
         initializeGroups()
 
         // 隨機分配學生
-        const shuffledStudents = [...props.classInfo.students].sort(() => Math.random() - 0.5)
+        const presentStudents = props.classInfo.students.filter((s) => s.isPresent)
+        const shuffledStudents = [...presentStudents].sort(() => Math.random() - 0.5)
         shuffledStudents.forEach((student, index) => {
             const groupIndex = index % groupCount.value
             addStudentToGroup(student.id, groups.value[groupIndex].id)
