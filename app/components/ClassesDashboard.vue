@@ -135,26 +135,6 @@
                                 <span>{{ formatDate(classInfo.updatedAt) }}</span>
                             </div>
                         </div>
-
-                        <!-- 進度條 -->
-                        <div class="mt-4">
-                            <div class="flex justify-between text-xs text-base-content/60 mb-1">
-                                <span>課程進度</span>
-                                <span
-                                    >{{
-                                        Math.round(((classInfo.students || []).length / 30) * 100)
-                                    }}%</span
-                                >
-                            </div>
-                            <div class="w-full bg-base-300 rounded-full h-2">
-                                <div
-                                    class="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
-                                    :style="{
-                                        width: `${Math.min(((classInfo.students || []).length / 30) * 100, 100)}%`,
-                                    }"
-                                ></div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- 快速操作按鈕 -->

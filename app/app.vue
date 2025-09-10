@@ -85,7 +85,10 @@
                                 :title="!ui.isSidebarOpen ? tab.label : ''"
                             >
                                 <LucideIcon :name="tab.icon" class="w-5 h-5 shrink-0" />
-                                <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">
+                                <span
+                                    v-if="ui.isSidebarOpen"
+                                    class="ml-3 font-medium whitespace-nowrap"
+                                >
                                     {{ tab.label }}
                                 </span>
                             </NuxtLink>
@@ -251,9 +254,12 @@ onUnmounted(() => {
     ui.cleanup()
 })
 
-watch(() => route.path, () => {
-    syncFromRoute()
-})
+watch(
+    () => route.path,
+    () => {
+        syncFromRoute()
+    },
+)
 
 // Toast 圖示映射
 const getToastIcon = (type: string) => {

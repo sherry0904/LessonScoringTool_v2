@@ -6,66 +6,42 @@
                 <div class="flex flex-wrap gap-4 items-center">
                     <div class="form-control">
                         <label class="label">
-                            <span class="label-text">評分類別</span>
-                        </label>
-                        <select v-model="selectedCategory" class="select select-bordered">
-                            <option
-                                v-for="category in scoreCategories"
-                                :key="category.id"
-                                :value="category.id"
-                            >
-                                {{ category.name }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">評分原因</span>
-                        </label>
-                        <input
-                            v-model="scoreReason"
-                            type="text"
-                            placeholder="選填：記錄評分原因"
-                            class="input input-bordered"
-                        />
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label">
                             <span class="label-text">快速加分</span>
                         </label>
-                        <div class="btn-group">
+                        <div class="flex flex-wrap gap-2">
                             <button
                                 v-for="score in quickScores"
                                 :key="score"
-                                :class="['btn btn-sm', score > 0 ? 'btn-success' : 'btn-error']"
-                                @click="selectedScore = score"
+                                @click="applyQuickScore(score)"
+                                :class="[
+                                    'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/40',
+                                    score === selectedScore
+                                        ? score > 0
+                                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow'
+                                            : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow'
+                                        : score > 0
+                                          ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40'
+                                          : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40',
+                                ]"
+                                :title="
+                                    selectedStudents.length
+                                        ? '立即對選取學生套用'
+                                        : '設定批量評分預設分數'
+                                "
                             >
                                 {{ score > 0 ? '+' : '' }}{{ score }}
                             </button>
                         </div>
-                    </div>
-
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">自訂分數</span>
-                        </label>
-                        <input
-                            v-model.number="selectedScore"
-                            type="number"
-                            placeholder="分數"
-                            class="input input-bordered w-20"
-                            min="-10"
-                            max="10"
-                        />
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- 學生列表 -->
-        <div class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+            class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 transition-all"
+            :class="selectedStudents.length ? 'pb-32' : ''"
+        >
             <div
                 v-for="student in classInfo.students"
                 :key="student.id"
@@ -122,36 +98,39 @@
 
                     <!-- 分數統計 -->
                     <div class="space-y-2 mb-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-base-content/70">總分</span>
+                        <div class="flex justify-between items-center group">
+                            <span class="text-sm text-base-content/70 flex items-center gap-1"
+                                >總分</span
+                            >
                             <span class="font-bold text-lg text-primary">
                                 {{ student.totalScore }}
                             </span>
                         </div>
-                        <div class="flex justify-between items-center">
+                        <div
+                            class="flex justify-between items-center"
+                            title="平均 = 總分 / 記錄次數 (四捨五入到 0.1)"
+                        >
                             <span class="text-sm text-base-content/70">平均</span>
-                            <span class="text-sm">
-                                {{ student.averageScore.toFixed(1) }}
-                            </span>
+                            <span class="text-sm">{{ student.averageScore.toFixed(1) }}</span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-base-content/70">記錄數</span>
-                            <span class="text-sm">
-                                {{ student.scores.length }}
-                            </span>
-                        </div>
+                        <!-- 記錄數暫時隱藏 -->
                     </div>
 
                     <!-- 出席狀態 -->
                     <div class="flex justify-between items-center">
-                        <div
-                            :class="[
-                                'badge badge-sm',
-                                student.isPresent ? 'badge-success' : 'badge-error',
-                            ]"
-                        >
-                            {{ student.isPresent ? '出席' : '缺席' }}
-                        </div>
+                        <label class="flex items-center gap-2 select-none">
+                            <input
+                                type="checkbox"
+                                :checked="student.isPresent"
+                                @change.stop="togglePresence(student.id)"
+                                class="toggle toggle-success toggle-sm"
+                                :aria-checked="student.isPresent ? 'true' : 'false'"
+                                :aria-label="student.isPresent ? '標記缺席' : '標記出席'"
+                            />
+                            <span class="text-xs font-medium" :class="student.isPresent ? 'text-green-600' : 'text-gray-400'">
+                                {{ student.isPresent ? '出席' : '缺席' }}
+                            </span>
+                        </label>
 
                         <!-- 快速評分按鈕 -->
                         <div class="flex gap-1">
@@ -170,30 +149,6 @@
                                 -1
                             </button>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 批量操作面板 -->
-        <div
-            v-if="selectedStudents.length > 0"
-            class="fixed bottom-6 left-1/2 transform -translate-x-1/2"
-        >
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body p-4">
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm"> 已選擇 {{ selectedStudents.length }} 位學生 </span>
-                        <button
-                            @click="batchScore"
-                            class="btn btn-primary btn-sm"
-                            :disabled="!selectedScore"
-                        >
-                            批量評分 {{ selectedScore > 0 ? '+' : '' }}{{ selectedScore }}
-                        </button>
-                        <button @click="clearSelection" class="btn btn-ghost btn-sm">
-                            取消選擇
-                        </button>
                     </div>
                 </div>
             </div>
@@ -220,11 +175,7 @@
                                 >
                                     {{ score.value > 0 ? '+' : '' }}{{ score.value }}
                                 </span>
-                                <span class="font-medium">{{ score.categoryName }}</span>
                             </div>
-                            <p v-if="score.reason" class="text-sm text-base-content/70 mt-1">
-                                {{ score.reason }}
-                            </p>
                         </div>
                         <div class="text-right">
                             <div class="text-sm text-base-content/70">
@@ -240,10 +191,11 @@
                     <button @click="closeHistoryModal" class="btn btn-ghost">關閉</button>
                 </div>
             </div>
-            <form method="dialog" class="modal-backdrop">
-                <button @click="closeHistoryModal">close</button>
-            </form>
         </dialog>
+        <!-- 補上缺失的結尾 div -->
+        <form method="dialog" class="modal-backdrop">
+            <button @click="closeHistoryModal">close</button>
+        </form>
     </div>
 </template>
 
@@ -261,20 +213,11 @@ const classesStore = useClassesStore()
 const historyModal = ref<HTMLDialogElement>()
 
 // State
-const selectedCategory = ref('participation')
-const scoreReason = ref('')
-const selectedScore = ref(1)
+const selectedScore = ref<number | null>(1)
 const selectedStudents = ref<string[]>([])
 const viewingStudent = ref<Student | null>(null)
 
 const quickScores = [3, 2, 1, -1, -2, -3]
-
-const scoreCategories = [
-    { id: 'participation', name: '參與度' },
-    { id: 'homework', name: '作業' },
-    { id: 'behavior', name: '行為表現' },
-    { id: 'creativity', name: '創意思考' },
-]
 
 // Methods
 const toggleStudentSelection = (studentId: string) => {
@@ -291,38 +234,34 @@ const clearSelection = () => {
 }
 
 const quickScore = (studentId: string, score: number) => {
-    addScoreToStudent(studentId, score, selectedCategory.value, scoreReason.value)
+    // 單人卡片快速加分
+    addScoreToStudent(studentId, score)
+}
+
+// 上方面板快速加分按鈕邏輯：若已選學生，直接批量套用；否則僅設定選擇分數供底部批量面板使用
+const applyQuickScore = (score: number) => {
+    if (selectedStudents.value.length > 0) {
+        selectedStudents.value.forEach((id) => addScoreToStudent(id, score))
+    } else {
+        selectedScore.value = score
+    }
 }
 
 const batchScore = () => {
-    if (!selectedScore.value) return
-
-    selectedStudents.value.forEach((studentId) => {
-        addScoreToStudent(studentId, selectedScore.value, selectedCategory.value, scoreReason.value)
-    })
-
+    if (selectedStudents.value.length === 0 || selectedScore.value === null) return
+    selectedStudents.value.forEach((studentId) =>
+        addScoreToStudent(studentId, selectedScore.value as number),
+    )
     clearSelection()
-    scoreReason.value = ''
 }
 
-const addScoreToStudent = (
-    studentId: string,
-    score: number,
-    categoryId: string,
-    reason: string,
-) => {
+const addScoreToStudent = (studentId: string, score: number) => {
     const student = props.classInfo.students.find((s) => s.id === studentId)
     if (!student) return
-
-    const category = scoreCategories.find((c) => c.id === categoryId)
-    if (!category) return
 
     const newScore = {
         id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         value: score,
-        categoryId,
-        categoryName: category.name,
-        reason: reason || '',
         timestamp: new Date(),
     }
 
@@ -334,6 +273,7 @@ const addScoreToStudent = (
 const updateStudentStats = (student: Student) => {
     const scores = student.scores.map((s) => s.value)
     student.totalScore = scores.reduce((sum, score) => sum + score, 0)
+    // 平均 = 總分 / 記錄次數（若無記錄則為 0）
     student.averageScore = scores.length > 0 ? student.totalScore / scores.length : 0
 }
 

@@ -365,6 +365,7 @@ const ungroupedStudentsCount = computed(() => {
 
 const ungroupedStudents = computed(() => {
     const groupedStudentIds = classStore.groups.flatMap((group) => group.studentIds)
+    // 僅顯示 isPresent 為 true 的學生（presentStudents 已經過濾 isPresent）
     return classStore.presentStudents.filter((student) => !groupedStudentIds.includes(student.id))
 })
 
@@ -431,7 +432,11 @@ const editGroup = (group: Group) => {
 
 const saveGroup = () => {
     if (editingGroup.value) {
-        // 更新群組 (需要在 store 中實作)
+        classStore.updateGroup({
+            ...editingGroup.value,
+            name: groupForm.value.name,
+            color: groupForm.value.color,
+        })
         ui.showSuccess('群組已更新', `${groupForm.value.name} 已更新`)
     } else {
         classStore.createGroup({
@@ -471,21 +476,7 @@ const addStudentToGroup = (studentId: string, groupId: string) => {
 const removeStudentFromGroup = (studentId: string, groupId: string) => {
     const student = getStudent(studentId)
     if (student && confirm(`確定要將 ${student.name} 移出群組嗎？`)) {
-        // 從群組中移除學生 (需要在 store 中實作這個方法)
-        const group = classStore.groups.find((g) => g.id === groupId)
-        if (group) {
-            const index = group.studentIds.indexOf(studentId)
-            if (index > -1) {
-                group.studentIds.splice(index, 1)
-            }
-
-            // 更新學生的群組資訊
-            const studentObj = classStore.students.find((s) => s.id === studentId)
-            if (studentObj) {
-                studentObj.group = undefined
-            }
-        }
-
+        classStore.removeStudentFromGroup(studentId, groupId)
         ui.showSuccess('學生已移出', `${student.name} 已移出群組`)
     }
 }

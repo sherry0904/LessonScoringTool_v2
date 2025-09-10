@@ -41,19 +41,14 @@ export const useClassStore = defineStore('class', () => {
     })
 
     // Computed
+    const groupedStudentIds = computed(() => new Set(groups.value.flatMap(g => g.studentIds)))
+
     const studentsInGroups = computed(() => {
-        return students.value.filter((student) =>
-            groups.value.some((group) => group.members.some((member) => member.id === student.id)),
-        )
+        return students.value.filter(student => groupedStudentIds.value.has(student.id))
     })
 
     const ungroupedStudents = computed(() => {
-        return students.value.filter(
-            (student) =>
-                !groups.value.some((group) =>
-                    group.members.some((member) => member.id === student.id),
-                ),
-        )
+        return students.value.filter(student => !groupedStudentIds.value.has(student.id))
     })
 
     const totalStudents = computed(() => students.value.length)
@@ -94,7 +89,7 @@ export const useClassStore = defineStore('class', () => {
             students.value.splice(index, 1)
             // 從所有群組中移除此學生
             groups.value.forEach((group) => {
-                group.members = group.members.filter((member) => member.id !== studentId)
+                group.studentIds = group.studentIds.filter((id) => id !== studentId)
             })
             saveToStorage()
         }
@@ -131,15 +126,14 @@ export const useClassStore = defineStore('class', () => {
         student.averageScore = scores.length > 0 ? student.totalScore / scores.length : 0
     }
 
-    const createGroup = (name: string) => {
+    const createGroup = (options: { name: string, color: string }) => {
         const newGroup: Group = {
             id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: name.trim(),
-            members: [],
-            totalScore: 0,
-            averageScore: 0,
+            name: options.name.trim(),
+            color: options.color,
+            studentIds: [],
             createdAt: new Date(),
-            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+            isActive: true,
         }
         groups.value.push(newGroup)
         saveToStorage()
@@ -154,7 +148,15 @@ export const useClassStore = defineStore('class', () => {
         }
     }
 
-    const addStudentToGroup = (studentId: string, groupId: string) => {
+    const updateGroup = (group: Group) => {
+        const index = groups.value.findIndex((g) => g.id === group.id)
+        if (index > -1) {
+            groups.value[index] = group
+            saveToStorage()
+        }
+    }
+
+    const assignStudentToGroup = (studentId: string, groupId: string) => {
         const student = students.value.find((s) => s.id === studentId)
         const group = groups.value.find((g) => g.id === groupId)
 
@@ -162,12 +164,21 @@ export const useClassStore = defineStore('class', () => {
 
         // 從其他群組移除該學生
         groups.value.forEach((g) => {
-            g.members = g.members.filter((member) => member.id !== studentId)
+            if (g.id !== groupId) {
+                g.studentIds = g.studentIds.filter((id) => id !== studentId)
+            }
         })
 
         // 加入新群組
-        group.members.push({ ...student })
-        updateGroupStats(group)
+        if (!group.studentIds.includes(studentId)) {
+            group.studentIds.push(studentId)
+        }
+        
+        const studentToUpdate = students.value.find(s => s.id === studentId)
+        if(studentToUpdate) {
+            studentToUpdate.group = group.name
+        }
+
         saveToStorage()
         return true
     }
@@ -175,19 +186,13 @@ export const useClassStore = defineStore('class', () => {
     const removeStudentFromGroup = (studentId: string, groupId: string) => {
         const group = groups.value.find((g) => g.id === groupId)
         if (group) {
-            group.members = group.members.filter((member) => member.id !== studentId)
-            updateGroupStats(group)
+            group.studentIds = group.studentIds.filter((id) => id !== studentId)
+            const studentToUpdate = students.value.find(s => s.id === studentId)
+            if(studentToUpdate) {
+                studentToUpdate.group = undefined
+            }
             saveToStorage()
         }
-    }
-
-    const updateGroupStats = (group: Group) => {
-        const memberIds = group.members.map((m) => m.id)
-        const groupStudents = students.value.filter((s) => memberIds.includes(s.id))
-
-        const totalScores = groupStudents.reduce((sum, student) => sum + student.totalScore, 0)
-        group.totalScore = totalScores
-        group.averageScore = groupStudents.length > 0 ? totalScores / groupStudents.length : 0
     }
 
     const startGrouping = () => {
@@ -206,26 +211,24 @@ export const useClassStore = defineStore('class', () => {
     }
 
     const randomAssignGroups = (groupCount: number) => {
-        if (groupCount <= 0 || students.value.length === 0) return
+        if (groupCount <= 0 || presentStudents.value.length === 0) return
 
         // 清空現有群組
-        groups.value = []
+        groups.value.forEach(group => removeGroup(group.id))
+
+        const groupColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899']
 
         // 創建指定數量的群組
         for (let i = 1; i <= groupCount; i++) {
-            createGroup(`第 ${i} 組`)
+            createGroup({ name: `第 ${i} 組`, color: groupColors[i % groupColors.length] })
         }
 
         // 隨機分配學生
-        const shuffledStudents = [...students.value].sort(() => Math.random() - 0.5)
+        const shuffledStudents = [...presentStudents.value].sort(() => Math.random() - 0.5)
         shuffledStudents.forEach((student, index) => {
             const groupIndex = index % groupCount
-            addStudentToGroup(student.id, groups.value[groupIndex].id)
+            assignStudentToGroup(student.id, groups.value[groupIndex].id)
         })
-    }
-
-    const assignStudentToGroup = (studentId: string, groupId: string) => {
-        return addStudentToGroup(studentId, groupId)
     }
 
     const getStudentStats = (studentId: string): StudentStats | null => {
@@ -444,11 +447,11 @@ export const useClassStore = defineStore('class', () => {
         addScore,
         createGroup,
         removeGroup,
-        addStudentToGroup,
+        updateGroup,
+        assignStudentToGroup,
         removeStudentFromGroup,
         startGrouping,
         endGrouping,
-        assignStudentToGroup,
         randomAssignGroups,
         getStudentStats,
         getClassStats,

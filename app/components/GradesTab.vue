@@ -107,7 +107,7 @@
                                 <th>姓名</th>
                                 <th>總分</th>
                                 <th>平均分</th>
-                                <th>記錄數</th>
+                                <!-- 記錄數欄隱藏 -->
                                 <th v-if="!filterCategory">各類別分數</th>
                                 <th v-else>{{ getCategoryName(filterCategory) }}</th>
                                 <th>趨勢</th>
@@ -142,7 +142,7 @@
                                     <span class="font-bold text-lg">{{ student.totalScore }}</span>
                                 </td>
                                 <td>{{ student.averageScore.toFixed(1) }}</td>
-                                <td>{{ student.scores.length }}</td>
+                                <!-- 記錄數欄位隱藏 -->
                                 <td>
                                     <div v-if="!filterCategory" class="flex flex-wrap gap-1">
                                         <div
@@ -627,10 +627,10 @@ const exportGradeReport = () => {
         `及格率：${passRate.value}%`,
         '',
         '學生成績：',
-        '排名\t座號\t姓名\t總分\t平均分\t記錄數',
+        '排名\t座號\t姓名\t總分\t平均分',
         ...sortedStudents.value.map(
             (student, index) =>
-                `${index + 1}\t${student.id}\t${student.name}\t${student.totalScore}\t${student.averageScore.toFixed(1)}\t${student.scores.length}`,
+                `${index + 1}\t${student.id}\t${student.name}\t${student.totalScore}\t${student.averageScore.toFixed(1)}`,
         ),
     ].join('\n')
 
