@@ -50,6 +50,9 @@ import {
     ArrowLeft,
     Edit2,
     Edit3,
+    ChevronsLeft,
+    ChevronsRight,
+    MoreVertical,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -103,6 +106,9 @@ const iconMap = {
     ArrowLeft: ArrowLeft,
     Edit2: Edit2,
     Edit3: Edit3,
+    ChevronsLeft: ChevronsLeft,
+    ChevronsRight: ChevronsRight,
+    MoreVertical: MoreVertical,
 }
 
 const iconComponent = computed(() => {

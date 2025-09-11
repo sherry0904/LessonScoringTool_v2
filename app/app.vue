@@ -97,7 +97,7 @@
                 </nav>
 
                 <!-- 底部工具 -->
-                <div class="absolute bottom-4 left-2 right-2">
+                <div class="absolute bottom-4 left-2" :class="ui.isSidebarOpen ? 'right-2' : ''">
                     <div class="space-y-2 flex flex-col items-start">
                         <!-- 主題切換 -->
                         <button
@@ -212,10 +212,10 @@
 
 <script setup lang="ts">
 import { useUIStore } from '~/stores/ui'
-import { useClassStore } from '~/stores/class'
+import { useClassesStore } from '~/stores/classes'
 
 const ui = useUIStore()
-const classStore = useClassStore()
+const classesStore = useClassesStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -248,9 +248,12 @@ const syncFromRoute = () => {
 
 // 初始化
 onMounted(() => {
-    classStore.loadFromStorage()
+    ui.setLoading(true)
+    classesStore.loadFromStorage()
     ui.initialize()
     syncFromRoute()
+    // A short delay to prevent flash of loading screen on fast loads
+    setTimeout(() => ui.setLoading(false), 200)
 })
 
 onUnmounted(() => {

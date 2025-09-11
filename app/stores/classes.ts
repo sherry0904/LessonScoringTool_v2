@@ -179,6 +179,58 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
+    const updateGroups = (classId: string, groups: Group[]) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (classData) {
+            classData.groups = groups
+            classData.updatedAt = new Date()
+            saveToStorage()
+        }
+    }
+
+    const addScoreToGroup = (classId: string, groupId: string, score: number) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return
+
+        const group = classData.groups.find((g) => g.id === groupId)
+        if (!group) return
+
+        group.members.forEach((member) => {
+            const student = classData.students.find((s) => s.id === member.id)
+            if (student) {
+                const newScore: StudentScore = {
+                    id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    value: score,
+                    categoryId: 'group',
+                    categoryName: '小組活動',
+                    reason: `${group.name} 小組評分`,
+                    timestamp: new Date(),
+                }
+                student.scores.push(newScore)
+                _updateStudentStats(student)
+            }
+        })
+
+        _updateGroupStats(group, classData.students)
+        saveToStorage()
+    }
+
+    // Private helpers
+    const _updateStudentStats = (student: Student) => {
+        const scores = student.scores.map((s) => s.value)
+        student.totalScore = scores.reduce((sum, score) => sum + score, 0)
+        student.averageScore = scores.length > 0 ? student.totalScore / scores.length : 0
+    }
+
+    const _updateGroupStats = (group: Group, allStudents: Student[]) => {
+        const memberIds = group.members.map((m) => m.id)
+        const groupStudents = allStudents.filter((s) => memberIds.includes(s.id))
+
+        const totalScores = groupStudents.reduce((sum, student) => sum + student.totalScore, 0)
+        group.totalScore = totalScores
+        group.averageScore = groupStudents.length > 0 ? totalScores / groupStudents.length : 0
+    }
+
     const parseStudentsInput = (input: string): Student[] => {
         const trimmedInput = input.trim()
 
@@ -222,6 +274,7 @@ export const useClassesStore = defineStore('classes', () => {
     }
 
     const saveToStorage = () => {
+        if (!process.client) return
         try {
             const data = {
                 classes: classes.value,
@@ -235,6 +288,7 @@ export const useClassesStore = defineStore('classes', () => {
     }
 
     const loadFromStorage = () => {
+        if (!process.client) return
         try {
             const saved = localStorage.getItem('classes-data')
             if (saved) {
@@ -308,6 +362,8 @@ export const useClassesStore = defineStore('classes', () => {
         updateHomeworkStatus,
         startClassGrouping,
         endClassGrouping,
+        updateGroups,
+        addScoreToGroup,
         saveToStorage,
         loadFromStorage,
         exportAllClasses,

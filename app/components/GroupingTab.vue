@@ -7,7 +7,7 @@
                     <div class="flex flex-wrap gap-4 items-center">
                         <!-- 組數控制 -->
                         <div class="form-control">
-                            <label class="label">
+                            <label class="label mr-2">
                                 <span class="label-text">組數</span>
                             </label>
                             <input
@@ -78,171 +78,207 @@
         </div>
 
         <!-- 分組容器 -->
-        <div class="grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-            <!-- 未分組學生 -->
-            <div class="card bg-base-100 shadow-sm">
-                <div class="card-body">
-                    <h3 class="card-title text-base mb-4 flex items-center">
-                        <LucideIcon name="Users" class="w-5 h-5 mr-2" />
-                        未分組學生
-                        <span class="badge badge-neutral ml-2">{{ ungroupedStudents.length }}</span>
-                    </h3>
+        <div class="flex gap-6 h-[calc(100vh-220px)]">
+            <!-- Left Panel: Ungrouped Students -->
+            <aside
+                :class="[
+                    'transition-all duration-300 flex-shrink-0',
+                    isUngroupedCollapsed ? 'w-20' : 'w-80',
+                ]"
+            >
+                <div class="card bg-base-100 shadow-sm h-full flex flex-col">
+                    <div class="card-body flex flex-col h-full">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3
+                                v-if="!isUngroupedCollapsed"
+                                class="card-title text-base flex items-center whitespace-nowrap"
+                            >
+                                <LucideIcon name="Users" class="w-5 h-5 mr-2" />
+                                未分組學生
+                                <span class="badge badge-neutral ml-2"
+                                    >{{ ungroupedStudents.length }} 人</span
+                                >
+                            </h3>
+                            <button
+                                @click="isUngroupedCollapsed = !isUngroupedCollapsed"
+                                class="btn btn-ghost btn-sm btn-circle"
+                                :title="isUngroupedCollapsed ? '展開' : '收合'"
+                            >
+                                <LucideIcon
+                                    :name="isUngroupedCollapsed ? 'ChevronsRight' : 'ChevronsLeft'"
+                                    class="w-4 h-4"
+                                />
+                            </button>
+                        </div>
 
-                    <div
-                        class="min-h-40 p-3 border-2 border-dashed border-base-300 rounded-lg space-y-2"
-                        @drop="handleDrop('unassigned')"
-                        @dragover.prevent
-                        @dragenter.prevent
-                    >
                         <div
-                            v-for="student in ungroupedStudents"
-                            :key="student.id"
-                            :class="[
-                                'p-3 bg-base-200 rounded-lg cursor-move hover:bg-base-300 transition-colors',
-                                'flex justify-between items-center',
-                            ]"
-                            draggable="true"
-                            @dragstart="handleDragStart(student.id)"
+                            v-if="!isUngroupedCollapsed"
+                            class="flex-1 overflow-y-auto space-y-2 p-1"
+                            @drop="handleDrop('unassigned')"
+                            @dragover.prevent
+                            @dragenter.prevent
                         >
-                            <div>
-                                <div class="font-medium">{{ student.name }}</div>
-                                <div class="text-sm text-base-content/70">
-                                    座號 {{ student.id }}
+                            <div
+                                v-for="student in ungroupedStudents"
+                                :key="student.id"
+                                :class="[
+                                    'p-3 bg-base-200 rounded-lg cursor-move hover:bg-base-300 transition-colors',
+                                    'flex justify-between items-center',
+                                ]"
+                                draggable="true"
+                                @dragstart="handleDragStart(student.id)"
+                            >
+                                <div>
+                                    <div class="font-medium">{{ student.name }}</div>
+                                    <div class="text-sm text-base-content/70">
+                                        座號 {{ student.id }}
+                                    </div>
+                                </div>
+                                <div class="text-sm font-semibold text-primary">
+                                    {{ student.totalScore }}分
                                 </div>
                             </div>
-                            <div class="text-sm font-semibold text-primary">
-                                {{ student.totalScore }}分
-                            </div>
-                        </div>
 
-                        <div
-                            v-if="ungroupedStudents.length === 0"
-                            class="text-center text-base-content/50 py-8"
-                        >
-                            所有學生都已分組
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 各組 -->
-            <div v-for="group in groups" :key="group.id" class="card bg-base-100 shadow-sm">
-                <div class="card-body">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="card-title text-base flex items-center">
                             <div
-                                class="w-4 h-4 rounded-full mr-2"
-                                :style="{ backgroundColor: group.color }"
-                            ></div>
-                            {{ group.name }}
-                            <span class="badge badge-neutral ml-2">{{ group.members.length }}</span>
-                        </h3>
-
-                        <div class="dropdown dropdown-end">
-                            <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
-                                <LucideIcon name="MoreVertical" class="w-4 h-4" />
-                            </div>
-                            <ul
-                                tabindex="0"
-                                class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
+                                v-if="ungroupedStudents.length === 0"
+                                class="text-center text-base-content/50 py-8"
                             >
-                                <li>
-                                    <a @click="editGroupName(group.id)">
-                                        <LucideIcon name="Edit" class="w-4 h-4" />
-                                        編輯組名
-                                    </a>
-                                </li>
-                                <li>
-                                    <a @click="addGroupScore(group.id, 1)" class="text-success">
-                                        <LucideIcon name="Plus" class="w-4 h-4" />
-                                        加 1 分
-                                    </a>
-                                </li>
-                                <li>
-                                    <a @click="addGroupScore(group.id, -1)" class="text-error">
-                                        <LucideIcon name="Minus" class="w-4 h-4" />
-                                        扣 1 分
-                                    </a>
-                                </li>
-                                <li>
-                                    <a @click="deleteGroup(group.id)" class="text-error">
-                                        <LucideIcon name="Trash2" class="w-4 h-4" />
-                                        刪除組別
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- 組別總分 -->
-                    <div class="stats shadow mb-3">
-                        <div class="stat py-2">
-                            <div class="stat-title text-xs">總分</div>
-                            <div class="stat-value text-lg text-primary">
-                                {{ group.totalScore }}
+                                所有學生都已分組
                             </div>
                         </div>
-                        <div class="stat py-2">
-                            <div class="stat-title text-xs">平均</div>
-                            <div class="stat-value text-lg">
-                                {{ group.averageScore.toFixed(1) }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 組員列表 -->
-                    <div
-                        class="min-h-32 p-3 border-2 border-dashed border-base-300 rounded-lg space-y-2"
-                        @drop="handleDrop(group.id)"
-                        @dragover.prevent
-                        @dragenter.prevent
-                    >
-                        <div
-                            v-for="member in group.members"
-                            :key="member.id"
-                            :class="[
-                                'p-2 bg-base-200 rounded cursor-move hover:bg-base-300 transition-colors',
-                                'flex justify-between items-center',
-                            ]"
-                            draggable="true"
-                            @dragstart="handleDragStart(member.id)"
-                        >
-                            <div>
-                                <div class="font-medium text-sm">{{ member.name }}</div>
-                                <div class="text-xs text-base-content/70">{{ member.id }}</div>
-                            </div>
-                            <div class="text-xs font-semibold text-primary">
-                                {{ member.totalScore }}分
-                            </div>
-                        </div>
-
-                        <div
-                            v-if="group.members.length === 0"
-                            class="text-center text-base-content/50 py-4 text-sm"
-                        >
-                            拖拽學生到此組
-                        </div>
-                    </div>
-
-                    <!-- 快速評分 -->
-                    <div class="flex gap-2 mt-3">
-                        <button
-                            @click="addGroupScore(group.id, 1)"
-                            class="btn btn-success btn-xs flex-1"
-                            :disabled="!classInfo.groupingActive"
-                        >
-                            +1
-                        </button>
-                        <button
-                            @click="addGroupScore(group.id, -1)"
-                            class="btn btn-error btn-xs flex-1"
-                            :disabled="!classInfo.groupingActive"
-                        >
-                            -1
-                        </button>
                     </div>
                 </div>
-            </div>
+            </aside>
+
+            <!-- Right Panel: Groups -->
+            <main
+                class="flex-1 grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 content-start overflow-y-auto"
+            >
+                <!-- 各組 -->
+                <div v-for="group in groups" :key="group.id" class="card bg-base-100 shadow-sm">
+                    <div class="card-body">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="card-title text-base flex items-center">
+                                <div
+                                    class="w-4 h-4 rounded-full mr-2"
+                                    :style="{ backgroundColor: group.color }"
+                                ></div>
+                                {{ group.name }}
+                                <span class="badge badge-neutral ml-2"
+                                    >{{ group.members.length }} 人</span
+                                >
+                            </h3>
+
+                            <div class="dropdown dropdown-end">
+                                <div
+                                    tabindex="0"
+                                    role="button"
+                                    class="btn btn-ghost btn-sm btn-circle"
+                                >
+                                    <LucideIcon name="MoreVertical" class="w-4 h-4" />
+                                </div>
+                                <ul
+                                    tabindex="0"
+                                    class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
+                                >
+                                    <li>
+                                        <a @click="editGroupName(group.id)">
+                                            <LucideIcon name="Edit" class="w-4 h-4" />
+                                            編輯組名
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a @click="addGroupScore(group.id, 1)" class="text-success">
+                                            <LucideIcon name="Plus" class="w-4 h-4" />
+                                            加 1 分
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a @click="addGroupScore(group.id, -1)" class="text-error">
+                                            <LucideIcon name="Minus" class="w-4 h-4" />
+                                            扣 1 分
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a @click="deleteGroup(group.id)" class="text-error">
+                                            <LucideIcon name="Trash2" class="w-4 h-4" />
+                                            刪除組別
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- 組別總分 -->
+                        <div class="stats shadow mb-3">
+                            <div class="stat py-2">
+                                <div class="stat-title text-xs">總分</div>
+                                <div class="stat-value text-lg text-primary">
+                                    {{ group.totalScore }}
+                                </div>
+                            </div>
+                            <div class="stat py-2">
+                                <div class="stat-title text-xs">平均</div>
+                                <div class="stat-value text-lg">
+                                    {{ group.averageScore.toFixed(1) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 組員列表 -->
+                        <div
+                            class="min-h-32 p-3 border-2 border-dashed border-base-300 rounded-lg space-y-2"
+                            @drop="handleDrop(group.id)"
+                            @dragover.prevent
+                            @dragenter.prevent
+                        >
+                            <div
+                                v-for="member in group.members"
+                                :key="member.id"
+                                :class="[
+                                    'p-2 bg-base-200 rounded cursor-move hover:bg-base-300 transition-colors',
+                                    'flex justify-between items-center',
+                                ]"
+                                draggable="true"
+                                @dragstart="handleDragStart(member.id)"
+                            >
+                                <div>
+                                    <div class="font-medium text-sm">{{ member.name }}</div>
+                                    <div class="text-xs text-base-content/70">{{ member.id }}</div>
+                                </div>
+                                <div class="text-xs font-semibold text-primary">
+                                    {{ member.totalScore }}分
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="group.members.length === 0"
+                                class="text-center text-base-content/50 py-4 text-sm"
+                            >
+                                拖拽學生到此組
+                            </div>
+                        </div>
+
+                        <!-- 快速評分 -->
+                        <div class="flex gap-2 mt-3">
+                            <button
+                                @click="addGroupScore(group.id, 1)"
+                                class="btn btn-success btn-xs flex-1"
+                                :disabled="!classInfo.groupingActive"
+                            >
+                                +1
+                            </button>
+                            <button
+                                @click="addGroupScore(group.id, -1)"
+                                class="btn btn-error btn-xs flex-1"
+                                :disabled="!classInfo.groupingActive"
+                            >
+                                -1
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
 
         <!-- 積分儀表板模態 -->
@@ -306,6 +342,20 @@
 
 <script setup lang="ts">
 import type { ClassInfo, Student, Group } from '~/types'
+import { ref, computed, watchEffect } from 'vue'
+
+// Helper function for debouncing
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+    let timeout: ReturnType<typeof setTimeout> | null = null
+    return function(this: ThisParameterType<T>, ...args: Parameters<T>) {
+        if (timeout) {
+            clearTimeout(timeout)
+        }
+        timeout = setTimeout(() => {
+            func.apply(this, args)
+        }, wait)
+    }
+}
 
 interface Props {
     classInfo: ClassInfo
@@ -318,32 +368,40 @@ const classesStore = useClassesStore()
 const scoreboardModal = ref<HTMLDialogElement>()
 
 // State
-const groupCount = ref(4)
+const groupCount = ref(props.classInfo.groupCount || 4)
 const draggedStudentId = ref<string | null>(null)
-const groups = ref<Group[]>([])
+const localGroups = ref<Group[]>([])
+const isUngroupedCollapsed = ref(false)
 
 // Computed
 const ungroupedStudents = computed(() => {
     return props.classInfo.students.filter(
         (student) =>
             student.isPresent &&
-            !groups.value.some((group) => group.members.some((member) => member.id === student.id)),
+            !localGroups.value.some((group) =>
+                group.members.some((member) => member.id === student.id),
+            ),
     )
 })
 
 const sortedGroups = computed(() => {
-    return [...groups.value].sort((a, b) => b.totalScore - a.totalScore)
+    return [...localGroups.value].sort((a, b) => b.totalScore - a.totalScore)
 })
 
 // Methods
+const persistGroups = debounce(() => {
+    classesStore.updateGroups(props.classInfo.id, localGroups.value)
+}, 500)
+
 const initializeGroups = () => {
-    groups.value = []
+    localGroups.value = []
     for (let i = 1; i <= groupCount.value; i++) {
-        createGroup(`第 ${i} 組`)
+        createGroup(`第 ${i} 組`, false) // Don't persist for each creation
     }
+    persistGroups()
 }
 
-const createGroup = (name: string) => {
+const createGroup = (name: string, shouldPersist = true) => {
     const newGroup: Group = {
         id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: name.trim(),
@@ -353,7 +411,10 @@ const createGroup = (name: string) => {
         createdAt: new Date(),
         color: generateGroupColor(),
     }
-    groups.value.push(newGroup)
+    localGroups.value.push(newGroup)
+    if (shouldPersist) {
+        persistGroups()
+    }
     return newGroup
 }
 
@@ -368,20 +429,23 @@ const generateGroupColor = () => {
         '#06b6d4',
         '#84cc16',
     ]
-    return colors[groups.value.length % colors.length]
+    return colors[localGroups.value.length % colors.length]
 }
 
 const randomAssignGroups = () => {
     if (confirm('這將重新分配所有學生，確定要繼續嗎？')) {
-        initializeGroups()
+        localGroups.value = []
+        for (let i = 1; i <= groupCount.value; i++) {
+            createGroup(`第 ${i} 組`, false)
+        }
 
-        // 隨機分配學生
         const presentStudents = props.classInfo.students.filter((s) => s.isPresent)
         const shuffledStudents = [...presentStudents].sort(() => Math.random() - 0.5)
         shuffledStudents.forEach((student, index) => {
             const groupIndex = index % groupCount.value
-            addStudentToGroup(student.id, groups.value[groupIndex].id)
+            addStudentToGroup(student.id, localGroups.value[groupIndex].id, false)
         })
+        persistGroups()
     }
 }
 
@@ -401,25 +465,33 @@ const handleDrop = (targetId: string) => {
     draggedStudentId.value = null
 }
 
-const addStudentToGroup = (studentId: string, groupId: string) => {
+const addStudentToGroup = (studentId: string, groupId: string, shouldPersist = true) => {
     const student = props.classInfo.students.find((s) => s.id === studentId)
-    const group = groups.value.find((g) => g.id === groupId)
+    const group = localGroups.value.find((g) => g.id === groupId)
 
     if (!student || !group) return
 
-    // 從其他組移除
-    removeStudentFromGroups(studentId)
+    removeStudentFromGroups(studentId, false) // Don't persist yet
 
-    // 加入新組
     group.members.push({ ...student })
     updateGroupStats(group)
+
+    if (shouldPersist) {
+        persistGroups()
+    }
 }
 
-const removeStudentFromGroups = (studentId: string) => {
-    groups.value.forEach((group) => {
-        group.members = group.members.filter((member) => member.id !== studentId)
-        updateGroupStats(group)
+const removeStudentFromGroups = (studentId: string, shouldPersist = true) => {
+    localGroups.value.forEach((group) => {
+        const memberIndex = group.members.findIndex((member) => member.id === studentId)
+        if (memberIndex > -1) {
+            group.members.splice(memberIndex, 1)
+            updateGroupStats(group)
+        }
     })
+    if (shouldPersist) {
+        persistGroups()
+    }
 }
 
 const updateGroupStats = (group: Group) => {
@@ -432,58 +504,27 @@ const updateGroupStats = (group: Group) => {
 }
 
 const addGroupScore = (groupId: string, score: number) => {
-    const group = groups.value.find((g) => g.id === groupId)
-    if (!group) return
-
-    // 為組內所有成員加分
-    group.members.forEach((member) => {
-        const student = props.classInfo.students.find((s) => s.id === member.id)
-        if (student) {
-            const newScore = {
-                id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                value: score,
-                categoryId: 'group',
-                categoryName: '小組活動',
-                reason: `${group.name}小組評分`,
-                timestamp: new Date(),
-            }
-
-            student.scores.push(newScore)
-            updateStudentStats(student)
-
-            // 更新組內成員的分數
-            const memberIndex = group.members.findIndex((m) => m.id === member.id)
-            if (memberIndex > -1) {
-                group.members[memberIndex] = { ...student }
-            }
-        }
-    })
-
-    updateGroupStats(group)
-    classesStore.saveToStorage()
-}
-
-const updateStudentStats = (student: Student) => {
-    const scores = student.scores.map((s) => s.value)
-    student.totalScore = scores.reduce((sum, score) => sum + score, 0)
-    student.averageScore = scores.length > 0 ? student.totalScore / scores.length : 0
+    if (!props.classInfo.groupingActive) return
+    classesStore.addScoreToGroup(props.classInfo.id, groupId, score)
 }
 
 const editGroupName = (groupId: string) => {
-    const group = groups.value.find((g) => g.id === groupId)
+    const group = localGroups.value.find((g) => g.id === groupId)
     if (!group) return
 
     const newName = prompt('請輸入新的組名：', group.name)
     if (newName && newName.trim()) {
         group.name = newName.trim()
+        persistGroups()
     }
 }
 
 const deleteGroup = (groupId: string) => {
     if (confirm('確定要刪除此組別嗎？組內學生將移至未分組。')) {
-        const groupIndex = groups.value.findIndex((g) => g.id === groupId)
+        const groupIndex = localGroups.value.findIndex((g) => g.id === groupId)
         if (groupIndex > -1) {
-            groups.value.splice(groupIndex, 1)
+            localGroups.value.splice(groupIndex, 1)
+            persistGroups()
         }
     }
 }
@@ -506,25 +547,11 @@ const closeScoreboardModal = () => {
     scoreboardModal.value?.close()
 }
 
-// 初始化
-onMounted(() => {
-    if (groups.value.length === 0) {
-        initializeGroups()
-    }
+// Sync local state with store state
+watchEffect(() => {
+    // Use stringify/parse for a deep copy to avoid mutation issues
+    localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
+    groupCount.value = props.classInfo.groupCount || 4
 })
 
-// 監聽學生變化，更新組內成員數據
-watch(
-    () => props.classInfo.students,
-    () => {
-        groups.value.forEach((group) => {
-            group.members = group.members.map((member) => {
-                const updatedStudent = props.classInfo.students.find((s) => s.id === member.id)
-                return updatedStudent ? { ...updatedStudent } : member
-            })
-            updateGroupStats(group)
-        })
-    },
-    { deep: true },
-)
 </script>

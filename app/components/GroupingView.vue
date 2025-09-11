@@ -92,7 +92,7 @@
             <button @click="openCreateGroupModal" class="btn btn-primary">建立第一個群組</button>
         </div>
 
-        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div v-else class="flex flex-row gap-6 max-h-[80vh]">
             <div
                 v-for="group in classStore.groups"
                 :key="group.id"
@@ -194,13 +194,13 @@
         </div>
 
         <!-- 未分組學生 -->
-        <div v-if="ungroupedStudents.length > 0" class="glass-card p-6 rounded-xl">
+        <div v-if="ungroupedStudents.length > 0" class="glass-card p-6 rounded-xl flex flex-col w-full max-w-xs min-w-[220px] max-h-[80vh]">
             <h3 class="text-lg font-bold text-base-content mb-4">未分組學生</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="flex-1 overflow-y-auto pr-1">
                 <div
                     v-for="student in ungroupedStudents"
                     :key="student.id"
-                    class="flex items-center justify-between p-3 bg-base-200 rounded-lg"
+                    class="flex items-center justify-between p-3 mb-2 bg-base-200 rounded-lg shadow-sm"
                 >
                     <div class="flex items-center space-x-3">
                         <div class="avatar placeholder">
@@ -215,6 +215,7 @@
                             </div>
                         </div>
                     </div>
+                    <span class="text-primary font-bold">{{ student.totalScore }}分</span>
                 </div>
             </div>
         </div>

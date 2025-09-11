@@ -36,6 +36,8 @@ import {
     UserPlus,
     ArrowLeft,
     AlertCircle,
+    ChevronsLeft,
+    ChevronsRight,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -76,4 +78,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideUserPlus', UserPlus)
     nuxtApp.vueApp.component('LucideArrowLeft', ArrowLeft)
     nuxtApp.vueApp.component('LucideAlertCircle', AlertCircle)
+    nuxtApp.vueApp.component('LucideChevronsLeft', ChevronsLeft)
+    nuxtApp.vueApp.component('LucideChevronsRight', ChevronsRight)
 })

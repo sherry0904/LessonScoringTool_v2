@@ -36,17 +36,11 @@ export interface ClassInfo {
     name: string
     students: Student[]
     homeworks: Homework[]
-    groups: GroupInfo[]
+    groups: Group[]
     groupCount: number
     groupingActive: boolean
     createdAt: Date
     updatedAt: Date
-}
-
-export interface GroupInfo {
-    id: number
-    score: number
-    members: string[] // student IDs
 }
 
 export interface Homework {
