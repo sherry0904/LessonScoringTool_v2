@@ -374,16 +374,30 @@
                             <button
                                 @click="addGroupScore(group.id, 1)"
                                 class="btn btn-success flex-1 text-xl h-12 rounded-xl shadow-lg font-bold tracking-wider"
-                                :disabled="!classInfo.groupingActive || getGroupMembers(group).every(m => !m.isPresent)"
-                                :title="getGroupMembers(group).every(m => !m.isPresent) ? '本組全員缺席，無法加分' : ''"
+                                :disabled="
+                                    !classInfo.groupingActive ||
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                "
+                                :title="
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                        ? '本組全員缺席，無法加分'
+                                        : ''
+                                "
                             >
                                 ＋1
                             </button>
                             <button
                                 @click="addGroupScore(group.id, -1)"
                                 class="btn btn-error flex-1 text-xl h-12 rounded-xl shadow-lg font-bold tracking-wider"
-                                :disabled="!classInfo.groupingActive || getGroupMembers(group).every(m => !m.isPresent)"
-                                :title="getGroupMembers(group).every(m => !m.isPresent) ? '本組全員缺席，無法扣分' : ''"
+                                :disabled="
+                                    !classInfo.groupingActive ||
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                "
+                                :title="
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                        ? '本組全員缺席，無法扣分'
+                                        : ''
+                                "
                             >
                                 －1
                             </button>
@@ -392,9 +406,7 @@
                 </div>
 
                 <div class="modal-action flex justify-end">
-                    <button @click="closeScoreboardModal" class="btn btn-ghost">
-                        關閉
-                    </button>
+                    <button @click="closeScoreboardModal" class="btn btn-ghost">關閉</button>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
