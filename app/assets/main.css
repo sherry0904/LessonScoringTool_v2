@@ -95,3 +95,9 @@
         background-color: rgba(var(--bc), 0.3);
     }
 }
+
+/* Ensure Lucide icons have a default color */
+.lucide {
+    fill: currentColor;
+    stroke: currentColor;
+}

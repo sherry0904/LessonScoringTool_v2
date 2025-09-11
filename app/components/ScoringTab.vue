@@ -127,7 +127,10 @@
                                 :aria-checked="student.isPresent ? 'true' : 'false'"
                                 :aria-label="student.isPresent ? '標記缺席' : '標記出席'"
                             />
-                            <span class="text-xs font-medium" :class="student.isPresent ? 'text-green-600' : 'text-gray-400'">
+                            <span
+                                class="text-xs font-medium"
+                                :class="student.isPresent ? 'text-green-600' : 'text-gray-400'"
+                            >
                                 {{ student.isPresent ? '出席' : '缺席' }}
                             </span>
                         </label>

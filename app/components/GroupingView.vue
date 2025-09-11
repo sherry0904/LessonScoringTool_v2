@@ -92,7 +92,7 @@
             <button @click="openCreateGroupModal" class="btn btn-primary">建立第一個群組</button>
         </div>
 
-    <div v-else class="flex flex-row gap-6 max-h-[80vh]">
+        <div v-else class="flex flex-row gap-6 max-h-[80vh]">
             <div
                 v-for="group in classStore.groups"
                 :key="group.id"
@@ -194,7 +194,10 @@
         </div>
 
         <!-- 未分組學生 -->
-        <div v-if="ungroupedStudents.length > 0" class="glass-card p-6 rounded-xl flex flex-col w-full max-w-xs min-w-[220px] max-h-[80vh]">
+        <div
+            v-if="ungroupedStudents.length > 0"
+            class="glass-card p-6 rounded-xl flex flex-col w-full max-w-xs min-w-[220px] max-h-[80vh]"
+        >
             <h3 class="text-lg font-bold text-base-content mb-4">未分組學生</h3>
             <div class="flex-1 overflow-y-auto pr-1">
                 <div
@@ -369,7 +372,10 @@ const ungroupedStudents = computed(() => {
     const result = classStore.presentStudents.filter(
         (student) => !groupedStudentIds.includes(student.id),
     )
-    console.log('[TEST] Ungrouped students in view:', result.map(s => ({ name: s.name, isPresent: s.isPresent })))
+    console.log(
+        '[TEST] Ungrouped students in view:',
+        result.map((s) => ({ name: s.name, isPresent: s.isPresent })),
+    )
     return result
 })
 

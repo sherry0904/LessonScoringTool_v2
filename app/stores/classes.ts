@@ -195,9 +195,13 @@ export const useClassesStore = defineStore('classes', () => {
         const group = classData.groups.find((g) => g.id === groupId)
         if (!group) return
 
+        // 1. 組別總分直接加分（獨立計算）
+        group.totalScore += score
+
+        // 2. 只為出席的組員加分
         group.members.forEach((member) => {
             const student = classData.students.find((s) => s.id === member.id)
-            if (student) {
+            if (student && student.isPresent) {
                 const newScore: StudentScore = {
                     id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     value: score,
@@ -211,7 +215,6 @@ export const useClassesStore = defineStore('classes', () => {
             }
         })
 
-        _updateGroupStats(group, classData.students)
         saveToStorage()
     }
 

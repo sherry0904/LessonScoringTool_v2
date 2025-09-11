@@ -43,7 +43,7 @@
                             <button
                                 @click="showGroupScoreboard"
                                 class="btn btn-warning"
-                                :disabled="groups.length === 0"
+                                :disabled="localGroups.length === 0"
                             >
                                 <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />
                                 積分儀表板
@@ -57,7 +57,7 @@
                             v-if="!classInfo.groupingActive"
                             @click="startGrouping"
                             class="btn btn-success gap-2"
-                            :disabled="groups.length === 0"
+                            :disabled="localGroups.length === 0"
                         >
                             <LucideIcon name="Play" class="w-4 h-4" />
                             開始此次課堂分組
@@ -152,10 +152,14 @@
 
             <!-- Right Panel: Groups -->
             <main
-                class="flex-1 grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 content-start overflow-y-auto"
+                class="flex-1 grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 content-start overflow-y-auto overflow-x-auto"
             >
                 <!-- 各組 -->
-                <div v-for="group in groups" :key="group.id" class="card bg-base-100 shadow-sm">
+                <div
+                    v-for="group in localGroups"
+                    :key="group.id"
+                    class="card bg-base-100 shadow-sm"
+                >
                     <div class="card-body">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="card-title text-base flex items-center">
@@ -165,7 +169,7 @@
                                 ></div>
                                 {{ group.name }}
                                 <span class="badge badge-neutral ml-2"
-                                    >{{ group.members.length }} 人</span
+                                    >{{ getGroupMembers(group).length }} 人</span
                                 >
                             </h3>
 
@@ -217,12 +221,6 @@
                                     {{ group.totalScore }}
                                 </div>
                             </div>
-                            <div class="stat py-2">
-                                <div class="stat-title text-xs">平均</div>
-                                <div class="stat-value text-lg">
-                                    {{ group.averageScore.toFixed(1) }}
-                                </div>
-                            </div>
                         </div>
 
                         <!-- 組員列表 -->
@@ -233,26 +231,56 @@
                             @dragenter.prevent
                         >
                             <div
-                                v-for="member in group.members"
+                                v-for="member in getGroupMembers(group)"
                                 :key="member.id"
                                 :class="[
-                                    'p-2 bg-base-200 rounded cursor-move hover:bg-base-300 transition-colors',
-                                    'flex justify-between items-center',
+                                    'p-2 rounded cursor-move flex justify-between items-center transition-colors',
+                                    member.isPresent
+                                        ? 'bg-base-200 hover:bg-base-300'
+                                        : 'bg-gray-200 text-gray-400 opacity-60',
                                 ]"
                                 draggable="true"
                                 @dragstart="handleDragStart(member.id)"
                             >
                                 <div>
-                                    <div class="font-medium text-sm">{{ member.name }}</div>
+                                    <div class="font-medium text-sm flex items-center">
+                                        {{ member.name }}
+                                        <span
+                                            v-if="!member.isPresent"
+                                            class="ml-2 px-2 py-0.5 rounded bg-gray-300 text-xs text-gray-600"
+                                            >今日缺席</span
+                                        >
+                                    </div>
                                     <div class="text-xs text-base-content/70">{{ member.id }}</div>
                                 </div>
-                                <div class="text-xs font-semibold text-primary">
-                                    {{ member.totalScore }}分
+                                <div
+                                    class="text-xs font-semibold text-primary flex items-center gap-1"
+                                >
+                                    <template
+                                        v-if="
+                                            props.classInfo.groupingActive &&
+                                            (groupingScores[member.id] > 0 ||
+                                                baseScores[member.id] !== undefined)
+                                        "
+                                    >
+                                        <span class="opacity-60">{{
+                                            baseScores[member.id] || 0
+                                        }}</span>
+                                        <LucideIcon
+                                            name="ArrowRight"
+                                            class="w-3 h-3 text-success"
+                                        />
+                                        <span class="text-success font-bold">{{
+                                            member.totalScore
+                                        }}</span>
+                                        <span class="text-success">分</span>
+                                    </template>
+                                    <template v-else> {{ member.totalScore }}分 </template>
                                 </div>
                             </div>
 
                             <div
-                                v-if="group.members.length === 0"
+                                v-if="getGroupMembers(group).length === 0"
                                 class="text-center text-base-content/50 py-4 text-sm"
                             >
                                 拖拽學生到此組
@@ -264,14 +292,30 @@
                             <button
                                 @click="addGroupScore(group.id, 1)"
                                 class="btn btn-success btn-xs flex-1"
-                                :disabled="!classInfo.groupingActive"
+                                :disabled="
+                                    !classInfo.groupingActive ||
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                "
+                                :title="
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                        ? '本組全員缺席，無法加分'
+                                        : ''
+                                "
                             >
                                 +1
                             </button>
                             <button
                                 @click="addGroupScore(group.id, -1)"
                                 class="btn btn-error btn-xs flex-1"
-                                :disabled="!classInfo.groupingActive"
+                                :disabled="
+                                    !classInfo.groupingActive ||
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                "
+                                :title="
+                                    getGroupMembers(group).every((m) => !m.isPresent)
+                                        ? '本組全員缺席，無法扣分'
+                                        : ''
+                                "
                             >
                                 -1
                             </button>
@@ -315,22 +359,44 @@
                         <div class="flex-1">
                             <div class="font-semibold">{{ group.name }}</div>
                             <div class="text-sm text-base-content/70">
-                                {{ group.members.length }} 人
+                                {{ getGroupMembers(group).length }} 人
                             </div>
                         </div>
                         <div class="text-right">
                             <div class="text-2xl font-bold text-primary">
                                 {{ group.totalScore }}
                             </div>
-                            <div class="text-sm text-base-content/70">
-                                平均 {{ group.averageScore.toFixed(1) }}
-                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-action">
-                    <button @click="closeScoreboardModal" class="btn btn-ghost">關閉</button>
+                    <div class="flex gap-2 w-full">
+                        <!-- 左側：結束分組按鈕組 -->
+                        <div class="flex gap-2">
+                            <button
+                                @click="resetGroupScores"
+                                class="btn btn-warning"
+                                v-if="props.classInfo.groupingActive"
+                            >
+                                確認結束並重設各組分數
+                            </button>
+                            <button
+                                @click="confirmEndGrouping"
+                                class="btn btn-success"
+                                v-if="props.classInfo.groupingActive"
+                            >
+                                確認結束（保留組別分數）
+                            </button>
+                        </div>
+
+                        <!-- 右側：關閉按鈕 -->
+                        <div class="flex-1 flex justify-end">
+                            <button @click="closeScoreboardModal" class="btn btn-ghost">
+                                關閉
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
@@ -345,9 +411,12 @@ import type { ClassInfo, Student, Group } from '~/types'
 import { ref, computed, watchEffect } from 'vue'
 
 // Helper function for debouncing
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+function debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number,
+): (...args: Parameters<T>) => void {
     let timeout: ReturnType<typeof setTimeout> | null = null
-    return function(this: ThisParameterType<T>, ...args: Parameters<T>) {
+    return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
         if (timeout) {
             clearTimeout(timeout)
         }
@@ -372,6 +441,11 @@ const groupCount = ref(props.classInfo.groupCount || 4)
 const draggedStudentId = ref<string | null>(null)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
+const scoreChanges = ref<
+    Record<string, { oldScore: number; newScore: number; showAnimation: boolean }>
+>({})
+const baseScores = ref<Record<string, number>>({}) // 分組活動開始前的原始分數
+const groupingScores = ref<Record<string, number>>({}) // 分組活動期間獲得的分數
 
 // Computed
 const ungroupedStudents = computed(() => {
@@ -389,6 +463,45 @@ const sortedGroups = computed(() => {
 })
 
 // Methods
+const getStudentScore = (studentId: string) => {
+    const student = props.classInfo.students.find((s) => s.id === studentId)
+    return student ? student.totalScore : 0
+}
+
+const getGroupMembers = (group: Group) => {
+    // 返回實時的學生信息，而不是組別中存儲的快照
+    return group.members.map((member) => {
+        const currentStudent = props.classInfo.students.find((s) => s.id === member.id)
+        return currentStudent || member
+    })
+}
+
+const initializeBaseScores = () => {
+    // 智能重建基準分數：計算每個學生在分組活動開始前的分數
+    props.classInfo.students.forEach((student) => {
+        // 計算所有非分組活動的分數作為基準分數
+        const nonGroupingScores = student.scores
+            .filter((score) => score.categoryId !== 'group')
+            .reduce((sum, score) => sum + score.value, 0)
+
+        // 計算分組活動期間的分數
+        const groupingScoresTotal = student.scores
+            .filter((score) => score.categoryId === 'group')
+            .reduce((sum, score) => sum + score.value, 0)
+
+        baseScores.value[student.id] = nonGroupingScores
+        groupingScores.value[student.id] = groupingScoresTotal
+    })
+}
+
+const updateGroupingScore = (studentId: string, score: number) => {
+    // 更新該學生在分組活動期間獲得的分數
+    if (!groupingScores.value[studentId]) {
+        groupingScores.value[studentId] = 0
+    }
+    groupingScores.value[studentId] += score
+}
+
 const persistGroups = debounce(() => {
     classesStore.updateGroups(props.classInfo.id, localGroups.value)
 }, 500)
@@ -407,7 +520,7 @@ const createGroup = (name: string, shouldPersist = true) => {
         name: name.trim(),
         members: [],
         totalScore: 0,
-        averageScore: 0,
+        averageScore: 0, // 保留欄位但不使用
         createdAt: new Date(),
         color: generateGroupColor(),
     }
@@ -474,7 +587,6 @@ const addStudentToGroup = (studentId: string, groupId: string, shouldPersist = t
     removeStudentFromGroups(studentId, false) // Don't persist yet
 
     group.members.push({ ...student })
-    updateGroupStats(group)
 
     if (shouldPersist) {
         persistGroups()
@@ -486,7 +598,6 @@ const removeStudentFromGroups = (studentId: string, shouldPersist = true) => {
         const memberIndex = group.members.findIndex((member) => member.id === studentId)
         if (memberIndex > -1) {
             group.members.splice(memberIndex, 1)
-            updateGroupStats(group)
         }
     })
     if (shouldPersist) {
@@ -495,17 +606,26 @@ const removeStudentFromGroups = (studentId: string, shouldPersist = true) => {
 }
 
 const updateGroupStats = (group: Group) => {
-    const memberIds = group.members.map((m) => m.id)
-    const groupStudents = props.classInfo.students.filter((s) => memberIds.includes(s.id))
-
-    const totalScores = groupStudents.reduce((sum, student) => sum + student.totalScore, 0)
-    group.totalScore = totalScores
-    group.averageScore = groupStudents.length > 0 ? totalScores / groupStudents.length : 0
+    // 不需要更新任何統計，組別總分是獨立計算的
 }
 
 const addGroupScore = (groupId: string, score: number) => {
     if (!props.classInfo.groupingActive) return
+
+    // 找到組別和組員
+    const group = localGroups.value.find((g) => g.id === groupId)
+    if (!group) return
+
+    // 記錄每個組員在分組活動期間的加分
+    group.members.forEach((member) => {
+        updateGroupingScore(member.id, score)
+    })
+
+    // 執行加分
     classesStore.addScoreToGroup(props.classInfo.id, groupId, score)
+
+    // 立即同步 localGroups
+    localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
 }
 
 const editGroupName = (groupId: string) => {
@@ -531,11 +651,39 @@ const deleteGroup = (groupId: string) => {
 
 const startGrouping = () => {
     classesStore.startClassGrouping(props.classInfo.id)
+    // 初始化基準分數記錄
+    initializeBaseScores()
 }
 
 const endGrouping = () => {
-    if (confirm('確定要結束此次分組嗎？')) {
-        classesStore.endClassGrouping(props.classInfo.id)
+    // 直接顯示積分儀表板，讓用戶查看結果並決定是否重設分數
+    showGroupScoreboard()
+}
+
+const confirmEndGrouping = () => {
+    // 實際結束分組活動
+    classesStore.endClassGrouping(props.classInfo.id)
+
+    // 只清除分組期間的視覺顯示記錄，學生的實際分數已經保存在 store 中
+    baseScores.value = {}
+    groupingScores.value = {}
+
+    // 關閉積分儀表板
+    closeScoreboardModal()
+}
+
+const resetGroupScores = () => {
+    if (confirm('確認要重設各組分數嗎？這將清除所有組別的總分。')) {
+        // 重設所有組別的分數
+        localGroups.value.forEach((group) => {
+            group.totalScore = 0
+        })
+
+        // 持久化更改
+        persistGroups()
+
+        // 結束分組活動
+        confirmEndGrouping()
     }
 }
 
@@ -552,6 +700,10 @@ watchEffect(() => {
     // Use stringify/parse for a deep copy to avoid mutation issues
     localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
     groupCount.value = props.classInfo.groupCount || 4
-})
 
+    // 如果分組活動已經開始，每次都重新初始化基準分數（智能重建）
+    if (props.classInfo.groupingActive) {
+        initializeBaseScores()
+    }
+})
 </script>
