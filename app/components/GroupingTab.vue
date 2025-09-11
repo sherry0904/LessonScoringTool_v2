@@ -213,14 +213,15 @@
                             </div>
                         </div>
 
-                        <!-- 組別總分 -->
-                        <div class="stats shadow mb-3">
-                            <div class="stat py-2">
-                                <div class="stat-title text-xs">總分</div>
-                                <div class="stat-value text-lg text-primary">
-                                    {{ group.totalScore }}
-                                </div>
-                            </div>
+                        <!-- 組別總分（美化） -->
+                        <div
+                            class="flex items-center justify-between bg-gradient-to-r from-primary/10 to-base-100 rounded-xl px-4 py-3 mb-3 border border-primary/30 shadow-sm"
+                        >
+                            <span class="text-xs font-bold text-primary tracking-wider">總分</span>
+                            <span
+                                class="text-3xl font-extrabold text-primary drop-shadow-sm select-all"
+                                >{{ group.totalScore }}</span
+                            >
                         </div>
 
                         <!-- 組員列表 -->
@@ -339,7 +340,7 @@
                         v-for="(group, index) in sortedGroups"
                         :key="group.id"
                         :class="[
-                            'flex items-center gap-4 p-4 rounded-lg',
+                            'p-4 rounded-lg mb-4',
                             index === 0
                                 ? 'bg-warning/20'
                                 : index === 1
@@ -349,54 +350,51 @@
                                     : 'bg-base-200',
                         ]"
                     >
-                        <div class="text-2xl font-bold w-8">
-                            {{ index + 1 }}
-                        </div>
-                        <div
-                            class="w-6 h-6 rounded-full"
-                            :style="{ backgroundColor: group.color }"
-                        ></div>
-                        <div class="flex-1">
-                            <div class="font-semibold">{{ group.name }}</div>
-                            <div class="text-sm text-base-content/70">
-                                {{ getGroupMembers(group).length }} 人
+                        <div class="flex items-center gap-4">
+                            <div class="text-2xl font-bold w-8">
+                                {{ index + 1 }}
+                            </div>
+                            <div
+                                class="w-6 h-6 rounded-full"
+                                :style="{ backgroundColor: group.color }"
+                            ></div>
+                            <div class="flex-1">
+                                <div class="font-semibold">{{ group.name }}</div>
+                                <div class="text-sm text-base-content/70">
+                                    {{ getGroupMembers(group).length }} 人
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-primary">
+                                    {{ group.totalScore }}
+                                </div>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-bold text-primary">
-                                {{ group.totalScore }}
-                            </div>
+                        <div class="flex gap-4 mt-4">
+                            <button
+                                @click="addGroupScore(group.id, 1)"
+                                class="btn btn-success flex-1 text-xl h-12 rounded-xl shadow-lg font-bold tracking-wider"
+                                :disabled="!classInfo.groupingActive || getGroupMembers(group).every(m => !m.isPresent)"
+                                :title="getGroupMembers(group).every(m => !m.isPresent) ? '本組全員缺席，無法加分' : ''"
+                            >
+                                ＋1
+                            </button>
+                            <button
+                                @click="addGroupScore(group.id, -1)"
+                                class="btn btn-error flex-1 text-xl h-12 rounded-xl shadow-lg font-bold tracking-wider"
+                                :disabled="!classInfo.groupingActive || getGroupMembers(group).every(m => !m.isPresent)"
+                                :title="getGroupMembers(group).every(m => !m.isPresent) ? '本組全員缺席，無法扣分' : ''"
+                            >
+                                －1
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal-action">
-                    <div class="flex gap-2 w-full">
-                        <!-- 左側：結束分組按鈕組 -->
-                        <div class="flex gap-2">
-                            <button
-                                @click="resetGroupScores"
-                                class="btn btn-warning"
-                                v-if="props.classInfo.groupingActive"
-                            >
-                                確認結束並重設各組分數
-                            </button>
-                            <button
-                                @click="confirmEndGrouping"
-                                class="btn btn-success"
-                                v-if="props.classInfo.groupingActive"
-                            >
-                                確認結束（保留組別分數）
-                            </button>
-                        </div>
-
-                        <!-- 右側：關閉按鈕 -->
-                        <div class="flex-1 flex justify-end">
-                            <button @click="closeScoreboardModal" class="btn btn-ghost">
-                                關閉
-                            </button>
-                        </div>
-                    </div>
+                <div class="modal-action flex justify-end">
+                    <button @click="closeScoreboardModal" class="btn btn-ghost">
+                        關閉
+                    </button>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
