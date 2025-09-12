@@ -211,7 +211,7 @@
                                         :title="student.isPresent ? '標記缺席' : '標記出席'"
                                     >
                                         <LucideIcon
-                                            :name="student.isPresent ? 'UserX' : 'UserCheck'"
+                                            :name="student.isPresent ? 'UserMinus' : 'UserCheck'"
                                             class="w-4 h-4"
                                         />
                                     </button>
@@ -398,8 +398,11 @@
 
 <script setup lang="ts">
 import type { Student } from '~/types'
+import { useClassesStore } from '~/stores/classes'
 
-const classStore = useClassStore()
+// 修正：同時使用 classStore 和 classesStore 來處理當前班級和所有班級的操作
+const classStore = useClassStore() // 假設這個 store 提供了當前班級的 context
+const classesStore = useClassesStore() // 主 store，用來執行修改操作
 const ui = useUIStore()
 
 // 狀態
@@ -487,9 +490,9 @@ const toggleSelectAll = () => {
 
 const toggleAttendance = (studentId: string) => {
     const student = classStore.students.find((s) => s.id === studentId)
-    if (student) {
+    if (student && classesStore.currentClassId) {
         const newIsPresent = !student.isPresent
-        classStore.updateStudent(studentId, { isPresent: newIsPresent })
+        classesStore.updateStudent(classesStore.currentClassId, studentId, { isPresent: newIsPresent })
         ui.showSuccess(
             '出席狀態已更新',
             `${student.name} 已標記為${newIsPresent ? '出席' : '缺席'}`,
@@ -499,8 +502,8 @@ const toggleAttendance = (studentId: string) => {
 
 const deleteStudent = (studentId: string) => {
     const student = classStore.students.find((s) => s.id === studentId)
-    if (student && confirm(`確定要刪除學生「${student.name}」嗎？此操作無法復原。`)) {
-        classStore.removeStudent(studentId)
+    if (student && classesStore.currentClassId && confirm(`確定要刪除學生「${student.name}」嗎？此操作無法復原。`)) {
+        classesStore.removeStudentFromClass(classesStore.currentClassId, studentId)
         ui.showSuccess('學生已刪除', `${student.name} 已從名單中移除`)
     }
 }
@@ -532,11 +535,13 @@ const closeStudentModal = () => {
 }
 
 const saveStudent = () => {
+    if (!classesStore.currentClassId) return
+
     if (editingStudent.value) {
-        classStore.updateStudent(editingStudent.value.id, studentForm.value)
+        classesStore.updateStudent(classesStore.currentClassId, editingStudent.value.id, studentForm.value)
         ui.showSuccess('學生資料已更新', `${studentForm.value.name} 的資料已儲存`)
     } else {
-        classStore.addStudent(studentForm.value)
+        classesStore.addStudentToClass(classesStore.currentClassId, studentForm.value.name, studentForm.value.number)
         ui.showSuccess('學生已新增', `${studentForm.value.name} 已加入名單`)
     }
 
@@ -559,8 +564,8 @@ const closeScoreModal = () => {
 }
 
 const saveScore = () => {
-    if (scoringStudent.value && scoreForm.value.category && scoreForm.value.score !== null) {
-        classStore.addScore(scoringStudent.value.id, {
+    if (scoringStudent.value && scoreForm.value.category && scoreForm.value.score !== null && classesStore.currentClassId) {
+        classesStore.addScore(classesStore.currentClassId, scoringStudent.value.id, {
             score: scoreForm.value.score,
             category: scoreForm.value.category,
             note: scoreForm.value.note,
@@ -574,10 +579,11 @@ const saveScore = () => {
 
 // 批次操作
 const batchToggleAttendance = () => {
+    if (!classesStore.currentClassId) return
     ui.selectedStudents.forEach((studentId) => {
         const student = classStore.students.find((s) => s.id === studentId)
         if (student) {
-            classStore.updateStudent(studentId, { isPresent: !student.isPresent })
+            classesStore.updateStudent(classesStore.currentClassId, studentId, { isPresent: !student.isPresent })
         }
     })
 

@@ -69,6 +69,31 @@
                     </div>
                 </div>
 
+                <!-- 活動名稱輸入和匯出 -->
+                <div class="mt-4 border-t pt-4">
+                    <div class="flex flex-wrap gap-4 items-end">
+                        <div class="form-control flex-grow min-w-[200px]">
+                            <label class="label">
+                                <span class="label-text">活動名稱 (用於匯出報告)</span>
+                            </label>
+                            <input
+                                v-model="activityName"
+                                type="text"
+                                placeholder="例如：第二次分組討論"
+                                class="input input-bordered w-full"
+                            />
+                        </div>
+                        <button
+                            @click="exportActivityReport"
+                            class="btn btn-info"
+                            :disabled="!classInfo.groupingActive"
+                        >
+                            <LucideIcon name="Download" class="w-4 h-4 mr-2" />
+                            匯出活動報告 (.csv)
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 分組狀態提示 -->
                 <div v-if="classInfo.groupingActive" class="alert alert-info mt-4">
                     <LucideIcon name="Info" class="w-5 h-5" />
@@ -256,22 +281,17 @@
                                 <div
                                     class="text-xs font-semibold text-primary flex items-center gap-1"
                                 >
-                                    <template
-                                        v-if="
-                                            props.classInfo.groupingActive &&
-                                            (groupingScores[member.id] > 0 ||
-                                                baseScores[member.id] !== undefined)
-                                        "
-                                    >
+                                    <template v-if="props.classInfo.groupingActive">
                                         <span class="opacity-60">{{
-                                            baseScores[member.id] || 0
+                                            baseScoresForClass[member.id] ?? ''
                                         }}</span>
                                         <LucideIcon
                                             name="ArrowRight"
                                             class="w-3 h-3 text-success"
                                         />
                                         <span class="text-success font-bold">{{
-                                            member.totalScore
+                                            (baseScoresForClass[member.id] ?? 0) +
+                                            (sessionScoresForClass[member.id] ?? 0)
                                         }}</span>
                                         <span class="text-success">分</span>
                                     </template>
@@ -407,8 +427,9 @@
 </template>
 
 <script setup lang="ts">
-import type { ClassInfo, Student, Group } from '~/types'
 import { ref, computed, watchEffect } from 'vue'
+import { storeToRefs } from 'pinia'
+import type { ClassInfo, Student, Group } from '~/types'
 
 // Helper function for debouncing
 function debounce<T extends (...args: any[]) => any>(
@@ -433,23 +454,27 @@ interface Props {
 const props = defineProps<Props>()
 const classesStore = useClassesStore()
 
+// --- Use Store as the Single Source of Truth ---
+const { groupingBaseScores, groupingSessionScores } = storeToRefs(classesStore)
+
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()
 
-// State
+// Component-local state
 const groupCount = ref(props.classInfo.groupCount || 4)
 const draggedStudentId = ref<string | null>(null)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
-const scoreChanges = ref<
-    Record<string, { oldScore: number; newScore: number; showAnimation: boolean }>
->({})
-import { storeToRefs } from 'pinia'
-const { groupingBaseScores, groupingSessionScores } = storeToRefs(classesStore)
-const baseScores = ref<Record<string, number>>({}) // 分組活動開始前的原始分數
-const groupingScores = ref<Record<string, number>>({}) // 分組活動期間獲得的分數
+const activityName = ref('') // New state for the activity name
 
-// Computed
+// --- Computed Properties for easier template access ---
+const baseScoresForClass = computed(
+    () => groupingBaseScores.value[props.classInfo.id] || {},
+)
+const sessionScoresForClass = computed(
+    () => groupingSessionScores.value[props.classInfo.id] || {},
+)
+
 const ungroupedStudents = computed(() => {
     return props.classInfo.students.filter(
         (student) =>
@@ -464,48 +489,14 @@ const sortedGroups = computed(() => {
     return [...localGroups.value].sort((a, b) => b.totalScore - a.totalScore)
 })
 
-// Methods
-const getStudentScore = (studentId: string) => {
-    const student = props.classInfo.students.find((s) => s.id === studentId)
-    return student ? student.totalScore : 0
-}
+// --- Methods ---
 
 const getGroupMembers = (group: Group) => {
-    // 返回實時的學生信息，而不是組別中存儲的快照
+    // Returns real-time student information from props, not the potentially stale snapshot in group.members
     return group.members.map((member) => {
         const currentStudent = props.classInfo.students.find((s) => s.id === member.id)
         return currentStudent || member
     })
-}
-
-const initializeBaseScores = () => {
-    // 只在 store 沒有時才初始化
-    if (Object.keys(classesStore.getGroupingBaseScores(props.classInfo.id)).length > 0) {
-        baseScores.value = { ...classesStore.getGroupingBaseScores(props.classInfo.id) }
-        groupingScores.value = { ...classesStore.getGroupingSessionScores(props.classInfo.id) }
-        return
-    }
-    // 用學生當下的總分作為基準分數
-    const base: Record<string, number> = {}
-    const session: Record<string, number> = {}
-    props.classInfo.students.forEach((student) => {
-        base[student.id] = student.totalScore
-        session[student.id] = 0
-    })
-    baseScores.value = base
-    groupingScores.value = session
-    classesStore.setGroupingBaseScores(props.classInfo.id, base)
-    classesStore.setGroupingSessionScores(props.classInfo.id, session)
-}
-
-const updateGroupingScore = (studentId: string, score: number) => {
-    // 更新該學生在分組活動期間獲得的分數
-    if (groupingScores.value[studentId] === undefined) {
-        groupingScores.value[studentId] = 0
-    }
-    groupingScores.value[studentId] += score
-    // 同步到 store
-    classesStore.setGroupingSessionScores(props.classInfo.id, groupingScores.value)
 }
 
 const persistGroups = debounce(() => {
@@ -526,7 +517,7 @@ const createGroup = (name: string, shouldPersist = true) => {
         name: name.trim(),
         members: [],
         totalScore: 0,
-        averageScore: 0, // 保留欄位但不使用
+        averageScore: 0, // This field is not used
         createdAt: new Date(),
         color: generateGroupColor(),
     }
@@ -611,27 +602,10 @@ const removeStudentFromGroups = (studentId: string, shouldPersist = true) => {
     }
 }
 
-const updateGroupStats = (group: Group) => {
-    // 不需要更新任何統計，組別總分是獨立計算的
-}
-
 const addGroupScore = (groupId: string, score: number) => {
     if (!props.classInfo.groupingActive) return
-
-    // 找到組別和組員
-    const group = localGroups.value.find((g) => g.id === groupId)
-    if (!group) return
-
-    // 記錄每個組員在分組活動期間的加分
-    group.members.forEach((member) => {
-        updateGroupingScore(member.id, score)
-    })
-
-    // 執行加分
+    // The store action now handles all the logic
     classesStore.addScoreToGroup(props.classInfo.id, groupId, score)
-
-    // 立即同步 localGroups
-    localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
 }
 
 const editGroupName = (groupId: string) => {
@@ -656,41 +630,27 @@ const deleteGroup = (groupId: string) => {
 }
 
 const startGrouping = () => {
+    // The store action now handles all the logic
     classesStore.startClassGrouping(props.classInfo.id)
-    // 初始化基準分數記錄
-    baseScores.value = {}
-    groupingScores.value = {}
-    classesStore.clearGroupingScores(props.classInfo.id)
-    initializeBaseScores()
 }
 
 const endGrouping = () => {
-    // 直接顯示積分儀表板，讓用戶查看結果並決定是否重設分數
+    // Show the scoreboard to let the user decide what to do with the scores
     showGroupScoreboard()
 }
 
 const confirmEndGrouping = () => {
-    // 實際結束分組活動
     classesStore.endClassGrouping(props.classInfo.id)
-    // 清除分組活動狀態
-    baseScores.value = {}
-    groupingScores.value = {}
-    classesStore.clearGroupingScores(props.classInfo.id)
-    // 關閉積分儀表板
+    // No need to clear local state, the watchEffect will handle it
     closeScoreboardModal()
 }
 
 const resetGroupScores = () => {
     if (confirm('確認要重設各組分數嗎？這將清除所有組別的總分。')) {
-        // 重設所有組別的分數
         localGroups.value.forEach((group) => {
             group.totalScore = 0
         })
-
-        // 持久化更改
         persistGroups()
-
-        // 結束分組活動
         confirmEndGrouping()
     }
 }
@@ -703,19 +663,70 @@ const closeScoreboardModal = () => {
     scoreboardModal.value?.close()
 }
 
-// Sync local state with store state
+const exportActivityReport = () => {
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+    const fileName = `${activityName.value || '分組活動報告'}-${props.classInfo.name}-${dateStr}.csv`;
+
+    const header = ['組別名稱', '組別得分', '組員座號', '組員姓名', '組員總分'];
+    const rows = [];
+
+    // Add metadata to the top of the CSV
+    rows.push([`活動名稱: ${activityName.value || '未命名'}`]);
+    rows.push([`班級: ${props.classInfo.name}`]);
+    rows.push([`匯出日期: ${today.toLocaleString('zh-TW')}`]);
+    rows.push([]); // Add a blank row for spacing
+    rows.push(header);
+
+    localGroups.value.forEach(group => {
+        const members = getGroupMembers(group);
+        if (members.length > 0) {
+            members.forEach(member => {
+                const student = props.classInfo.students.find(s => s.id === member.id);
+                if (student) {
+                    rows.push([
+                        group.name,
+                        group.totalScore,
+                        student.id,
+                        student.name,
+                        student.totalScore
+                    ]);
+                }
+            });
+        } else {
+            rows.push([group.name, group.totalScore, 'N/A', '本組無成員', 'N/A']);
+        }
+    });
+
+    // Function to escape CSV fields
+    const escapeCsvField = (field: any): string => {
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+
+    const csvContent = rows.map(row => row.map(escapeCsvField).join(',')).join('\n');
+
+    // Create a Blob and trigger download
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+};
+
+// Sync local state with the store/props state
 watchEffect(() => {
     // Use stringify/parse for a deep copy to avoid mutation issues
     localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
     groupCount.value = props.classInfo.groupCount || 4
-    // 分組活動狀態還原
-    if (props.classInfo.groupingActive) {
-        // 只還原，不重算
-        baseScores.value = { ...classesStore.getGroupingBaseScores(props.classInfo.id) }
-        groupingScores.value = { ...classesStore.getGroupingSessionScores(props.classInfo.id) }
-    } else {
-        baseScores.value = {}
-        groupingScores.value = {}
-    }
 })
 </script>

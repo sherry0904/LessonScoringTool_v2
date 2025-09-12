@@ -38,6 +38,8 @@ import {
     AlertCircle,
     ChevronsLeft,
     ChevronsRight,
+    ScrollText,
+    UserMinus,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -80,4 +82,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideAlertCircle', AlertCircle)
     nuxtApp.vueApp.component('LucideChevronsLeft', ChevronsLeft)
     nuxtApp.vueApp.component('LucideChevronsRight', ChevronsRight)
+    nuxtApp.vueApp.component('LucideScrollText', ScrollText)
+    nuxtApp.vueApp.component('LucideUserMinus', UserMinus)
 })

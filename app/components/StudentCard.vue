@@ -55,7 +55,7 @@
                     <li>
                         <a @click="$emit('toggle-attendance', student.id)">
                             <LucideIcon
-                                :name="student.isPresent ? 'UserX' : 'UserCheck'"
+                                :name="student.isPresent ? 'UserMinus' : 'UserCheck'"
                                 class="w-4 h-4"
                             />
                             {{ student.isPresent ? '標記缺席' : '標記出席' }}

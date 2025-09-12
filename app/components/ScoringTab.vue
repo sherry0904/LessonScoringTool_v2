@@ -72,24 +72,31 @@
                                 class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
                             >
                                 <li>
-                                    <a @click.stop="editStudent(student.id)">
+                                    <a @click.stop="openEditStudentModal(student)">
                                         <LucideIcon name="Edit" class="w-3 h-3" />
                                         編輯學生
                                     </a>
                                 </li>
                                 <li>
-                                    <a @click.stop="viewStudentHistory(student.id)">
-                                        <LucideIcon name="History" class="w-3 h-3" />
+                                    <a @click.stop="viewStudentHistory(student)">
+                                        <LucideIcon name="ScrollText" class="w-3 h-3" />
                                         評分記錄
                                     </a>
                                 </li>
                                 <li>
                                     <a @click.stop="togglePresence(student.id)">
                                         <LucideIcon
-                                            :name="student.isPresent ? 'UserX' : 'UserCheck'"
+                                            :name="student.isPresent ? 'UserMinus' : 'UserCheck'"
                                             class="w-3 h-3"
                                         />
                                         {{ student.isPresent ? '標記缺席' : '標記出席' }}
+                                    </a>
+                                </li>
+                                <div class="divider my-1"></div>
+                                <li>
+                                    <a @click.stop="deleteStudent(student)" class="text-error">
+                                        <LucideIcon name="Trash2" class="w-3 h-3" />
+                                        刪除學生
                                     </a>
                                 </li>
                             </ul>
@@ -113,7 +120,6 @@
                             <span class="text-sm text-base-content/70">平均</span>
                             <span class="text-sm">{{ student.averageScore.toFixed(1) }}</span>
                         </div>
-                        <!-- 記錄數暫時隱藏 -->
                     </div>
 
                     <!-- 出席狀態 -->
@@ -124,8 +130,6 @@
                                 :checked="student.isPresent"
                                 @change.stop="togglePresence(student.id)"
                                 class="toggle toggle-success toggle-sm"
-                                :aria-checked="student.isPresent ? 'true' : 'false'"
-                                :aria-label="student.isPresent ? '標記缺席' : '標記出席'"
                             />
                             <span
                                 class="text-xs font-medium"
@@ -157,12 +161,51 @@
             </div>
         </div>
 
+        <!-- 新增/編輯學生 Modal -->
+        <div v-if="showStudentModal" class="modal modal-open">
+            <div class="modal-box">
+                <h3 class="font-bold text-lg mb-4">
+                    {{ editingStudent ? '編輯學生' : '新增學生' }}
+                </h3>
+                <form @submit.prevent="saveStudent" class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">姓名 *</span>
+                        </label>
+                        <input
+                            v-model="studentForm.name"
+                            type="text"
+                            placeholder="請輸入學生姓名"
+                            class="input input-bordered"
+                            required
+                        />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">座號 *</span>
+                        </label>
+                        <input
+                            v-model="studentForm.number"
+                            type="text"
+                            placeholder="請輸入座號"
+                            class="input input-bordered"
+                            required
+                        />
+                    </div>
+                    <div class="modal-action">
+                        <button type="button" @click="closeStudentModal" class="btn btn-ghost">取消</button>
+                        <button type="submit" class="btn btn-primary">{{ editingStudent ? '更新' : '新增' }}</button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-backdrop" @click="closeStudentModal"></div>
+        </div>
+
         <!-- 學生評分記錄模態 -->
         <dialog ref="historyModal" class="modal">
             <div class="modal-box w-11/12 max-w-2xl">
                 <h3 class="text-lg font-bold mb-4">{{ viewingStudent?.name }} 的評分記錄</h3>
-
-                <div v-if="viewingStudent" class="space-y-3 max-h-96 overflow-y-auto">
+                <div v-if="viewingStudent && viewingStudent.scores.length > 0" class="space-y-3 max-h-96 overflow-y-auto">
                     <div
                         v-for="score in viewingStudent.scores.slice().reverse()"
                         :key="score.id"
@@ -178,6 +221,7 @@
                                 >
                                     {{ score.value > 0 ? '+' : '' }}{{ score.value }}
                                 </span>
+                                <span class="text-sm">{{ score.reason || '快速評分' }}</span>
                             </div>
                         </div>
                         <div class="text-right">
@@ -187,18 +231,15 @@
                         </div>
                     </div>
                 </div>
-
                 <div v-else class="text-center py-8 text-base-content/70">尚無評分記錄</div>
-
                 <div class="modal-action">
                     <button @click="closeHistoryModal" class="btn btn-ghost">關閉</button>
                 </div>
             </div>
+            <form method="dialog" class="modal-backdrop">
+                <button @click="closeHistoryModal">close</button>
+            </form>
         </dialog>
-        <!-- 補上缺失的結尾 div -->
-        <form method="dialog" class="modal-backdrop">
-            <button @click="closeHistoryModal">close</button>
-        </form>
     </div>
 </template>
 
@@ -211,14 +252,18 @@ interface Props {
 
 const props = defineProps<Props>()
 const classesStore = useClassesStore()
+const ui = useUIStore()
 
 // Modal refs
 const historyModal = ref<HTMLDialogElement>()
+const showStudentModal = ref(false)
 
 // State
 const selectedScore = ref<number | null>(1)
 const selectedStudents = ref<string[]>([])
 const viewingStudent = ref<Student | null>(null)
+const editingStudent = ref<Student | null>(null)
+const studentForm = ref({ id: '', name: '', number: '' })
 
 const quickScores = [3, 2, 1, -1, -2, -3]
 
@@ -237,58 +282,52 @@ const clearSelection = () => {
 }
 
 const quickScore = (studentId: string, score: number) => {
-    // 單人卡片快速加分
-    addScoreToStudent(studentId, score)
+    addScoreToStudent(studentId, score, '快速評分')
 }
 
-// 上方面板快速加分按鈕邏輯：若已選學生，直接批量套用；否則僅設定選擇分數供底部批量面板使用
 const applyQuickScore = (score: number) => {
     if (selectedStudents.value.length > 0) {
-        selectedStudents.value.forEach((id) => addScoreToStudent(id, score))
+        selectedStudents.value.forEach((id) => addScoreToStudent(id, score, '批量快速評分'))
     } else {
         selectedScore.value = score
     }
 }
 
-const batchScore = () => {
-    if (selectedStudents.value.length === 0 || selectedScore.value === null) return
-    selectedStudents.value.forEach((studentId) =>
-        addScoreToStudent(studentId, selectedScore.value as number),
-    )
-    clearSelection()
+const addScoreToStudent = (studentId: string, score: number, reason: string) => {
+    classesStore.addScoreToStudent(props.classInfo.id, studentId, score, reason)
 }
 
-const addScoreToStudent = (studentId: string, score: number) => {
-    const student = props.classInfo.students.find((s) => s.id === studentId)
-    if (!student) return
+const openEditStudentModal = (student: Student) => {
+    editingStudent.value = student
+    studentForm.value = { id: student.id, name: student.name, number: String(student.id) } // Assuming student.id is the number
+    showStudentModal.value = true
+}
 
-    const newScore = {
-        id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        value: score,
-        timestamp: new Date(),
+const closeStudentModal = () => {
+    showStudentModal.value = false
+    editingStudent.value = null
+}
+
+const saveStudent = () => {
+    if (editingStudent.value) {
+        classesStore.updateStudent(props.classInfo.id, editingStudent.value.id, {
+            name: studentForm.value.name,
+            // number: studentForm.value.number, // The student ID (number) is not editable in this structure
+        })
+        ui.showSuccess('學生已更新')
     }
-
-    student.scores.push(newScore)
-    updateStudentStats(student)
-    classesStore.saveToStorage()
+    closeStudentModal()
 }
 
-const updateStudentStats = (student: Student) => {
-    const scores = student.scores.map((s) => s.value)
-    student.totalScore = scores.reduce((sum, score) => sum + score, 0)
-    // 平均 = 總分 / 記錄次數（若無記錄則為 0）
-    student.averageScore = scores.length > 0 ? student.totalScore / scores.length : 0
-}
-
-const editStudent = (studentId: string) => {
-    const editStudentFn = inject('editStudent') as Function
-    if (editStudentFn) {
-        editStudentFn(studentId)
+const deleteStudent = (student: Student) => {
+    if (confirm(`確定要刪除學生「${student.name}」嗎？此操作無法復原。`)) {
+        classesStore.removeStudentFromClass(props.classInfo.id, student.id)
+        ui.showSuccess('學生已刪除')
     }
 }
 
-const viewStudentHistory = (studentId: string) => {
-    viewingStudent.value = props.classInfo.students.find((s) => s.id === studentId) || null
+const viewStudentHistory = (student: Student) => {
+    viewingStudent.value = student
     historyModal.value?.showModal()
 }
 
@@ -298,9 +337,10 @@ const closeHistoryModal = () => {
 }
 
 const togglePresence = (studentId: string) => {
-    classesStore.updateStudent(props.classInfo.id, studentId, {
-        isPresent: !props.classInfo.students.find((s) => s.id === studentId)?.isPresent,
-    })
+    const student = props.classInfo.students.find((s) => s.id === studentId)
+    if (student) {
+        classesStore.updateStudent(props.classInfo.id, studentId, { isPresent: !student.isPresent })
+    }
 }
 
 const formatDateTime = (date: Date) => {
