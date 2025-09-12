@@ -444,6 +444,8 @@ const isUngroupedCollapsed = ref(false)
 const scoreChanges = ref<
     Record<string, { oldScore: number; newScore: number; showAnimation: boolean }>
 >({})
+import { storeToRefs } from 'pinia'
+const { groupingBaseScores, groupingSessionScores } = storeToRefs(classesStore)
 const baseScores = ref<Record<string, number>>({}) // 分組活動開始前的原始分數
 const groupingScores = ref<Record<string, number>>({}) // 分組活動期間獲得的分數
 
@@ -477,29 +479,33 @@ const getGroupMembers = (group: Group) => {
 }
 
 const initializeBaseScores = () => {
-    // 智能重建基準分數：計算每個學生在分組活動開始前的分數
+    // 只在 store 沒有時才初始化
+    if (Object.keys(classesStore.getGroupingBaseScores(props.classInfo.id)).length > 0) {
+        baseScores.value = { ...classesStore.getGroupingBaseScores(props.classInfo.id) }
+        groupingScores.value = { ...classesStore.getGroupingSessionScores(props.classInfo.id) }
+        return
+    }
+    // 用學生當下的總分作為基準分數
+    const base: Record<string, number> = {}
+    const session: Record<string, number> = {}
     props.classInfo.students.forEach((student) => {
-        // 計算所有非分組活動的分數作為基準分數
-        const nonGroupingScores = student.scores
-            .filter((score) => score.categoryId !== 'group')
-            .reduce((sum, score) => sum + score.value, 0)
-
-        // 計算分組活動期間的分數
-        const groupingScoresTotal = student.scores
-            .filter((score) => score.categoryId === 'group')
-            .reduce((sum, score) => sum + score.value, 0)
-
-        baseScores.value[student.id] = nonGroupingScores
-        groupingScores.value[student.id] = groupingScoresTotal
+        base[student.id] = student.totalScore
+        session[student.id] = 0
     })
+    baseScores.value = base
+    groupingScores.value = session
+    classesStore.setGroupingBaseScores(props.classInfo.id, base)
+    classesStore.setGroupingSessionScores(props.classInfo.id, session)
 }
 
 const updateGroupingScore = (studentId: string, score: number) => {
     // 更新該學生在分組活動期間獲得的分數
-    if (!groupingScores.value[studentId]) {
+    if (groupingScores.value[studentId] === undefined) {
         groupingScores.value[studentId] = 0
     }
     groupingScores.value[studentId] += score
+    // 同步到 store
+    classesStore.setGroupingSessionScores(props.classInfo.id, groupingScores.value)
 }
 
 const persistGroups = debounce(() => {
@@ -652,6 +658,9 @@ const deleteGroup = (groupId: string) => {
 const startGrouping = () => {
     classesStore.startClassGrouping(props.classInfo.id)
     // 初始化基準分數記錄
+    baseScores.value = {}
+    groupingScores.value = {}
+    classesStore.clearGroupingScores(props.classInfo.id)
     initializeBaseScores()
 }
 
@@ -663,11 +672,10 @@ const endGrouping = () => {
 const confirmEndGrouping = () => {
     // 實際結束分組活動
     classesStore.endClassGrouping(props.classInfo.id)
-
-    // 只清除分組期間的視覺顯示記錄，學生的實際分數已經保存在 store 中
+    // 清除分組活動狀態
     baseScores.value = {}
     groupingScores.value = {}
-
+    classesStore.clearGroupingScores(props.classInfo.id)
     // 關閉積分儀表板
     closeScoreboardModal()
 }
@@ -700,10 +708,14 @@ watchEffect(() => {
     // Use stringify/parse for a deep copy to avoid mutation issues
     localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
     groupCount.value = props.classInfo.groupCount || 4
-
-    // 如果分組活動已經開始，每次都重新初始化基準分數（智能重建）
+    // 分組活動狀態還原
     if (props.classInfo.groupingActive) {
-        initializeBaseScores()
+        // 只還原，不重算
+        baseScores.value = { ...classesStore.getGroupingBaseScores(props.classInfo.id) }
+        groupingScores.value = { ...classesStore.getGroupingSessionScores(props.classInfo.id) }
+    } else {
+        baseScores.value = {}
+        groupingScores.value = {}
     }
 })
 </script>

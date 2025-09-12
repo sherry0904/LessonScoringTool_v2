@@ -1,10 +1,15 @@
+// ...保留唯一一份正確的 defineStore 區塊...
 import { defineStore } from 'pinia'
-import type { ClassInfo, Student, Homework } from '~/types'
+import type { ClassInfo, Student, Homework, Group, StudentScore } from '~/types/class'
 
 export const useClassesStore = defineStore('classes', () => {
     // State
     const classes = ref<ClassInfo[]>([])
     const currentClassId = ref<string | null>(null)
+
+    // 分組活動狀態（每個 classId 一份）
+    const groupingBaseScores = ref<Record<string, Record<string, number>>>({})
+    const groupingSessionScores = ref<Record<string, Record<string, number>>>({})
 
     // Computed
     const currentClass = computed(() => {
@@ -14,6 +19,53 @@ export const useClassesStore = defineStore('classes', () => {
     const totalClasses = computed(() => classes.value.length)
 
     // Actions
+    const setGroupingBaseScores = (classId: string, scores: Record<string, number>) => {
+        groupingBaseScores.value[classId] = scores;
+        saveToStorage();
+    };
+
+    const getGroupingBaseScores = (classId: string): Record<string, number> | undefined => {
+        return groupingBaseScores.value[classId];
+    };
+
+    const setGroupingSessionScores = (classId: string, scores: Record<string, number>) => {
+        groupingSessionScores.value[classId] = scores;
+        saveToStorage();
+    };
+
+    const getGroupingSessionScores = (classId: string): Record<string, number> | undefined => {
+        return groupingSessionScores.value[classId];
+    };
+
+    const clearGroupingScores = (classId: string) => {
+        delete groupingBaseScores.value[classId];
+        delete groupingSessionScores.value[classId];
+        saveToStorage();
+    };
+
+    const updateClass = (classId: string, updates: Partial<ClassInfo>) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return false
+
+        Object.assign(classData, updates)
+        classData.updatedAt = new Date()
+        saveToStorage()
+        return true
+    }
+
+    const deleteClass = (classId: string) => {
+        const index = classes.value.findIndex((c) => c.id === classId)
+        if (index > -1) {
+            classes.value.splice(index, 1)
+            if (currentClassId.value === classId) {
+                currentClassId.value = null
+            }
+            saveToStorage()
+            return true
+        }
+        return false
+    }
+
     const createClass = (name: string, studentsInput: string): ClassInfo => {
         const classId = `class_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -31,33 +83,9 @@ export const useClassesStore = defineStore('classes', () => {
             createdAt: new Date(),
             updatedAt: new Date(),
         }
-
         classes.value.push(newClass)
         saveToStorage()
         return newClass
-    }
-
-    const updateClass = (classId: string, updates: Partial<ClassInfo>) => {
-        const classIndex = classes.value.findIndex((c) => c.id === classId)
-        if (classIndex > -1) {
-            classes.value[classIndex] = {
-                ...classes.value[classIndex],
-                ...updates,
-                updatedAt: new Date(),
-            }
-            saveToStorage()
-        }
-    }
-
-    const deleteClass = (classId: string) => {
-        const index = classes.value.findIndex((c) => c.id === classId)
-        if (index > -1) {
-            classes.value.splice(index, 1)
-            if (currentClassId.value === classId) {
-                currentClassId.value = null
-            }
-            saveToStorage()
-        }
     }
 
     const selectClass = (classId: string) => {
@@ -270,7 +298,7 @@ export const useClassesStore = defineStore('classes', () => {
                         createdAt: new Date(),
                         isPresent: true,
                     }
-                }
+                } 
                 return null
             })
             .filter(Boolean) as Student[]
@@ -348,6 +376,8 @@ export const useClassesStore = defineStore('classes', () => {
         // State
         classes: readonly(classes),
         currentClassId: readonly(currentClassId),
+        groupingBaseScores,
+        groupingSessionScores,
 
         // Computed
         currentClass,
@@ -367,6 +397,11 @@ export const useClassesStore = defineStore('classes', () => {
         endClassGrouping,
         updateGroups,
         addScoreToGroup,
+        setGroupingBaseScores,
+        getGroupingBaseScores,
+        setGroupingSessionScores,
+        getGroupingSessionScores,
+        clearGroupingScores,
         saveToStorage,
         loadFromStorage,
         exportAllClasses,
