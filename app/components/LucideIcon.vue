@@ -41,7 +41,6 @@ import {
     Sun,
     Moon,
     Database,
-    // 新增缺少的圖示
     LogIn,
     ArrowRight,
     BookOpen,
@@ -53,6 +52,9 @@ import {
     ChevronsLeft,
     ChevronsRight,
     MoreVertical,
+    ScrollText,
+    UserMinus,
+    CircleDot,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -109,6 +111,9 @@ const iconMap = {
     ChevronsLeft: ChevronsLeft,
     ChevronsRight: ChevronsRight,
     MoreVertical: MoreVertical,
+    ScrollText: ScrollText,
+    UserMinus: UserMinus,
+    CircleDot: CircleDot,
 }
 
 const iconComponent = computed(() => {

@@ -72,31 +72,31 @@
                                 class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
                             >
                                 <li>
-                                    <a @click.stop="openEditStudentModal(student)">
+                                    <a @click.stop="openEditStudentModal(student)" class="flex items-center gap-2">
                                         <LucideIcon name="Edit" class="w-3 h-3" />
-                                        編輯學生
+                                        <span>編輯學生</span>
                                     </a>
                                 </li>
                                 <li>
-                                    <a @click.stop="viewStudentHistory(student)">
+                                    <a @click.stop="viewStudentHistory(student)" class="flex items-center gap-2">
                                         <LucideIcon name="ScrollText" class="w-3 h-3" />
-                                        評分記錄
+                                        <span>評分記錄</span>
                                     </a>
                                 </li>
                                 <li>
-                                    <a @click.stop="togglePresence(student.id)">
+                                    <a @click.stop="togglePresence(student.id)" class="flex items-center gap-2">
                                         <LucideIcon
                                             :name="student.isPresent ? 'UserMinus' : 'UserCheck'"
                                             class="w-3 h-3"
                                         />
-                                        {{ student.isPresent ? '標記缺席' : '標記出席' }}
+                                        <span>{{ student.isPresent ? '標記缺席' : '標記出席' }}</span>
                                     </a>
                                 </li>
                                 <div class="divider my-1"></div>
                                 <li>
-                                    <a @click.stop="deleteStudent(student)" class="text-error">
+                                    <a @click.stop="deleteStudent(student)" class="text-error flex items-center gap-2">
                                         <LucideIcon name="Trash2" class="w-3 h-3" />
-                                        刪除學生
+                                        <span>刪除學生</span>
                                     </a>
                                 </li>
                             </ul>
@@ -113,6 +113,8 @@
                                 {{ student.totalScore }}
                             </span>
                         </div>
+                        <!-- 移除平均分數 -->
+                        <!--
                         <div
                             class="flex justify-between items-center"
                             title="平均 = 總分 / 記錄次數 (四捨五入到 0.1)"
@@ -120,6 +122,7 @@
                             <span class="text-sm text-base-content/70">平均</span>
                             <span class="text-sm">{{ student.averageScore.toFixed(1) }}</span>
                         </div>
+                        -->
                     </div>
 
                     <!-- 出席狀態 -->
@@ -205,7 +208,10 @@
         <dialog ref="historyModal" class="modal">
             <div class="modal-box w-11/12 max-w-2xl">
                 <h3 class="text-lg font-bold mb-4">{{ viewingStudent?.name }} 的評分記錄</h3>
-                <div v-if="viewingStudent && viewingStudent.scores.length > 0" class="space-y-3 max-h-96 overflow-y-auto">
+                <div
+                    v-if="viewingStudent && viewingStudent.scores.length > 0"
+                    class="space-y-3 max-h-96 overflow-y-auto"
+                >
                     <div
                         v-for="score in viewingStudent.scores.slice().reverse()"
                         :key="score.id"
@@ -309,8 +315,10 @@ const closeStudentModal = () => {
 }
 
 const saveStudent = () => {
+    if (!classesStore.currentClassId) return
+
     if (editingStudent.value) {
-        classesStore.updateStudent(props.classInfo.id, editingStudent.value.id, {
+        classesStore.updateStudent(classesStore.currentClassId, editingStudent.value.id, {
             name: studentForm.value.name,
             // number: studentForm.value.number, // The student ID (number) is not editable in this structure
         })

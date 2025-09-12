@@ -40,6 +40,7 @@ import {
     ChevronsRight,
     ScrollText,
     UserMinus,
+    CircleDot,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -69,7 +70,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideUserCheck', UserCheck)
     nuxtApp.vueApp.component('LucideEye', Eye)
     nuxtApp.vueApp.component('LucideEyeOff', EyeOff)
-    // 新增圖示
     nuxtApp.vueApp.component('LucideLogIn', LogIn)
     nuxtApp.vueApp.component('LucideArrowRight', ArrowRight)
     nuxtApp.vueApp.component('LucideEdit2', Edit2)
@@ -84,4 +84,5 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideChevronsRight', ChevronsRight)
     nuxtApp.vueApp.component('LucideScrollText', ScrollText)
     nuxtApp.vueApp.component('LucideUserMinus', UserMinus)
+    nuxtApp.vueApp.component('LucideCircleDot', CircleDot)
 })

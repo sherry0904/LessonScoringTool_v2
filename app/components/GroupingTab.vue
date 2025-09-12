@@ -2,103 +2,101 @@
     <div class="space-y-6">
         <!-- 分組控制面板 -->
         <div class="card bg-base-100 shadow-sm">
-            <div class="card-body">
-                <div class="flex flex-wrap gap-4 items-center justify-between">
-                    <div class="flex flex-wrap gap-4 items-center">
-                        <!-- 組數控制 -->
-                        <div class="form-control">
-                            <label class="label mr-2">
-                                <span class="label-text">組數</span>
-                            </label>
-                            <input
-                                v-model.number="groupCount"
-                                type="number"
-                                min="2"
-                                max="10"
-                                class="input input-bordered w-20"
-                                :disabled="classInfo.groupingActive"
-                            />
-                        </div>
-
-                        <!-- 隨機分組 -->
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">&nbsp;</span>
-                            </label>
-                            <button
-                                @click="randomAssignGroups"
-                                class="btn btn-primary"
-                                :disabled="classInfo.groupingActive"
-                            >
+            <div class="card-body p-4">
+                <!-- INACTIVE STATE: Setup Panel -->
+                <template v-if="!classInfo.groupingActive">
+                    <div class="flex flex-wrap gap-4 items-end justify-between">
+                        <div class="flex flex-wrap gap-4 items-end">
+                            <!-- 組數控制 -->
+                            <div class="form-control">
+                                <label class="label py-1 mr-2">
+                                    <span class="label-text">組數</span>
+                                </label>
+                                <input
+                                    v-model.number="groupCount"
+                                    type="number"
+                                    min="2"
+                                    max="10"
+                                    class="input input-bordered w-20"
+                                />
+                            </div>
+                            <!-- 隨機分組 -->
+                            <button @click="randomAssignGroups" class="btn btn-primary">
                                 <LucideIcon name="Shuffle" class="w-4 h-4 mr-2" />
                                 一鍵隨機分組
                             </button>
                         </div>
-
-                        <!-- 積分儀表板 -->
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">&nbsp;</span>
-                            </label>
-                            <button
-                                @click="showGroupScoreboard"
-                                class="btn btn-warning"
-                                :disabled="localGroups.length === 0"
-                            >
-                                <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />
-                                積分儀表板
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 分組狀態控制 -->
-                    <div class="flex gap-2">
+                        <!-- 開始分組 -->
                         <button
-                            v-if="!classInfo.groupingActive"
                             @click="startGrouping"
                             class="btn btn-success gap-2"
                             :disabled="localGroups.length === 0"
                         >
                             <LucideIcon name="Play" class="w-4 h-4" />
-                            開始此次課堂分組
-                        </button>
-                        <button v-else @click="endGrouping" class="btn btn-error gap-2">
-                            <LucideIcon name="Square" class="w-4 h-4" />
-                            結束此次課堂分組
+                            開始分組
                         </button>
                     </div>
-                </div>
-
-                <!-- 活動名稱輸入和匯出 -->
-                <div class="mt-4 border-t pt-4">
-                    <div class="flex flex-wrap gap-4 items-end">
-                        <div class="form-control flex-grow min-w-[200px]">
-                            <label class="label">
-                                <span class="label-text">活動名稱 (用於匯出報告)</span>
-                            </label>
+                    <div class="flex flex-wrap gap-4 items-end mt-4 border-t pt-4">
+                        <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                            <label class="whitespace-nowrap text-base-content/80 mr-2">活動名稱 (選填)</label>
                             <input
                                 v-model="activityName"
                                 type="text"
                                 placeholder="例如：第二次分組討論"
-                                class="input input-bordered w-full"
+                                class="input input-bordered flex-1 min-w-0"
                             />
                         </div>
                         <button
-                            @click="exportActivityReport"
-                            class="btn btn-info"
-                            :disabled="!classInfo.groupingActive"
+                            @click="showGroupScoreboard"
+                            class="btn btn-warning ml-2"
+                            :disabled="localGroups.length === 0"
                         >
-                            <LucideIcon name="Download" class="w-4 h-4 mr-2" />
-                            匯出活動報告 (.csv)
+                            <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />
+                            積分儀表板
                         </button>
                     </div>
-                </div>
+                </template>
 
-                <!-- 分組狀態提示 -->
-                <div v-if="classInfo.groupingActive" class="alert alert-info mt-4">
-                    <LucideIcon name="Info" class="w-5 h-5" />
-                    <span>分組模式進行中！學生可以開始小組活動，記得為各組加減分。</span>
-                </div>
+                <!-- ACTIVE STATE: Compact Control Bar -->
+                <template v-else>
+                    <div class="flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="flex items-center gap-2 text-info font-semibold">
+                                <LucideIcon name="CircleDot" class="w-5 h-5 animate-pulse" />
+                                <span>分組進行中</span>
+                            </span>
+                            <input
+                                v-model="activityName"
+                                type="text"
+                                placeholder="請輸入活動名稱..."
+                                class="input input-sm input-bordered w-auto max-w-xs"
+                            />
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                @click="exportActivityReport"
+                                class="btn btn-sm btn-info gap-1"
+                                :disabled="!activityName.trim()"
+                                title="匯出活動報告"
+                            >
+                                <LucideIcon name="Download" class="w-4 h-4" />
+                                匯出
+                            </button>
+                            <button
+                                @click="showGroupScoreboard"
+                                class="btn btn-sm btn-warning gap-1"
+                                title="顯示積分儀表板"
+                            >
+                                <LucideIcon name="Trophy" class="w-4 h-4" />
+                                儀表板
+                            </button>
+                            <button @click="endGrouping" class="btn btn-sm btn-error gap-1">
+                                <LucideIcon name="Square" class="w-4 h-4" />
+                                結束分組
+                            </button>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
 
@@ -311,7 +309,7 @@
                         <div class="flex gap-2 mt-3">
                             <button
                                 @click="addGroupScore(group.id, 1)"
-                                class="btn btn-success btn-xs flex-1"
+                                class="btn btn-success btn-sm flex-1"
                                 :disabled="
                                     !classInfo.groupingActive ||
                                     getGroupMembers(group).every((m) => !m.isPresent)
@@ -326,7 +324,7 @@
                             </button>
                             <button
                                 @click="addGroupScore(group.id, -1)"
-                                class="btn btn-error btn-xs flex-1"
+                                class="btn btn-error btn-sm flex-1"
                                 :disabled="
                                     !classInfo.groupingActive ||
                                     getGroupMembers(group).every((m) => !m.isPresent)
@@ -391,31 +389,34 @@
                 </div>
 
                 <div class="modal-action">
-                    <div class="flex gap-2 w-full">
-                        <!-- 左側：結束分組按鈕組 -->
-                        <div class="flex gap-2">
-                            <button
-                                @click="resetGroupScores"
-                                class="btn btn-warning"
-                                v-if="props.classInfo.groupingActive"
-                            >
-                                確認結束並重設各組分數
-                            </button>
-                            <button
-                                @click="confirmEndGrouping"
-                                class="btn btn-success"
-                                v-if="props.classInfo.groupingActive"
-                            >
-                                確認結束（保留組別分數）
-                            </button>
-                        </div>
-
-                        <!-- 右側：關閉按鈕 -->
-                        <div class="flex-1 flex justify-end">
+                    <div v-if="isEndingFlow" class="w-full">
+                        <div class="flex justify-between items-center flex-wrap gap-y-2 gap-x-4">
+                            <div class="flex gap-2 flex-wrap">
+                                <button
+                                    @click="exportActivityReport"
+                                    class="btn btn-info"
+                                    :disabled="!activityName.trim()"
+                                >
+                                    <LucideIcon name="Download" class="w-4 h-4 mr-2" />
+                                    匯出活動報表
+                                </button>
+                                <button @click="resetGroupScores" class="btn btn-warning">
+                                    結束並重設分數
+                                </button>
+                                <button @click="confirmEndGrouping" class="btn btn-success">
+                                    結束並保留分數
+                                </button>
+                            </div>
                             <button @click="closeScoreboardModal" class="btn btn-ghost">
-                                關閉
+                                取消
                             </button>
                         </div>
+                        <p class="text-xs text-base-content/60 mt-3 w-full">
+                            提醒：活動結束後就不可再匯出此次分組活動的報告。
+                        </p>
+                    </div>
+                    <div v-else class="w-full flex justify-end">
+                        <button @click="closeScoreboardModal" class="btn">關閉</button>
                     </div>
                 </div>
             </div>
@@ -466,14 +467,11 @@ const draggedStudentId = ref<string | null>(null)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
 const activityName = ref('') // New state for the activity name
+const isEndingFlow = ref(false)
 
 // --- Computed Properties for easier template access ---
-const baseScoresForClass = computed(
-    () => groupingBaseScores.value[props.classInfo.id] || {},
-)
-const sessionScoresForClass = computed(
-    () => groupingSessionScores.value[props.classInfo.id] || {},
-)
+const baseScoresForClass = computed(() => groupingBaseScores.value[props.classInfo.id] || {})
+const sessionScoresForClass = computed(() => groupingSessionScores.value[props.classInfo.id] || {})
 
 const ungroupedStudents = computed(() => {
     return props.classInfo.students.filter(
@@ -635,8 +633,8 @@ const startGrouping = () => {
 }
 
 const endGrouping = () => {
-    // Show the scoreboard to let the user decide what to do with the scores
-    showGroupScoreboard()
+    isEndingFlow.value = true
+    scoreboardModal.value?.showModal()
 }
 
 const confirmEndGrouping = () => {
@@ -656,72 +654,74 @@ const resetGroupScores = () => {
 }
 
 const showGroupScoreboard = () => {
+    isEndingFlow.value = false
     scoreboardModal.value?.showModal()
 }
 
 const closeScoreboardModal = () => {
     scoreboardModal.value?.close()
+    isEndingFlow.value = false // Reset state
 }
 
 const exportActivityReport = () => {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-    const fileName = `${activityName.value || '分組活動報告'}-${props.classInfo.name}-${dateStr}.csv`;
+    const today = new Date()
+    const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
+    const fileName = `${activityName.value || '分組活動報告'}-${props.classInfo.name}-${dateStr}.csv`
 
-    const header = ['組別名稱', '組別得分', '組員座號', '組員姓名', '組員總分'];
-    const rows = [];
+    const header = ['組別名稱', '組別得分', '組員座號', '組員姓名', '組員總分']
+    const rows = []
 
     // Add metadata to the top of the CSV
-    rows.push([`活動名稱: ${activityName.value || '未命名'}`]);
-    rows.push([`班級: ${props.classInfo.name}`]);
-    rows.push([`匯出日期: ${today.toLocaleString('zh-TW')}`]);
-    rows.push([]); // Add a blank row for spacing
-    rows.push(header);
+    rows.push([`活動名稱: ${activityName.value || '未命名'}`])
+    rows.push([`班級: ${props.classInfo.name}`])
+    rows.push([`匯出日期: ${today.toLocaleString('zh-TW')}`])
+    rows.push([]) // Add a blank row for spacing
+    rows.push(header)
 
-    localGroups.value.forEach(group => {
-        const members = getGroupMembers(group);
+    localGroups.value.forEach((group) => {
+        const members = getGroupMembers(group)
         if (members.length > 0) {
-            members.forEach(member => {
-                const student = props.classInfo.students.find(s => s.id === member.id);
+            members.forEach((member) => {
+                const student = props.classInfo.students.find((s) => s.id === member.id)
                 if (student) {
                     rows.push([
                         group.name,
                         group.totalScore,
                         student.id,
                         student.name,
-                        student.totalScore
-                    ]);
+                        student.totalScore,
+                    ])
                 }
-            });
+            })
         } else {
-            rows.push([group.name, group.totalScore, 'N/A', '本組無成員', 'N/A']);
+            rows.push([group.name, group.totalScore, 'N/A', '本組無成員', 'N/A'])
         }
-    });
+    })
 
     // Function to escape CSV fields
     const escapeCsvField = (field: any): string => {
-        const str = String(field);
+        const str = String(field)
         if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-            return `"${str.replace(/"/g, '""')}"`;
+            return `"${str.replace(/"/g, '""')}"`
         }
-        return str;
-    };
+        return str
+    }
 
-    const csvContent = rows.map(row => row.map(escapeCsvField).join(',')).join('\n');
+    const csvContent = rows.map((row) => row.map(escapeCsvField).join(',')).join('\n')
 
     // Create a Blob and trigger download
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
     if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', fileName);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', fileName)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
     }
-};
+}
 
 // Sync local state with the store/props state
 watchEffect(() => {
