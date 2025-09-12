@@ -456,7 +456,7 @@ const props = defineProps<Props>()
 const classesStore = useClassesStore()
 
 // --- Use Store as the Single Source of Truth ---
-const { groupingBaseScores, groupingSessionScores } = storeToRefs(classesStore)
+const { groupingBaseScores, groupingSessionScores, groupingActivityNames } = storeToRefs(classesStore)
 
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()
@@ -466,10 +466,16 @@ const groupCount = ref(props.classInfo.groupCount || 4)
 const draggedStudentId = ref<string | null>(null)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
-const activityName = ref('') // New state for the activity name
+// const activityName = ref('') // Replaced by computed property linked to store
 const isEndingFlow = ref(false)
 
 // --- Computed Properties for easier template access ---
+const activityName = computed({
+    get: () => groupingActivityNames.value[props.classInfo.id] || '',
+    set: (newName) => {
+        classesStore.setGroupingActivityName(props.classInfo.id, newName)
+    },
+})
 const baseScoresForClass = computed(() => groupingBaseScores.value[props.classInfo.id] || {})
 const sessionScoresForClass = computed(() => groupingSessionScores.value[props.classInfo.id] || {})
 

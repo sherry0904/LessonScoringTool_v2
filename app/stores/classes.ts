@@ -10,6 +10,7 @@ export const useClassesStore = defineStore('classes', () => {
     // 分組活動狀態（每個 classId 一份）
     const groupingBaseScores = ref<Record<string, Record<string, number>>>({}) 
     const groupingSessionScores = ref<Record<string, Record<string, number>>>({}) 
+    const groupingActivityNames = ref<Record<string, string>>({})
 
     // Computed
     const currentClass = computed(() => {
@@ -19,6 +20,11 @@ export const useClassesStore = defineStore('classes', () => {
     const totalClasses = computed(() => classes.value.length)
 
     // Actions
+    const setGroupingActivityName = (classId: string, name: string) => {
+        groupingActivityNames.value[classId] = name;
+        saveToStorage();
+    };
+
     const setGroupingBaseScores = (classId: string, scores: Record<string, number>) => {
         groupingBaseScores.value[classId] = scores;
         saveToStorage();
@@ -349,32 +355,38 @@ export const useClassesStore = defineStore('classes', () => {
     }
 
     const saveToStorage = () => {
-        if (!process.client) return
+        if (!process.client) return;
         try {
             const data = {
                 classes: classes.value,
                 currentClassId: currentClassId.value,
+                groupingBaseScores: groupingBaseScores.value,
+                groupingSessionScores: groupingSessionScores.value,
+                groupingActivityNames: groupingActivityNames.value,
                 lastSaved: new Date().toISOString(),
-            }
-            localStorage.setItem('classes-data', JSON.stringify(data))
+            };
+            localStorage.setItem('classes-data', JSON.stringify(data));
         } catch (error) {
-            console.error('儲存班級資料失敗:', error)
+            console.error('儲存班級資料失敗:', error);
         }
-    }
+    };
 
     const loadFromStorage = () => {
-        if (!process.client) return
+        if (!process.client) return;
         try {
-            const saved = localStorage.getItem('classes-data')
+            const saved = localStorage.getItem('classes-data');
             if (saved) {
-                const data = JSON.parse(saved)
-                classes.value = data.classes || []
-                currentClassId.value = data.currentClassId || null
+                const data = JSON.parse(saved);
+                classes.value = data.classes || [];
+                currentClassId.value = data.currentClassId || null;
+                groupingBaseScores.value = data.groupingBaseScores || {};
+                groupingSessionScores.value = data.groupingSessionScores || {};
+                groupingActivityNames.value = data.groupingActivityNames || {};
             }
         } catch (error) {
-            console.error('載入班級資料失敗:', error)
+            console.error('載入班級資料失敗:', error);
         }
-    }
+    };
 
     const exportAllClasses = () => {
         const data = {
@@ -422,6 +434,7 @@ export const useClassesStore = defineStore('classes', () => {
         currentClassId: readonly(currentClassId),
         groupingBaseScores,
         groupingSessionScores,
+        groupingActivityNames,
 
         // Computed
         currentClass,
@@ -442,6 +455,7 @@ export const useClassesStore = defineStore('classes', () => {
         updateGroups,
         addScoreToGroup,
         addScoreToStudent,
+        setGroupingActivityName,
         setGroupingBaseScores,
         getGroupingBaseScores,
         setGroupingSessionScores,
