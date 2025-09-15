@@ -423,15 +423,15 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
-    // 初始化
-    onMounted(() => {
-        loadFromStorage()
-    })
+    // 初始化，這個動作應該由 app.vue 或 plugin 觸發
+    // onMounted(() => {
+    //     loadFromStorage()
+    // })
 
     return {
         // State
-        classes: readonly(classes),
-        currentClassId: readonly(currentClassId),
+        classes, // 暫時移除 readonly，但建議在組件中透過 action 修改
+        currentClassId, // 暫時移除 readonly，但建議在組件中透過 action 修改
         groupingBaseScores,
         groupingSessionScores,
         groupingActivityNames,

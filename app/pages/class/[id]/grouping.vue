@@ -412,7 +412,7 @@
                             </button>
                         </div>
                         <p class="text-xs text-base-content/60 mt-3 w-full">
-                            提醒：活動結束後就不可再匯出此次分組活動的報告。
+                            提醒：設置活動名稱方可匯出活動報告，活動結束後就不可再匯出此次分組活動的報告。
                         </p>
                     </div>
                     <div v-else class="w-full flex justify-end">

@@ -110,8 +110,15 @@
                         <span class="label-text">主題</span>
                     </label>
                     <select
-                        v-model="ui.userPreferences.theme"
-                        @change="ui.setTheme($event.target.value)"
+                        :value="ui.userPreferences.theme"
+                        @change="
+                            ui.updatePreferences({
+                                theme: ($event.target as HTMLSelectElement).value as
+                                    | 'light'
+                                    | 'dark'
+                                    | 'auto',
+                            })
+                        "
                         class="select select-bordered"
                     >
                         <option value="light">淺色主題</option>
@@ -124,7 +131,17 @@
                     <label class="label">
                         <span class="label-text">預設檢視模式</span>
                     </label>
-                    <select v-model="ui.userPreferences.defaultView" class="select select-bordered">
+                    <select
+                        :value="ui.userPreferences.defaultView"
+                        @change="
+                            ui.updatePreferences({
+                                defaultView: ($event.target as HTMLSelectElement).value as
+                                    | 'grid'
+                                    | 'list',
+                            })
+                        "
+                        class="select select-bordered"
+                    >
                         <option value="grid">網格檢視</option>
                         <option value="list">列表檢視</option>
                     </select>
@@ -135,7 +152,12 @@
                 <div class="form-control">
                     <label class="cursor-pointer label justify-start space-x-3">
                         <input
-                            v-model="ui.userPreferences.animationsEnabled"
+                            :checked="ui.userPreferences.enableAnimations"
+                            @change="
+                                ui.updatePreferences({
+                                    enableAnimations: ($event.target as HTMLInputElement).checked,
+                                })
+                            "
                             type="checkbox"
                             class="checkbox checkbox-primary"
                         />
@@ -146,7 +168,12 @@
                 <div class="form-control">
                     <label class="cursor-pointer label justify-start space-x-3">
                         <input
-                            v-model="ui.userPreferences.compactMode"
+                            :checked="ui.userPreferences.compactMode"
+                            @change="
+                                ui.updatePreferences({
+                                    compactMode: ($event.target as HTMLInputElement).checked,
+                                })
+                            "
                             type="checkbox"
                             class="checkbox checkbox-primary"
                         />
@@ -157,7 +184,12 @@
                 <div class="form-control">
                     <label class="cursor-pointer label justify-start space-x-3">
                         <input
-                            v-model="ui.userPreferences.autoSave"
+                            :checked="ui.userPreferences.autoSave"
+                            @change="
+                                ui.updatePreferences({
+                                    autoSave: ($event.target as HTMLInputElement).checked,
+                                })
+                            "
                             type="checkbox"
                             class="checkbox checkbox-primary"
                         />

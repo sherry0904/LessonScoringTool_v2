@@ -430,12 +430,12 @@ export const useClassStore = defineStore('class', () => {
 
     return {
         // State
-        currentSession: readonly(currentSession),
-        students: readonly(students),
-        groups: readonly(groups),
-        isGroupingActive: readonly(isGroupingActive),
-        groupingStartTime: readonly(groupingStartTime),
-        groupingEndTime: readonly(groupingEndTime),
+        currentSession,
+        students,
+        groups,
+        isGroupingActive,
+        groupingStartTime,
+        groupingEndTime,
         settings,
 
         // Computed

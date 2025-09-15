@@ -166,7 +166,10 @@
                             <!-- 搜尋 -->
                             <div class="relative">
                                 <input
-                                    v-model="ui.searchQuery"
+                                    :value="ui.searchQuery"
+                                    @input="
+                                        ui.setSearchQuery(($event.target as HTMLInputElement).value)
+                                    "
                                     type="search"
                                     placeholder="搜尋班級或學生..."
                                     class="input input-bordered input-sm w-64 pl-10"

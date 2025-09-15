@@ -2,6 +2,17 @@ import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import type { ToastType, ToastMessage, ViewModeType, UserPreferences, Tab } from '~/types/class'
 
+// Helper function to apply theme to the DOM
+const applyThemeToDOM = (theme: 'light' | 'dark' | 'auto') => {
+    if (process.client) {
+        let actualTheme = theme
+        if (theme === 'auto') {
+            actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
+        document.documentElement.setAttribute('data-theme', actualTheme)
+    }
+}
+
 export const useUIStore = defineStore('ui', () => {
     // State
     const currentTab = ref<string>('dashboard')
@@ -13,25 +24,34 @@ export const useUIStore = defineStore('ui', () => {
     const searchQuery = ref('')
     const selectedStudents = ref<Set<string>>(new Set())
     const userPreferences = ref<UserPreferences>({
-        theme: 'light',
+        theme: 'auto',
         language: 'zh-TW',
         enableAnimations: true,
         enableSounds: false,
         autoSave: true,
         showTutorials: true,
+        defaultView: 'grid',
+        compactMode: false,
     })
     const isMobile = ref(false)
     const isTablet = ref(false)
     const windowWidth = ref(0)
 
     // Computed
-    const isDarkMode = computed(() => userPreferences.value.theme === 'dark')
+    const isDarkMode = computed(() => {
+        if (userPreferences.value.theme === 'auto') {
+            if (process.client) {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches
+            }
+            return false
+        }
+        return userPreferences.value.theme === 'dark'
+    })
 
     const currentTabInfo = computed(() => {
         const tabMap: Record<string, Tab> = {
             dashboard: { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
             students: { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
-            // groups: { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
             settings: { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         }
         return tabMap[currentTab.value] || tabMap.dashboard
@@ -51,7 +71,6 @@ export const useUIStore = defineStore('ui', () => {
         return [
             { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
             { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
-            // { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
             { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         ]
     })
@@ -77,6 +96,42 @@ export const useUIStore = defineStore('ui', () => {
         searchQuery.value = query
     }
 
+    // Preferences methods
+    const updatePreferences = (updates: Partial<UserPreferences>) => {
+        userPreferences.value = { ...userPreferences.value, ...updates }
+        if (process.client) {
+            localStorage.setItem('userPreferences', JSON.stringify(userPreferences.value))
+            // If theme is updated, apply it to the DOM
+            if (updates.theme) {
+                applyThemeToDOM(updates.theme)
+            }
+        }
+    }
+    
+    const toggleTheme = () => {
+        const currentTheme = userPreferences.value.theme
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light'
+        updatePreferences({ theme: newTheme })
+    }
+
+    const resetPreferences = () => {
+        const defaultPrefs: UserPreferences = {
+            theme: 'auto',
+            language: 'zh-TW',
+            enableAnimations: true,
+            enableSounds: false,
+            autoSave: true,
+            showTutorials: true,
+            defaultView: 'grid',
+            compactMode: false,
+        }
+        userPreferences.value = defaultPrefs
+        if (process.client) {
+            localStorage.setItem('userPreferences', JSON.stringify(defaultPrefs))
+            applyThemeToDOM(defaultPrefs.theme)
+        }
+    }
+
     // Toast methods
     const showToast = (message: string, type: ToastType = 'info', duration: number = 3000) => {
         const toast: ToastMessage = {
@@ -86,14 +141,9 @@ export const useUIStore = defineStore('ui', () => {
             timestamp: new Date(),
             duration,
         }
-
         toasts.value.unshift(toast)
-
-        // 自動移除
         if (duration > 0) {
-            setTimeout(() => {
-                removeToast(toast.id)
-            }, duration)
+            setTimeout(() => removeToast(toast.id), duration)
         }
     }
 
@@ -133,47 +183,12 @@ export const useUIStore = defineStore('ui', () => {
         isLoading.value = loading
     }
 
-    const setLoadingState = (loading: boolean) => {
-        isLoading.value = loading
-    }
-
     const withLoading = async <T>(promise: Promise<T>): Promise<T> => {
         setLoading(true)
         try {
             return await promise
         } finally {
             setLoading(false)
-        }
-    }
-
-    // Theme methods
-    const setTheme = (theme: 'light' | 'dark') => {
-        userPreferences.value.theme = theme
-        if (process.client) {
-            document.documentElement.setAttribute('data-theme', theme)
-            localStorage.setItem('theme', theme)
-        }
-    }
-
-    const toggleTheme = () => {
-        const newTheme = userPreferences.value.theme === 'light' ? 'dark' : 'light'
-        setTheme(newTheme)
-    }
-
-    const initializeTheme = () => {
-        if (process.client) {
-            const savedTheme = localStorage.getItem('theme')
-            if (savedTheme) {
-                userPreferences.value.theme = savedTheme as 'light' | 'dark'
-            } else {
-                // 檢測系統主題偏好
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-                userPreferences.value.theme = prefersDark ? 'dark' : 'light'
-            }
-
-            // 應用主題
-            document.documentElement.setAttribute('data-theme', userPreferences.value.theme)
-            localStorage.setItem('theme', userPreferences.value.theme)
         }
     }
 
@@ -194,28 +209,6 @@ export const useUIStore = defineStore('ui', () => {
         selectedStudents.value = new Set(studentIds)
     }
 
-    // Preferences methods
-    const updatePreferences = (updates: Partial<UserPreferences>) => {
-        userPreferences.value = { ...userPreferences.value, ...updates }
-        if (process.client) {
-            localStorage.setItem('userPreferences', JSON.stringify(userPreferences.value))
-        }
-    }
-
-    const resetPreferences = () => {
-        userPreferences.value = {
-            theme: 'light',
-            language: 'zh-TW',
-            enableAnimations: true,
-            enableSounds: false,
-            autoSave: true,
-            showTutorials: true,
-        }
-        if (process.client) {
-            localStorage.removeItem('userPreferences')
-        }
-    }
-
     // Responsive methods
     const updateScreenSize = () => {
         if (process.client) {
@@ -226,7 +219,6 @@ export const useUIStore = defineStore('ui', () => {
     }
 
     const handleKeyboard = (event: KeyboardEvent) => {
-        // ESC 關閉所有 modal
         if (event.key === 'Escape') {
             closeAllModals()
         }
@@ -235,23 +227,22 @@ export const useUIStore = defineStore('ui', () => {
     // Lifecycle methods
     const initialize = () => {
         if (process.client) {
-            // 初始化主題
-            initializeTheme()
-
-            // 載入用戶偏好
+            // Load user preferences
             const savedPreferences = localStorage.getItem('userPreferences')
             if (savedPreferences) {
                 try {
-                    userPreferences.value = {
-                        ...userPreferences.value,
-                        ...JSON.parse(savedPreferences),
-                    }
+                    const parsedPrefs = JSON.parse(savedPreferences)
+                    // Merge with defaults to avoid missing properties on update
+                    userPreferences.value = { ...userPreferences.value, ...parsedPrefs }
                 } catch (error) {
                     console.warn('Failed to parse user preferences:', error)
                 }
             }
+            
+            // Apply initial theme
+            applyThemeToDOM(userPreferences.value.theme)
 
-            // 初始化響應式
+            // Init responsive listeners
             updateScreenSize()
             window.addEventListener('resize', updateScreenSize)
             window.addEventListener('keydown', handleKeyboard)
@@ -267,18 +258,18 @@ export const useUIStore = defineStore('ui', () => {
 
     return {
         // State
-        currentTab: readonly(currentTab),
-        viewMode: readonly(viewMode),
-        toasts: readonly(toasts),
-        modals: readonly(modals),
-        isLoading: readonly(isLoading),
-        isSidebarOpen: readonly(isSidebarOpen),
-        searchQuery: readonly(searchQuery),
-        selectedStudents: readonly(selectedStudents),
-        userPreferences: readonly(userPreferences),
-        isMobile: readonly(isMobile),
-        isTablet: readonly(isTablet),
-        windowWidth: readonly(windowWidth),
+        currentTab,
+        viewMode,
+        toasts,
+        modals,
+        isLoading,
+        isSidebarOpen,
+        searchQuery,
+        selectedStudents,
+        userPreferences,
+        isMobile,
+        isTablet,
+        windowWidth,
 
         // Computed
         isDarkMode,
@@ -294,6 +285,9 @@ export const useUIStore = defineStore('ui', () => {
         setSidebarOpen,
         setSearchQuery,
         clearStudentSelection,
+        toggleTheme,
+        updatePreferences,
+        resetPreferences,
 
         // Toast methods
         showToast,
@@ -311,21 +305,11 @@ export const useUIStore = defineStore('ui', () => {
 
         // Loading methods
         setLoading,
-        setLoadingState,
         withLoading,
-
-        // Theme methods
-        setTheme,
-        toggleTheme,
-        initializeTheme,
 
         // Student selection methods
         toggleStudentSelection,
         selectAllStudents,
-
-        // Preferences methods
-        updatePreferences,
-        resetPreferences,
 
         // Lifecycle
         initialize,
