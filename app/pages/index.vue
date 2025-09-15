@@ -7,6 +7,6 @@
 <script setup>
 // 頁面標題
 useHead({
-    title: '班級經營動力站 - 現代化班級管理系統',
+    title: '班級分組計分工具 - 現代化班級管理系統',
 })
 </script>

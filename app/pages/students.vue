@@ -179,7 +179,7 @@ onUnmounted(() => {
     ui.setSearchQuery('')
 })
 
-useHead({ title: '學生管理 - 班級經營動力站' })
+useHead({ title: '學生管理 - 班級分組計分工具' })
 </script>
 
 <style scoped>

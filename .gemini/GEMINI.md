@@ -2,7 +2,7 @@
 
 ## 專案背景
 
-本專案為「班級經營動力站」現代化班級管理系統，採用 Nuxt 4、Pinia、Tailwind CSS、TypeScript 與 Vue 3 技術，協助教師進行班級、學生、分組、作業、統計等多元管理。
+本專案為「班級分組計分工具」現代化班級管理系統，採用 Nuxt 4、Pinia、Tailwind CSS、TypeScript 與 Vue 3 技術，協助教師進行班級、學生、分組、作業、統計等多元管理。
 
 ## Gemini CLI 使用建議
 

@@ -130,5 +130,5 @@ const clearData = () => {
     }
 }
 
-useHead({ title: '系統設定 - 班級經營動力站' })
+useHead({ title: '系統設定 - 班級分組計分工具' })
 </script>

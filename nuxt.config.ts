@@ -1,3 +1,9 @@
+/**
+ * @file Nuxt configuration file
+ * @author sherryhsieh
+ * @see {@link https://nuxt.com/docs/api/configuration/nuxt-config}
+ */
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
     compatibilityDate: '2024-04-03',

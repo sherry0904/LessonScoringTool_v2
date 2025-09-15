@@ -354,5 +354,5 @@ const elapsed = computed(() => {
     return `${m}分${s}秒`
 })
 
-useHead({ title: '分組管理 - 班級經營動力站' })
+useHead({ title: '分組管理 - 班級分組計分工具' })
 </script>

@@ -560,6 +560,6 @@ const formatDate = (date: Date) => {
 
 // 頁面標題
 useHead({
-    title: '班級總覽 - 班級經營動力站',
+    title: '班級總覽 - 班級分組計分工具',
 })
 </script>

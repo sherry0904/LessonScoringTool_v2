@@ -73,3 +73,11 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+---
+
+## Acknowledgements
+
+This project was developed by **sherryhsieh** with significant assistance from **Google's Gemini**.
+
+The collaboration involved debugging, feature implementation, code refactoring, and deployment guidance. For more details, please see the `NOTICE.md` file.

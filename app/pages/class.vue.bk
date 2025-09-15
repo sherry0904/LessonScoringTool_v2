@@ -229,8 +229,8 @@ const closeStudentModal = () => {
 useHead({
     title: computed(() =>
         classesStore.currentClass
-            ? `${classesStore.currentClass.name} - 班級經營動力站`
-            : '班級管理 - 班級經營動力站',
+            ? `${classesStore.currentClass.name} - 班級分組計分工具`
+            : '班級管理 - 班級分組計分工具',
     ),
 })
 

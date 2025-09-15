@@ -1,3 +1,7 @@
+<!--
+  @file Main application layout
+  @author sherryhsieh
+-->
 <template>
     <div id="app" class="min-h-screen bg-base-100">
         <!-- 手機版提示 -->
@@ -107,7 +111,11 @@
                                 :title="!ui.isSidebarOpen ? '課堂計時器' : ''"
                             >
                                 <LucideIcon name="Hourglass" class="w-5 h-5 shrink-0" />
-                                <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">課堂計時器</span>
+                                <span
+                                    v-if="ui.isSidebarOpen"
+                                    class="ml-3 font-medium whitespace-nowrap"
+                                    >課堂計時器</span
+                                >
                             </button>
                         </li>
                         <li>
@@ -117,12 +125,22 @@
                                 class="w-full flex items-center p-3 rounded-lg transition-colors duration-200 text-base-content"
                                 :class="{
                                     'hover:bg-base-300': !!classesStore.currentClass,
-                                    'opacity-50 cursor-not-allowed': !classesStore.currentClass
+                                    'opacity-50 cursor-not-allowed': !classesStore.currentClass,
                                 }"
-                                :title="!ui.isSidebarOpen ? (!classesStore.currentClass ? '請先進入班級' : '隨機抽籤') : ''"
+                                :title="
+                                    !ui.isSidebarOpen
+                                        ? !classesStore.currentClass
+                                            ? '請先進入班級'
+                                            : '隨機抽籤'
+                                        : ''
+                                "
                             >
                                 <LucideIcon name="Dices" class="w-5 h-5 shrink-0" />
-                                <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">隨機抽籤</span>
+                                <span
+                                    v-if="ui.isSidebarOpen"
+                                    class="ml-3 font-medium whitespace-nowrap"
+                                    >隨機抽籤</span
+                                >
                             </button>
                         </li>
                     </ul>
@@ -188,7 +206,11 @@
 
                             <div>
                                 <h2 class="text-xl font-semibold text-base-content">
-                                    {{ ui.currentTabInfo.label || classesStore.currentClass?.name || '班級' }}
+                                    {{
+                                        ui.currentTabInfo.label ||
+                                        classesStore.currentClass?.name ||
+                                        '班級'
+                                    }}
                                 </h2>
                                 <p class="text-sm text-base-content/60">管理多個班級的評分與分組</p>
                             </div>

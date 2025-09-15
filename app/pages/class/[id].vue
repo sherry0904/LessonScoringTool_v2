@@ -36,7 +36,12 @@
                         custom
                         v-slot="{ href, navigate, isExactActive }"
                     >
-                        <a :href="href" @click="navigate" class="tab tab-lg" :class="{ 'tab-active': isExactActive }">
+                        <a
+                            :href="href"
+                            @click="navigate"
+                            class="tab tab-lg"
+                            :class="{ 'tab-active': isExactActive }"
+                        >
                             <LucideIcon :name="tab.icon" class="w-4 h-4 mr-2" />
                             {{ tab.label }}
                         </a>
@@ -122,7 +127,7 @@
 
 <script setup lang="ts">
 import { useClassesStore } from '~/stores/classes'
-import { storeToRefs } from 'pinia';
+import { storeToRefs } from 'pinia'
 
 const classesStore = useClassesStore()
 const route = useRoute()
@@ -141,7 +146,7 @@ const studentForm = reactive({
 
 // 更新的頁籤陣列，包含路由路徑
 const tabs = computed(() => {
-    const classId = route.params.id as string;
+    const classId = route.params.id as string
     return [
         { id: 'scoring', label: '個人計分', icon: 'Star', path: `/class/${classId}` },
         // { id: 'homework', label: '作業訂正', icon: 'BookOpen', path: `/class/${classId}/homework` },
@@ -218,8 +223,8 @@ const closeStudentModal = () => {
 useHead({
     title: computed(() =>
         currentClass.value
-            ? `${currentClass.value.name} - 班級經營動力站`
-            : '班級管理 - 班級經營動力站',
+            ? `${currentClass.value.name} - 班級分組計分工具`
+            : '班級管理 - 班級分組計分工具',
     ),
 })
 
