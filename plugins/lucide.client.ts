@@ -52,6 +52,8 @@ import {
     Pause,
     RotateCcw,
     Dices,
+    Laptop,
+    Tablet,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -108,4 +110,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucidePause', Pause)
     nuxtApp.vueApp.component('LucideRotateCcw', RotateCcw)
     nuxtApp.vueApp.component('LucideDices', Dices)
+    nuxtApp.vueApp.component('LucideLaptop', Laptop)
+    nuxtApp.vueApp.component('LucideTablet', Tablet)
 })

@@ -1,5 +1,8 @@
 <template>
     <div id="app" class="min-h-screen bg-base-100">
+        <!-- 手機版提示 -->
+        <MobileBlocker v-if="ui.isMobile" />
+
         <!-- 載入指示器 -->
         <div
             v-if="ui.isLoading"
@@ -234,6 +237,7 @@ import { useUIStore } from '~/stores/ui'
 import { useClassesStore } from '~/stores/classes'
 import TimerWidget from '~/components/TimerWidget.vue'
 import StudentPickerModal from '~/components/StudentPickerModal.vue'
+import MobileBlocker from '~/components/MobileBlocker.vue'
 import { watchEffect } from 'vue' // Import watchEffect
 
 const ui = useUIStore()

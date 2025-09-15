@@ -68,6 +68,8 @@ import {
     RotateCcw,
     Hourglass,
     Dices,
+    Laptop,
+    Tablet,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -140,6 +142,8 @@ const iconMap = {
     RotateCcw: RotateCcw,
     Hourglass: Hourglass,
     Dices: Dices,
+    Laptop: Laptop,
+    Tablet: Tablet,
 }
 
 const iconComponent = computed(() => {

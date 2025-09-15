@@ -98,6 +98,6 @@
 
 /* Ensure Lucide icons have a default color */
 .lucide {
-    fill: currentColor;
+    fill: none;
     stroke: currentColor;
 }
