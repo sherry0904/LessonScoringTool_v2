@@ -163,23 +163,6 @@
                         </div>
 
                         <div class="flex items-center space-x-3">
-                            <!-- 搜尋 -->
-                            <div class="relative">
-                                <input
-                                    :value="ui.searchQuery"
-                                    @input="
-                                        ui.setSearchQuery(($event.target as HTMLInputElement).value)
-                                    "
-                                    type="search"
-                                    placeholder="搜尋班級或學生..."
-                                    class="input input-bordered input-sm w-64 pl-10"
-                                />
-                                <LucideIcon
-                                    name="Search"
-                                    class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/50"
-                                />
-                            </div>
-
                             <!-- 狀態指示器 -->
                             <div class="flex items-center space-x-2">
                                 <div class="text-sm text-base-content/60">

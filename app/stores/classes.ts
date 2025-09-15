@@ -423,6 +423,47 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
+    const exportAllAsCSV = () => {
+        if (!process.client) return;
+
+        const headers = ['班級名稱', '學生座號', '學生姓名', '總分'];
+        
+        const escapeCSV = (field: any): string => {
+            const str = String(field ?? '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const csvRows = [headers.join(',')];
+
+        classes.value.forEach(cls => {
+            if (cls.students && cls.students.length > 0) {
+                cls.students.forEach(student => {
+                    const row = [
+                        escapeCSV(cls.name),
+                        escapeCSV(student.id),
+                        escapeCSV(student.name),
+                        escapeCSV(student.totalScore ?? 0)
+                    ];
+                    csvRows.push(row.join(','));
+                });
+            }
+        });
+
+        const csvContent = '\uFEFF' + csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `全體學生分數總表-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     // 初始化，這個動作應該由 app.vue 或 plugin 觸發
     // onMounted(() => {
     //     loadFromStorage()
@@ -465,5 +506,6 @@ export const useClassesStore = defineStore('classes', () => {
         loadFromStorage,
         exportAllClasses,
         importAllClasses,
+        exportAllAsCSV,
     }
 })

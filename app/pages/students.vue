@@ -13,9 +13,10 @@
             <div class="flex items-center gap-3">
                 <div class="relative">
                     <input
-                        v-model="search"
+                        :value="ui.searchQuery"
+                        @input="ui.setSearchQuery(($event.target as HTMLInputElement).value)"
                         type="text"
-                        placeholder="搜尋學生或班級..."
+                        placeholder="搜尋學生、班級或座號..."
                         class="input input-bordered pl-10 w-72"
                     />
                     <LucideIcon
@@ -74,7 +75,7 @@
                         filteredStudents.length
                     }})
                 </h2>
-                <div class="text-sm text-base-content/60">點學生可前往其班級</div>
+                <div class="text-sm text-base-content/60">點擊學生可快速跳轉至其班級頁面</div>
             </div>
 
             <div v-if="filteredStudents.length" class="max-h-[60vh] overflow-auto custom-scrollbar">
@@ -83,6 +84,7 @@
                         <tr>
                             <th class="w-20">座號</th>
                             <th>姓名</th>
+                            <th class="w-24 text-center">總分</th>
                             <th class="hidden md:table-cell">所屬班級</th>
                             <th class="hidden md:table-cell">建立時間</th>
                         </tr>
@@ -96,6 +98,7 @@
                         >
                             <td>{{ item.id }}</td>
                             <td class="font-medium">{{ item.name }}</td>
+                            <td class="text-center font-mono">{{ item.totalScore }}</td>
                             <td class="hidden md:table-cell">{{ item.className }}</td>
                             <td class="hidden md:table-cell">{{ formatDate(item.createdAt) }}</td>
                         </tr>
@@ -104,19 +107,24 @@
             </div>
             <div v-else class="p-10 text-center text-base-content/60">
                 <LucideIcon name="UserX" class="w-10 h-10 mx-auto mb-4 opacity-50" />
-                找不到符合的學生
+                <p v-if="ui.searchQuery">找不到符合「{{ ui.searchQuery }}」的學生</p>
+                <p v-else>目前沒有任何學生資料</p>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { useClassesStore } from '~/stores/classes'
+import { useUIStore } from '~/stores/ui'
+
 const classesStore = useClassesStore()
-const search = ref('')
+const ui = useUIStore()
 
 interface FlatStudent {
     id: string
     name: string
+    totalScore: number
     classId: string
     className: string
     createdAt: Date
@@ -128,6 +136,7 @@ const flatStudents = computed<FlatStudent[]>(() => {
         (cls.students || []).map((s) => ({
             id: s.id,
             name: s.name,
+            totalScore: s.totalScore || 0,
             classId: cls.id,
             className: cls.name,
             createdAt: new Date(s.createdAt),
@@ -137,8 +146,9 @@ const flatStudents = computed<FlatStudent[]>(() => {
 })
 
 const filteredStudents = computed(() => {
-    if (!search.value.trim()) return flatStudents.value
-    const q = search.value.toLowerCase()
+    const q = ui.searchQuery.trim().toLowerCase()
+    if (!q) return flatStudents.value
+
     return flatStudents.value.filter(
         (s) =>
             s.name.toLowerCase().includes(q) ||
@@ -158,11 +168,16 @@ const averagePerClass = computed(() =>
 
 const goToClass = (classId: string) => {
     classesStore.selectClass(classId)
-    navigateTo('/class')
+    navigateTo(`/class/${classId}`)
 }
 
 const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })
+
+onUnmounted(() => {
+    // 離開頁面時清空搜尋，避免影響其他頁面
+    ui.setSearchQuery('')
+})
 
 useHead({ title: '學生管理 - 班級經營動力站' })
 </script>

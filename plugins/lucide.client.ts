@@ -25,7 +25,6 @@ import {
     UserCheck,
     Eye,
     EyeOff,
-    // 新增更語義化的圖示
     LogIn,
     ArrowRight,
     Edit2,
@@ -43,6 +42,11 @@ import {
     CircleDot,
     School,
     Settings2,
+    Activity,
+    Sparkles,
+    List,
+    Archive,
+    FileSpreadsheet,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -89,4 +93,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideCircleDot', CircleDot)
     nuxtApp.vueApp.component('LucideSchool', School)
     nuxtApp.vueApp.component('LucideSettings2s', Settings2)
+    nuxtApp.vueApp.component('LucideActivity', Activity)
+    nuxtApp.vueApp.component('LucideSparkles', Sparkles)
+    nuxtApp.vueApp.component('LucideList', List)
+    nuxtApp.vueApp.component('LucideArchive', Archive)
+    nuxtApp.vueApp.component('LucideFileSpreadsheet', FileSpreadsheet)
 })

@@ -30,15 +30,32 @@
                     </div>
 
                     <!-- 操作按鈕 -->
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
                         <button @click="importData" class="btn btn-outline gap-2">
                             <LucideIcon name="Upload" class="w-4 h-4" />
-                            匯入資料
+                            還原備份 (JSON)
                         </button>
-                        <button @click="exportData" class="btn btn-outline gap-2">
-                            <LucideIcon name="Download" class="w-4 h-4" />
-                            匯出資料
-                        </button>
+                        <div class="dropdown dropdown-end">
+                            <label tabindex="0" class="btn btn-outline gap-2">
+                                <LucideIcon name="Download" class="w-4 h-4" />
+                                匯出資料
+                                <LucideIcon name="ChevronDown" class="w-4 h-4" />
+                            </label>
+                            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52">
+                                <li>
+                                    <a @click="exportCSV">
+                                        <LucideIcon name="FileSpreadsheet" class="w-4 h-4" />
+                                        匯出 Excel (CSV)
+                                    </a>
+                                </li>
+                                <li>
+                                    <a @click="exportJSONBackup">
+                                        <LucideIcon name="Archive" class="w-4 h-4" />
+                                        建立備份 (JSON)
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                         <button @click="createNewClass" class="btn btn-primary gap-2">
                             <LucideIcon name="Plus" class="w-4 h-4" />
                             新增班級
@@ -236,7 +253,7 @@
                         <textarea
                             v-model="classForm.students"
                             class="textarea textarea-bordered h-32 w-full mt-2"
-                            placeholder="輸入班級總人數 (例如 28)&#10;或&#10;1 王小明&#10;2 陳大華&#10;..."
+                            placeholder="輸入班級總人數 (例如 28)\n或\n1 王小明\n2 陳大華\n..."
                             required
                         ></textarea>
                         <div class="label mt-2">
@@ -454,8 +471,14 @@ const openClass = (classId: string) => {
     navigateTo(`/class/${classId}`)
 }
 
-const exportData = () => {
-    classesStore.exportAllClasses()
+const exportJSONBackup = () => {
+    if (confirm('這將會下載一個系統專用的備份檔 (.json)，用於未來還原整個系統的資料，請妥善保管。')) {
+        classesStore.exportAllClasses()
+    }
+}
+
+const exportCSV = () => {
+    classesStore.exportAllAsCSV()
 }
 
 const importData = () => {
@@ -467,11 +490,15 @@ const handleFileImport = async (event: Event) => {
     const file = target.files?.[0]
 
     if (file) {
+        if (!file.name.endsWith('.json')) {
+            alert('檔案格式錯誤！請選擇 .json 格式的備份檔案。')
+            return
+        }
         const success = await classesStore.importAllClasses(file)
         if (success) {
             alert('資料匯入成功！')
         } else {
-            alert('資料匯入失敗，請檢查檔案格式。')
+            alert('資料匯入失敗，請檢查檔案格式或內容。')
         }
         target.value = '' // 清空輸入
     }

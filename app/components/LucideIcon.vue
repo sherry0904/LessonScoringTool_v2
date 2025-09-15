@@ -57,6 +57,11 @@ import {
     CircleDot,
     School,
     Settings2,
+    Activity,
+    Sparkles,
+    List,
+    Archive,
+    FileSpreadsheet,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -118,6 +123,11 @@ const iconMap = {
     CircleDot: CircleDot,
     School: School,
     Settings2: Settings2,
+    Activity: Activity,
+    Sparkles: Sparkles,
+    List: List,
+    Archive: Archive,
+    FileSpreadsheet: FileSpreadsheet,
 }
 
 const iconComponent = computed(() => {
