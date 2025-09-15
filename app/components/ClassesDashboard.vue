@@ -41,7 +41,10 @@
                                 匯出資料
                                 <LucideIcon name="ChevronDown" class="w-4 h-4" />
                             </label>
-                            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52">
+                            <ul
+                                tabindex="0"
+                                class="dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52"
+                            >
                                 <li>
                                     <a @click="exportCSV">
                                         <LucideIcon name="FileSpreadsheet" class="w-4 h-4" />
@@ -253,7 +256,7 @@
                         <textarea
                             v-model="classForm.students"
                             class="textarea textarea-bordered h-32 w-full mt-2"
-                            placeholder="輸入班級總人數 (例如 28)\n或\n1 王小明\n2 陳大華\n..."
+                            placeholder="輸入班級總人數 (例如 28)或  1 王小明  2 陳大華..."
                             required
                         ></textarea>
                         <div class="label mt-2">
@@ -472,7 +475,9 @@ const openClass = (classId: string) => {
 }
 
 const exportJSONBackup = () => {
-    if (confirm('這將會下載一個系統專用的備份檔 (.json)，用於未來還原整個系統的資料，請妥善保管。')) {
+    if (
+        confirm('這將會下載一個系統專用的備份檔 (.json)，用於未來還原整個系統的資料，請妥善保管。')
+    ) {
         classesStore.exportAllClasses()
     }
 }
