@@ -38,7 +38,9 @@
                     </div>
                     <div class="flex flex-wrap gap-4 items-end mt-4 border-t pt-4">
                         <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                            <label class="whitespace-nowrap text-base-content/80 mr-2">活動名稱 (選填)</label>
+                            <label class="whitespace-nowrap text-base-content/80 mr-2"
+                                >活動名稱 (選填)</label
+                            >
                             <input
                                 v-model="activityName"
                                 type="text"
@@ -456,7 +458,8 @@ const props = defineProps<Props>()
 const classesStore = useClassesStore()
 
 // --- Use Store as the Single Source of Truth ---
-const { groupingBaseScores, groupingSessionScores, groupingActivityNames } = storeToRefs(classesStore)
+const { groupingBaseScores, groupingSessionScores, groupingActivityNames } =
+    storeToRefs(classesStore)
 
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()

@@ -451,7 +451,7 @@ const closeDeleteModal = () => {
 
 const openClass = (classId: string) => {
     classesStore.selectClass(classId)
-    navigateTo('/class')
+    navigateTo(`/class/${classId}`)
 }
 
 const exportData = () => {

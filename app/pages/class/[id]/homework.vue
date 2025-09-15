@@ -193,7 +193,7 @@
 
                 <form @submit.prevent="addHomework" class="space-y-4">
                     <div class="form-control">
-                        <label class="label">
+                        <label class="label mr-2">
                             <span class="label-text">作業名稱</span>
                         </label>
                         <input
@@ -250,7 +250,7 @@
 </template>
 
 <script setup lang="ts">
-import { useClassesStore } from '~/stores/classes';
+import { useClassesStore } from '~/stores/classes'
 import type { ClassInfo, Homework, Student } from '~/types'
 
 // 1. Get store and route
@@ -259,7 +259,7 @@ const route = useRoute()
 
 // 2. Get classId and classInfo from route and store
 const classId = computed(() => route.params.id as string)
-const classInfo = computed(() => classesStore.classes.find(c => c.id === classId.value))
+const classInfo = computed(() => classesStore.classes.find((c) => c.id === classId.value))
 
 // Modal refs
 const addHomeworkModal = ref<HTMLDialogElement>()
@@ -433,7 +433,7 @@ const exportStatusReport = () => {
 }
 
 const exportStudentReport = (studentId: string) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     const student = classInfo.value.students.find((s) => s.id === studentId)
     if (!student || !currentHomework.value) return
 

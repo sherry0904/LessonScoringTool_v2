@@ -36,16 +36,16 @@
                             開始分組
                         </button>
                     </div>
-                    <div class="flex flex-wrap gap-4 items-end mt-4 border-t pt-4">
-                        <div class="input-group flex-grow min-w-[200px]">
-                            <span>活動名稱 (選填)</span>
-                            <input
-                                v-model="activityName"
-                                type="text"
-                                placeholder="例如：第二次分組討論"
-                                class="input input-bordered w-full"
-                            />
-                        </div>
+                    <div class="flex items-center gap-2 mt-4 border-t pt-4">
+                        <label class="whitespace-nowrap text-base-content/80 mr-2"
+                            >活動名稱 (選填)</label
+                        >
+                        <input
+                            v-model="activityName"
+                            type="text"
+                            placeholder="例如：第二次分組討論"
+                            class="input input-bordered flex-1 min-w-0"
+                        />
                         <button
                             @click="showGroupScoreboard"
                             class="btn btn-warning ml-2"
@@ -280,7 +280,7 @@
                                     class="text-xs font-semibold text-primary flex items-center gap-1"
                                 >
                                     <template v-if="classInfo.groupingActive">
-                                        <span class="opacity-60">{{ 
+                                        <span class="opacity-60">{{
                                             baseScoresForClass[member.id] ?? ''
                                         }}</span>
                                         <LucideIcon
@@ -442,7 +442,7 @@ const route = useRoute()
 
 // 2. Get classId and classInfo from route and store
 const classId = computed(() => route.params.id as string)
-const classInfo = computed(() => classesStore.classes.find(c => c.id === classId.value))
+const classInfo = computed(() => classesStore.classes.find((c) => c.id === classId.value))
 
 // Helper function for debouncing
 function debounce<T extends (...args: any[]) => any>(
@@ -461,7 +461,8 @@ function debounce<T extends (...args: any[]) => any>(
 }
 
 // --- Use Store as the Single Source of Truth ---
-const { groupingBaseScores, groupingSessionScores, groupingActivityNames } = storeToRefs(classesStore)
+const { groupingBaseScores, groupingSessionScores, groupingActivityNames } =
+    storeToRefs(classesStore)
 
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()
@@ -475,7 +476,7 @@ const isEndingFlow = ref(false)
 
 // --- Computed Properties for easier template access ---
 const activityName = computed({
-    get: () => classInfo.value ? groupingActivityNames.value[classInfo.value.id] || '' : '',
+    get: () => (classInfo.value ? groupingActivityNames.value[classInfo.value.id] || '' : ''),
     set: (newName) => {
         if (classInfo.value) {
             classesStore.setGroupingActivityName(classInfo.value.id, newName)
@@ -483,8 +484,12 @@ const activityName = computed({
     },
 })
 
-const baseScoresForClass = computed(() => classInfo.value ? groupingBaseScores.value[classInfo.value.id] || {} : {})
-const sessionScoresForClass = computed(() => classInfo.value ? groupingSessionScores.value[classInfo.value.id] || {} : {})
+const baseScoresForClass = computed(() =>
+    classInfo.value ? groupingBaseScores.value[classInfo.value.id] || {} : {},
+)
+const sessionScoresForClass = computed(() =>
+    classInfo.value ? groupingSessionScores.value[classInfo.value.id] || {} : {},
+)
 
 const ungroupedStudents = computed(() => {
     if (!classInfo.value) return []
@@ -558,7 +563,7 @@ const generateGroupColor = () => {
 }
 
 const randomAssignGroups = () => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     if (confirm('這將重新分配所有學生，確定要繼續嗎？')) {
         localGroups.value = []
         for (let i = 1; i <= groupCount.value; i++) {
@@ -592,7 +597,7 @@ const handleDrop = (targetId: string) => {
 }
 
 const addStudentToGroup = (studentId: string, groupId: string, shouldPersist = true) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     const student = classInfo.value.students.find((s) => s.id === studentId)
     const group = localGroups.value.find((g) => g.id === groupId)
 
@@ -684,7 +689,7 @@ const closeScoreboardModal = () => {
 }
 
 const exportActivityReport = () => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     const today = new Date()
     const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
     const fileName = `${activityName.value || '分組活動報告'}-${classInfo.value.name}-${dateStr}.csv`
@@ -703,7 +708,7 @@ const exportActivityReport = () => {
         const members = getGroupMembers(group)
         if (members.length > 0) {
             members.forEach((member) => {
-                const student = classInfo.value!.students.find(s => s.id === member.id);
+                const student = classInfo.value!.students.find((s) => s.id === member.id)
                 if (student) {
                     rows.push([
                         group.name,
