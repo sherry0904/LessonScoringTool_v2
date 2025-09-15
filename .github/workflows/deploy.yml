@@ -1,0 +1,38 @@
+name: Deploy to GitHub Pages
+
+# 當有程式碼推送到 main 分支時觸發
+on:
+  push:
+    branches:
+      - main
+
+# 允許此工作流程建立和推送一個 git commit
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # 使用 Node.js 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build static site
+        run: npm run generate # 執行 Nuxt 的靜態網站生成指令
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .output/public # Nuxt 3 生成的靜態檔案目錄
+          # 可選：自訂 commit 訊息
+          commit_message: 'Deploy to GitHub Pages ${{ github.event.head_commit.message }}'
