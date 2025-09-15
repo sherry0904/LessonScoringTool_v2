@@ -103,7 +103,7 @@
                                 class="w-full flex items-center p-3 rounded-lg transition-colors duration-200 hover:bg-base-300 text-base-content"
                                 :title="!ui.isSidebarOpen ? '課堂計時器' : ''"
                             >
-                                <LucideIcon name="Timer" class="w-5 h-5 shrink-0" />
+                                <LucideIcon name="Hourglass" class="w-5 h-5 shrink-0" />
                                 <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">課堂計時器</span>
                             </button>
                         </li>
@@ -118,7 +118,7 @@
                                 }"
                                 :title="!ui.isSidebarOpen ? (!classesStore.currentClass ? '請先進入班級' : '隨機抽籤') : ''"
                             >
-                                <LucideIcon name="Dice5" class="w-5 h-5 shrink-0" />
+                                <LucideIcon name="Dices" class="w-5 h-5 shrink-0" />
                                 <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">隨機抽籤</span>
                             </button>
                         </li>

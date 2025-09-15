@@ -281,7 +281,7 @@ export const useUIStore = defineStore('ui', () => {
             const winner = students[Math.floor(Math.random() * students.length)]
             pickerWinner.value = winner
             isPicking.value = false
-        }, 3000) // 3秒動畫
+        }, 1500) // 1.5秒動畫
     }
 
     // Responsive methods

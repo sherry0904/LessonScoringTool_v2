@@ -51,6 +51,7 @@ import {
     Dice5,
     Pause,
     RotateCcw,
+    Dices,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -106,4 +107,5 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideDice5', Dice5)
     nuxtApp.vueApp.component('LucidePause', Pause)
     nuxtApp.vueApp.component('LucideRotateCcw', RotateCcw)
+    nuxtApp.vueApp.component('LucideDices', Dices)
 })

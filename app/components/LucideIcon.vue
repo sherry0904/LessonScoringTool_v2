@@ -66,6 +66,8 @@ import {
     Dice5,
     Pause,
     RotateCcw,
+    Hourglass,
+    Dices,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -136,6 +138,8 @@ const iconMap = {
     Dice5: Dice5,
     Pause: Pause,
     RotateCcw: RotateCcw,
+    Hourglass: Hourglass,
+    Dices: Dices,
 }
 
 const iconComponent = computed(() => {

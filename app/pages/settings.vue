@@ -35,7 +35,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="form-control">
+                    <!-- <div class="form-control">
                         <label class="cursor-pointer label justify-start gap-3">
                             <input
                                 type="checkbox"
@@ -44,13 +44,13 @@
                             />
                             <span class="label-text">啟用動畫</span>
                         </label>
-                    </div>
-                    <div class="form-control">
+                    </div> -->
+                    <!-- <div class="form-control">
                         <label class="cursor-pointer label justify-start gap-3">
                             <input type="checkbox" class="toggle" v-model="prefs.enableSounds" />
                             <span class="label-text">操作音效</span>
                         </label>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -109,7 +109,7 @@ watch(
     { deep: true },
 )
 
-const setTheme = (theme: 'light' | 'dark') => ui.setTheme(theme)
+const setTheme = (theme: 'light' | 'dark') => ui.updatePreferences({ theme })
 
 const exportAll = () => classesStore.exportAllClasses()
 
