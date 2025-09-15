@@ -47,6 +47,10 @@ import {
     List,
     Archive,
     FileSpreadsheet,
+    Timer,
+    Dice5,
+    Pause,
+    RotateCcw,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -98,4 +102,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideList', List)
     nuxtApp.vueApp.component('LucideArchive', Archive)
     nuxtApp.vueApp.component('LucideFileSpreadsheet', FileSpreadsheet)
+    nuxtApp.vueApp.component('LucideTimer', Timer)
+    nuxtApp.vueApp.component('LucideDice5', Dice5)
+    nuxtApp.vueApp.component('LucidePause', Pause)
+    nuxtApp.vueApp.component('LucideRotateCcw', RotateCcw)
 })

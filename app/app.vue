@@ -93,6 +93,35 @@
                                 </span>
                             </NuxtLink>
                         </li>
+
+                        <li><div class="divider my-2"></div></li>
+
+                        <!-- 課堂工具 -->
+                        <li>
+                            <button
+                                @click="ui.toggleTimer()"
+                                class="w-full flex items-center p-3 rounded-lg transition-colors duration-200 hover:bg-base-300 text-base-content"
+                                :title="!ui.isSidebarOpen ? '課堂計時器' : ''"
+                            >
+                                <LucideIcon name="Timer" class="w-5 h-5 shrink-0" />
+                                <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">課堂計時器</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                @click="ui.openPicker()"
+                                :disabled="!classesStore.currentClass"
+                                class="w-full flex items-center p-3 rounded-lg transition-colors duration-200 text-base-content"
+                                :class="{
+                                    'hover:bg-base-300': !!classesStore.currentClass,
+                                    'opacity-50 cursor-not-allowed': !classesStore.currentClass
+                                }"
+                                :title="!ui.isSidebarOpen ? (!classesStore.currentClass ? '請先進入班級' : '隨機抽籤') : ''"
+                            >
+                                <LucideIcon name="Dice5" class="w-5 h-5 shrink-0" />
+                                <span v-if="ui.isSidebarOpen" class="ml-3 font-medium whitespace-nowrap">隨機抽籤</span>
+                            </button>
+                        </li>
                     </ul>
                 </nav>
 
@@ -156,7 +185,7 @@
 
                             <div>
                                 <h2 class="text-xl font-semibold text-base-content">
-                                    {{ ui.currentTabInfo.label }}
+                                    {{ ui.currentTabInfo.label || classesStore.currentClass?.name || '班級' }}
                                 </h2>
                                 <p class="text-sm text-base-content/60">管理多個班級的評分與分組</p>
                             </div>
@@ -193,12 +222,19 @@
             @click="ui.toggleSidebar()"
             class="fixed inset-0 bg-black/50 z-20"
         ></div>
+
+        <!-- 全域工具組件 -->
+        <TimerWidget v-if="ui.isTimerVisible" />
+        <StudentPickerModal v-if="ui.isPickerVisible" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { useUIStore } from '~/stores/ui'
 import { useClassesStore } from '~/stores/classes'
+import TimerWidget from '~/components/TimerWidget.vue'
+import StudentPickerModal from '~/components/StudentPickerModal.vue'
+import { watchEffect } from 'vue' // Import watchEffect
 
 const ui = useUIStore()
 const classesStore = useClassesStore()
@@ -223,21 +259,58 @@ const goTab = (id: string) => {
     if (route.path !== target) router.push(target)
 }
 
-// 初始以路由決定 currentTab
-const syncFromRoute = () => {
+// 監聽路由和班級列表載入狀態，同步 UI
+watchEffect(() => {
+    // 增加保護，確保在 store 從 localStorage 載入完畢後才執行
+    if (!classesStore.isLoaded) {
+        return
+    }
+
     const path = route.path
-    if (path.startsWith('/students')) ui.setCurrentTab('students')
-    else if (path.startsWith('/groups')) ui.setCurrentTab('groups')
-    else if (path.startsWith('/settings')) ui.setCurrentTab('settings')
-    else ui.setCurrentTab('dashboard')
-}
+    const params = route.params
+
+    // 如果班級列表為空，則無法根據路由選擇班級
+    if (classesStore.classes.length === 0) {
+        classesStore.selectClass(null) // 確保沒有班級被選中
+        // 根據非班級頁面的路徑設定分頁
+        if (path.startsWith('/students')) {
+            ui.setCurrentTab('students')
+        } else if (path.startsWith('/groups')) {
+            ui.setCurrentTab('groups')
+        } else if (path.startsWith('/settings')) {
+            ui.setCurrentTab('settings')
+        } else {
+            ui.setCurrentTab('dashboard')
+        }
+        return
+    }
+
+    // 如果班級已載入，則根據路由選擇班級
+    if (path.startsWith('/class/') && params.id) {
+        const classId = params.id as string
+        classesStore.selectClass(classId)
+        ui.setCurrentTab('') // 在班級頁面中，清除主導航選擇
+        return
+    }
+
+    // 如果不是班級頁面，確保沒有班級被選中並設定主分頁
+    classesStore.selectClass(null)
+    if (path.startsWith('/students')) {
+        ui.setCurrentTab('students')
+    } else if (path.startsWith('/groups')) {
+        ui.setCurrentTab('groups')
+    } else if (path.startsWith('/settings')) {
+        ui.setCurrentTab('settings')
+    } else {
+        ui.setCurrentTab('dashboard')
+    }
+})
 
 // 初始化
 onMounted(() => {
     ui.setLoading(true)
     classesStore.loadFromStorage()
     ui.initialize()
-    syncFromRoute()
     // A short delay to prevent flash of loading screen on fast loads
     setTimeout(() => ui.setLoading(false), 200)
 })
@@ -245,13 +318,6 @@ onMounted(() => {
 onUnmounted(() => {
     ui.cleanup()
 })
-
-watch(
-    () => route.path,
-    () => {
-        syncFromRoute()
-    },
-)
 
 // Toast 圖示映射
 const getToastIcon = (type: string) => {

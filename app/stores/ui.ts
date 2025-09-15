@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed, readonly } from 'vue'
-import type { ToastType, ToastMessage, ViewModeType, UserPreferences, Tab } from '~/types/class'
+import { ref, computed } from 'vue'
+import type { ToastType, ToastMessage, ViewModeType, UserPreferences, Tab, Student } from '~/types/class'
 
 // Helper function to apply theme to the DOM
 const applyThemeToDOM = (theme: 'light' | 'dark' | 'auto') => {
@@ -36,6 +36,19 @@ export const useUIStore = defineStore('ui', () => {
     const isMobile = ref(false)
     const isTablet = ref(false)
     const windowWidth = ref(0)
+
+    // --- Tool States ---
+    // Timer
+    const isTimerVisible = ref(false)
+    const timerSecondsRemaining = ref(300)
+    const isTimerRunning = ref(false)
+    const timerDuration = ref(300) // 預設 5 分鐘
+    const timerInterval = ref<NodeJS.Timeout | null>(null)
+
+    // Student Picker
+    const isPickerVisible = ref(false)
+    const pickerWinner = ref<Student | null>(null)
+    const isPicking = ref(false)
 
     // Computed
     const isDarkMode = computed(() => {
@@ -209,6 +222,68 @@ export const useUIStore = defineStore('ui', () => {
         selectedStudents.value = new Set(studentIds)
     }
 
+    // --- Timer Actions ---
+    const toggleTimer = (visible?: boolean) => {
+        isTimerVisible.value = visible ?? !isTimerVisible.value
+    }
+
+    const setTimer = (seconds: number) => {
+        timerDuration.value = seconds
+        timerSecondsRemaining.value = seconds
+        isTimerRunning.value = false
+        if (timerInterval.value) clearInterval(timerInterval.value)
+    }
+
+    const startTimer = () => {
+        if (isTimerRunning.value || timerSecondsRemaining.value <= 0) return
+        isTimerRunning.value = true
+        timerInterval.value = setInterval(() => {
+            timerSecondsRemaining.value--
+            if (timerSecondsRemaining.value <= 0) {
+                if (timerInterval.value) clearInterval(timerInterval.value)
+                isTimerRunning.value = false
+                // Optional: Play sound or show notification
+                const alarm = new Audio('/old/assets/alarm.mp3')
+                alarm.play()
+                showInfo('時間到！')
+            }
+        }, 1000)
+    }
+
+    const pauseTimer = () => {
+        isTimerRunning.value = false
+        if (timerInterval.value) clearInterval(timerInterval.value)
+    }
+
+    const resetTimer = () => {
+        isTimerRunning.value = false
+        if (timerInterval.value) clearInterval(timerInterval.value)
+        timerSecondsRemaining.value = timerDuration.value
+    }
+
+    // --- Picker Actions ---
+    const openPicker = () => {
+        isPickerVisible.value = true
+        pickerWinner.value = null
+        isPicking.value = false
+    }
+
+    const closePicker = () => {
+        isPickerVisible.value = false
+    }
+
+    const startPicking = (students: Student[]) => {
+        if (isPicking.value || students.length === 0) return
+        isPicking.value = true
+        pickerWinner.value = null
+
+        setTimeout(() => {
+            const winner = students[Math.floor(Math.random() * students.length)]
+            pickerWinner.value = winner
+            isPicking.value = false
+        }, 3000) // 3秒動畫
+    }
+
     // Responsive methods
     const updateScreenSize = () => {
         if (process.client) {
@@ -221,6 +296,7 @@ export const useUIStore = defineStore('ui', () => {
     const handleKeyboard = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
             closeAllModals()
+            closePicker()
         }
     }
 
@@ -253,6 +329,7 @@ export const useUIStore = defineStore('ui', () => {
         if (process.client) {
             window.removeEventListener('resize', updateScreenSize)
             window.removeEventListener('keydown', handleKeyboard)
+            if (timerInterval.value) clearInterval(timerInterval.value)
         }
     }
 
@@ -270,6 +347,17 @@ export const useUIStore = defineStore('ui', () => {
         isMobile,
         isTablet,
         windowWidth,
+
+        // Timer State
+        isTimerVisible,
+        timerSecondsRemaining,
+        isTimerRunning,
+        timerDuration,
+
+        // Picker State
+        isPickerVisible,
+        pickerWinner,
+        isPicking,
 
         // Computed
         isDarkMode,
@@ -310,6 +398,18 @@ export const useUIStore = defineStore('ui', () => {
         // Student selection methods
         toggleStudentSelection,
         selectAllStudents,
+
+        // Timer Actions
+        toggleTimer,
+        setTimer,
+        startTimer,
+        pauseTimer,
+        resetTimer,
+
+        // Picker Actions
+        openPicker,
+        closePicker,
+        startPicking,
 
         // Lifecycle
         initialize,

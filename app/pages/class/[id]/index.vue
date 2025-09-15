@@ -207,15 +207,14 @@
 import { useClassesStore } from '~/stores/classes';
 import { useUIStore } from '~/stores/ui';
 import type { ClassInfo, Student } from '~/types'
+import { storeToRefs } from 'pinia';
 
 // 1. Get store and route
 const classesStore = useClassesStore()
 const ui = useUIStore()
-const route = useRoute()
 
-// 2. Get classId and classInfo from route and store
-const classId = computed(() => route.params.id as string)
-const classInfo = computed(() => classesStore.classes.find(c => c.id === classId.value))
+// 2. Get classInfo from store using storeToRefs for reactivity
+const { currentClass: classInfo } = storeToRefs(classesStore)
 
 // 3. Inject the editStudent function from the parent layout
 const editStudent = inject<(studentId: string) => void>('editStudent')

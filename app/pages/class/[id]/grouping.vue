@@ -328,7 +328,7 @@
                                     class="text-xs font-semibold text-primary flex items-center gap-1"
                                 >
                                     <template v-if="classInfo.groupingActive">
-                                        <span class="opacity-60">{{
+                                        <span class="opacity-60">{{ 
                                             baseScoresForClass[member.id] ?? ''
                                         }}</span>
                                         <LucideIcon
@@ -454,11 +454,8 @@ import type { ClassInfo, Student, Group } from '~/types'
 
 // 1. Get store and route
 const classesStore = useClassesStore()
-const route = useRoute()
-
-// 2. Get classId and classInfo from route and store
-const classId = computed(() => route.params.id as string)
-const classInfo = computed(() => classesStore.classes.find((c) => c.id === classId.value))
+const { currentClass: classInfo, groupingBaseScores, groupingSessionScores, groupingActivityNames } =
+    storeToRefs(classesStore)
 
 // Helper function for debouncing
 function debounce<T extends (...args: any[]) => any>(
@@ -475,10 +472,6 @@ function debounce<T extends (...args: any[]) => any>(
         }, wait)
     }
 }
-
-// --- Use Store as the Single Source of Truth ---
-const { groupingBaseScores, groupingSessionScores, groupingActivityNames } =
-    storeToRefs(classesStore)
 
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()

@@ -62,6 +62,10 @@ import {
     List,
     Archive,
     FileSpreadsheet,
+    Timer,
+    Dice5,
+    Pause,
+    RotateCcw,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -128,6 +132,10 @@ const iconMap = {
     List: List,
     Archive: Archive,
     FileSpreadsheet: FileSpreadsheet,
+    Timer: Timer,
+    Dice5: Dice5,
+    Pause: Pause,
+    RotateCcw: RotateCcw,
 }
 
 const iconComponent = computed(() => {

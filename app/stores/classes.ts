@@ -6,6 +6,7 @@ export const useClassesStore = defineStore('classes', () => {
     // State
     const classes = ref<ClassInfo[]>([])
     const currentClassId = ref<string | null>(null)
+    const isLoaded = ref(false) // 新增狀態旗標
 
     // 分組活動狀態（每個 classId 一份）
     const groupingBaseScores = ref<Record<string, Record<string, number>>>({}) 
@@ -94,11 +95,19 @@ export const useClassesStore = defineStore('classes', () => {
         return newClass
     }
 
-    const selectClass = (classId: string) => {
-        if (classes.value.find((c) => c.id === classId)) {
+    const selectClass = (classId: string | null) => {
+        // 只有在 ID 變更時才更新，避免不必要的存儲操作
+        if (currentClassId.value === classId) return
+
+        if (classId === null) {
+            currentClassId.value = null
+        } else if (classes.value.find((c) => c.id === classId)) {
             currentClassId.value = classId
-            saveToStorage()
+        } else {
+            // 如果傳入的 classId 無效，也清除當前的選擇
+            currentClassId.value = null
         }
+        saveToStorage()
     }
 
     const addStudentToClass = (classId: string, name: string, studentId?: string) => {
@@ -385,6 +394,8 @@ export const useClassesStore = defineStore('classes', () => {
             }
         } catch (error) {
             console.error('載入班級資料失敗:', error);
+        } finally {
+            isLoaded.value = true; // 確保無論成功或失敗都標記為已載入
         }
     };
 
@@ -454,7 +465,7 @@ export const useClassesStore = defineStore('classes', () => {
 
         const csvContent = '\uFEFF' + csvRows.join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob)
         const a = document.createElement('a');
         a.href = url;
         a.download = `全體學生分數總表-${new Date().toISOString().split('T')[0]}.csv`;
@@ -473,6 +484,7 @@ export const useClassesStore = defineStore('classes', () => {
         // State
         classes, // 暫時移除 readonly，但建議在組件中透過 action 修改
         currentClassId, // 暫時移除 readonly，但建議在組件中透過 action 修改
+        isLoaded, // 導出旗標
         groupingBaseScores,
         groupingSessionScores,
         groupingActivityNames,

@@ -33,11 +33,13 @@
                         v-for="tab in tabs"
                         :key="tab.id"
                         :to="tab.path"
-                        class="tab tab-lg"
-                        active-class="tab-active"
+                        custom
+                        v-slot="{ href, navigate, isExactActive }"
                     >
-                        <LucideIcon :name="tab.icon" class="w-4 h-4 mr-2" />
-                        {{ tab.label }}
+                        <a :href="href" @click="navigate" class="tab tab-lg" :class="{ 'tab-active': isExactActive }">
+                            <LucideIcon :name="tab.icon" class="w-4 h-4 mr-2" />
+                            {{ tab.label }}
+                        </a>
                     </NuxtLink>
                 </div>
             </div>
@@ -120,22 +122,11 @@
 
 <script setup lang="ts">
 import { useClassesStore } from '~/stores/classes'
+import { storeToRefs } from 'pinia';
 
 const classesStore = useClassesStore()
 const route = useRoute()
-
-// 從路由參數獲取班級 ID
-const classId = computed(() => route.params.id as string)
-
-// 根據 ID 從 store 尋找班級資料
-const currentClass = computed(() => classesStore.classes.find((c) => c.id === classId.value))
-
-// 當直接訪問此頁面時，確保 store 中的 currentClassId 也被設置
-watchEffect(() => {
-    if (classId.value && classesStore.currentClassId !== classId.value) {
-        classesStore.selectClass(classId.value)
-    }
-})
+const { currentClass } = storeToRefs(classesStore)
 
 // Modal refs
 const studentModal = ref<HTMLDialogElement>()
@@ -149,12 +140,15 @@ const studentForm = reactive({
 })
 
 // 更新的頁籤陣列，包含路由路徑
-const tabs = computed(() => [
-    { id: 'scoring', label: '個人計分', icon: 'Star', path: `/class/${classId.value}` },
-    // { id: 'homework', label: '作業訂正', icon: 'BookOpen', path: `/class/${classId.value}/homework` },
-    { id: 'grouping', label: '分組模式', icon: 'Users', path: `/class/${classId.value}/grouping` },
-    { id: 'grades', label: '成績結算', icon: 'BarChart3', path: `/class/${classId.value}/grades` },
-])
+const tabs = computed(() => {
+    const classId = route.params.id as string;
+    return [
+        { id: 'scoring', label: '個人計分', icon: 'Star', path: `/class/${classId}` },
+        // { id: 'homework', label: '作業訂正', icon: 'BookOpen', path: `/class/${classId}/homework` },
+        { id: 'grouping', label: '分組模式', icon: 'Users', path: `/class/${classId}/grouping` },
+        { id: 'grades', label: '成績結算', icon: 'BarChart3', path: `/class/${classId}/grades` },
+    ]
+})
 
 // Methods
 const backToDashboard = () => {
