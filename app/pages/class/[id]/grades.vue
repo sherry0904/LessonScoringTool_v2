@@ -106,12 +106,11 @@
                                 <th>座號</th>
                                 <th>姓名</th>
                                 <th>總分</th>
-                                <th>平均分</th>
-                                <!-- 記錄數欄隱藏 -->
-                                <th v-if="!filterCategory">各類別分數</th>
-                                <th v-else>{{ getCategoryName(filterCategory) }}</th>
-                                <th>趨勢</th>
-                                <th>操作</th>
+                                <!-- <th>平均分</th> -->
+                                <!-- <th v-if="!filterCategory">各類別分數</th> -->
+                                <!-- <th v-else>{{ getCategoryName(filterCategory) }}</th> -->
+                                <!-- <th>趨勢</th> -->
+                                <!-- <th>操作</th> -->
                             </tr>
                         </thead>
                         <tbody>
@@ -141,8 +140,8 @@
                                 <td>
                                     <span class="font-bold text-lg">{{ student.totalScore }}</span>
                                 </td>
-                                <td>{{ student.averageScore.toFixed(1) }}</td>
-                                <!-- 記錄數欄位隱藏 -->
+                                <!-- <td>{{ student.averageScore.toFixed(1) }}</td> -->
+                                <!--
                                 <td>
                                     <div v-if="!filterCategory" class="flex flex-wrap gap-1">
                                         <div
@@ -194,6 +193,7 @@
                                         </ul>
                                     </div>
                                 </td>
+                                -->
                             </tr>
                         </tbody>
                     </table>
@@ -246,12 +246,12 @@
                                         class="stat-value text-sm"
                                         :style="{ color: category.color }"
                                     >
-                                        {{ 
+                                        {{
                                             getCategoryScore(selectedStudentForDetail, category.id)
                                         }}
                                     </div>
                                     <div class="stat-desc text-xs">
-                                        {{ 
+                                        {{
                                             getCategoryCount(selectedStudentForDetail, category.id)
                                         }}
                                         次記錄
@@ -396,7 +396,7 @@
 </template>
 
 <script setup lang="ts">
-import { useClassesStore } from '~/stores/classes';
+import { useClassesStore } from '~/stores/classes'
 import type { ClassInfo, Student } from '~/types'
 
 // 1. Get store and route
@@ -405,7 +405,7 @@ const route = useRoute()
 
 // 2. Get classId and classInfo from route and store
 const classId = computed(() => route.params.id as string)
-const classInfo = computed(() => classesStore.classes.find(c => c.id === classId.value))
+const classInfo = computed(() => classesStore.classes.find((c) => c.id === classId.value))
 
 // Modal refs
 const detailModal = ref<HTMLDialogElement>()
@@ -521,7 +521,7 @@ const scoreRanges = computed(() => {
     ]
 
     if (!classInfo.value) {
-        return ranges.map(range => ({ ...range, count: 0 }))
+        return ranges.map((range) => ({ ...range, count: 0 }))
     }
 
     return ranges.map((range) => ({
@@ -618,14 +618,14 @@ const getRowClass = (student: Student, index: number) => {
 }
 
 const getStudentRanking = (studentId: string) => {
-    if (!classInfo.value) return 0;
+    if (!classInfo.value) return 0
     const sorted = [...classInfo.value.students].sort((a, b) => b.totalScore - a.totalScore)
     return sorted.findIndex((s) => s.id === studentId) + 1
 }
 
 const viewStudentDetail = (studentId: string) => {
-    if (!classInfo.value) return;
-    selectedStudentForDetail.value = 
+    if (!classInfo.value) return
+    selectedStudentForDetail.value =
         classInfo.value.students.find((s) => s.id === studentId) || null
     detailModal.value?.showModal()
 }
@@ -636,7 +636,7 @@ const closeDetailModal = () => {
 }
 
 const exportGradeReport = () => {
-    if (!classInfo.value || !topStudent.value || !bottomStudent.value) return;
+    if (!classInfo.value || !topStudent.value || !bottomStudent.value) return
     const content = [
         `${classInfo.value.name} 成績報告`,
         `匯出時間：${new Date().toLocaleString('zh-TW')}`,
@@ -661,7 +661,7 @@ const exportGradeReport = () => {
 }
 
 const exportStudentGrade = (studentId: string) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     const student = classInfo.value.students.find((s) => s.id === studentId)
     if (!student) return
 

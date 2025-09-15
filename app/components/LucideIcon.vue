@@ -55,6 +55,8 @@ import {
     ScrollText,
     UserMinus,
     CircleDot,
+    School,
+    Settings2,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -114,6 +116,8 @@ const iconMap = {
     ScrollText: ScrollText,
     UserMinus: UserMinus,
     CircleDot: CircleDot,
+    School: School,
+    Settings2: Settings2,
 }
 
 const iconComponent = computed(() => {

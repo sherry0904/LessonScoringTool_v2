@@ -29,9 +29,9 @@ export const useUIStore = defineStore('ui', () => {
 
     const currentTabInfo = computed(() => {
         const tabMap: Record<string, Tab> = {
-            dashboard: { id: 'dashboard', label: '總覽', icon: 'BarChart3', color: 'primary' },
+            dashboard: { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
             students: { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
-            groups: { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
+            // groups: { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
             settings: { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         }
         return tabMap[currentTab.value] || tabMap.dashboard
@@ -49,9 +49,9 @@ export const useUIStore = defineStore('ui', () => {
 
     const tabs = computed(() => {
         return [
-            { id: 'dashboard', label: '總覽', icon: 'BarChart3', color: 'primary' },
+            { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
             { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
-            { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
+            // { id: 'groups', label: '分組', icon: 'UserCheck', color: 'success' },
             { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         ]
     })

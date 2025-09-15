@@ -41,6 +41,8 @@ import {
     ScrollText,
     UserMinus,
     CircleDot,
+    School,
+    Settings2,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -85,4 +87,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideScrollText', ScrollText)
     nuxtApp.vueApp.component('LucideUserMinus', UserMinus)
     nuxtApp.vueApp.component('LucideCircleDot', CircleDot)
+    nuxtApp.vueApp.component('LucideSchool', School)
+    nuxtApp.vueApp.component('LucideSettings2s', Settings2)
 })

@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { useClassesStore } from '~/stores/classes';
+import { useClassesStore } from '~/stores/classes'
 
 const classesStore = useClassesStore()
 const route = useRoute()
@@ -128,7 +128,7 @@ const route = useRoute()
 const classId = computed(() => route.params.id as string)
 
 // 根據 ID 從 store 尋找班級資料
-const currentClass = computed(() => classesStore.classes.find(c => c.id === classId.value))
+const currentClass = computed(() => classesStore.classes.find((c) => c.id === classId.value))
 
 // 當直接訪問此頁面時，確保 store 中的 currentClassId 也被設置
 watchEffect(() => {
@@ -151,7 +151,7 @@ const studentForm = reactive({
 // 更新的頁籤陣列，包含路由路徑
 const tabs = computed(() => [
     { id: 'scoring', label: '個人計分', icon: 'Star', path: `/class/${classId.value}` },
-    { id: 'homework', label: '作業訂正', icon: 'BookOpen', path: `/class/${classId.value}/homework` },
+    // { id: 'homework', label: '作業訂正', icon: 'BookOpen', path: `/class/${classId.value}/homework` },
     { id: 'grouping', label: '分組模式', icon: 'Users', path: `/class/${classId.value}/grouping` },
     { id: 'grades', label: '成績結算', icon: 'BarChart3', path: `/class/${classId.value}/grades` },
 ])
@@ -200,11 +200,7 @@ const saveStudent = () => {
         }
 
         // 新增學生
-        classesStore.addStudentToClass(
-            currentClass.value.id,
-            studentForm.name,
-            studentForm.id,
-        )
+        classesStore.addStudentToClass(currentClass.value.id, studentForm.name, studentForm.id)
     }
 
     closeStudentModal()
