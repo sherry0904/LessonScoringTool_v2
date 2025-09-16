@@ -54,6 +54,7 @@ import {
     Dices,
     Laptop,
     Tablet,
+    Undo2,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -112,4 +113,5 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideDices', Dices)
     nuxtApp.vueApp.component('LucideLaptop', Laptop)
     nuxtApp.vueApp.component('LucideTablet', Tablet)
+    nuxtApp.vueApp.component('LucideUndo2', Undo2)
 })

@@ -70,6 +70,7 @@ import {
     Dices,
     Laptop,
     Tablet,
+    Undo2,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -144,6 +145,7 @@ const iconMap = {
     Dices: Dices,
     Laptop: Laptop,
     Tablet: Tablet,
+    Undo2: Undo2,
 }
 
 const iconComponent = computed(() => {

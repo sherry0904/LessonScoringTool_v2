@@ -25,6 +25,10 @@
                                 <LucideIcon name="Shuffle" class="w-4 h-4 mr-2" />
                                 一鍵隨機分組
                             </button>
+                            <button @click="resetAllGroups" class="btn btn-ghost">
+                                <LucideIcon name="Undo2" class="w-4 h-4 mr-2" />
+                                一鍵還原
+                            </button>
                         </div>
                         <!-- 開始分組 -->
                         <button
@@ -328,7 +332,7 @@
                                     class="text-xs font-semibold text-primary flex items-center gap-1"
                                 >
                                     <template v-if="classInfo.groupingActive">
-                                        <span class="opacity-60">{{ 
+                                        <span class="opacity-60">{{
                                             baseScoresForClass[member.id] ?? ''
                                         }}</span>
                                         <LucideIcon
@@ -454,8 +458,12 @@ import type { ClassInfo, Student, Group } from '~/types'
 
 // 1. Get store and route
 const classesStore = useClassesStore()
-const { currentClass: classInfo, groupingBaseScores, groupingSessionScores, groupingActivityNames } =
-    storeToRefs(classesStore)
+const {
+    currentClass: classInfo,
+    groupingBaseScores,
+    groupingSessionScores,
+    groupingActivityNames,
+} = storeToRefs(classesStore)
 
 // Helper function for debouncing
 function debounce<T extends (...args: any[]) => any>(
@@ -584,6 +592,15 @@ const randomAssignGroups = () => {
         shuffledStudents.forEach((student, index) => {
             const groupIndex = index % groupCount.value
             addStudentToGroup(student.id, localGroups.value[groupIndex].id, false)
+        })
+        persistGroups()
+    }
+}
+
+const resetAllGroups = () => {
+    if (confirm('這會將所有學生移回未分組狀態，但會保留現有組別。確定嗎？')) {
+        localGroups.value.forEach((group) => {
+            group.members = []
         })
         persistGroups()
     }
