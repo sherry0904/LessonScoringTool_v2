@@ -78,14 +78,14 @@
                             <div class="btn-group">
                                 <button
                                     @click="batchUpdateStatus('submitted')"
-                                    class="btn btn-success btn-sm"
+                                    class="btn btn-success btn-sm mr-2"
                                     :disabled="selectedStudents.length === 0"
                                 >
                                     批量標記已繳交
                                 </button>
                                 <button
                                     @click="batchUpdateStatus('needs_correction')"
-                                    class="btn btn-warning btn-sm"
+                                    class="btn btn-warning btn-sm mr-2"
                                     :disabled="selectedStudents.length === 0"
                                 >
                                     批量標記待訂正
@@ -165,11 +165,16 @@
                         <div class="mb-3">
                             <div
                                 :class="[
-                                    'badge w-full',
-                                    getStatusBadgeClass(getStudentStatus(student.id)),
+                                    'flex items-center justify-center w-full px-4 py-2 rounded-full border',
+                                    getStatusDisplay(getStudentStatus(student.id)).bgColor,
+                                    'bg-opacity-75',
+                                    getStatusDisplay(getStudentStatus(student.id)).borderColor,
+                                    getStatusDisplay(getStudentStatus(student.id)).textColor,
+                                    'shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105',
                                 ]"
                             >
-                                {{ getStatusText(getStudentStatus(student.id)) }}
+                                <LucideIcon :name="getStatusDisplay(getStudentStatus(student.id)).icon" class="w-4 h-4 mr-2" />
+                                <span class="font-medium text-sm">{{ getStatusDisplay(getStudentStatus(student.id)).text }}</span>
                             </div>
                         </div>
 
@@ -221,7 +226,9 @@
                         <button type="button" @click="closeHomeworkModal" class="btn btn-ghost">
                             取消
                         </button>
-                        <button type="submit" class="btn btn-primary">{{ submitButtonText }}</button>
+                        <button type="submit" class="btn btn-primary">
+                            {{ submitButtonText }}
+                        </button>
                     </div>
                 </form>
             </div>
@@ -301,10 +308,10 @@ const submitButtonText = computed(() => (isEditing.value ? '更新' : '新增'))
 // Constants
 const statusOrder = ['pending', 'submitted', 'needs_correction', 'completed']
 const statusText = {
-    pending: '未繳交',
-    submitted: '已繳交',
-    needs_correction: '待訂正',
-    completed: '已完成',
+    pending: { text: '未繳交', icon: 'Clock' },
+    submitted: { text: '已繳交', icon: 'CheckCircle' },
+    needs_correction: { text: '待訂正', icon: 'AlertTriangle' },
+    completed: { text: '已完成', icon: 'Award' },
 }
 
 // Methods
@@ -313,8 +320,8 @@ const getStudentStatus = (studentId: string) => {
     return currentHomework.value.studentStatus[studentId] || 'pending'
 }
 
-const getStatusText = (status: string) => {
-    return statusText[status as keyof typeof statusText] || '未知'
+const getStatusDisplay = (status: string) => {
+    return statusText[status as keyof typeof statusText] || { text: '未知', icon: 'HelpCircle' }
 }
 
 const getStatusBadgeClass = (status: string) => {

@@ -71,6 +71,7 @@ import {
     Laptop,
     Tablet,
     Undo2,
+    Award,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -146,6 +147,7 @@ const iconMap = {
     Laptop: Laptop,
     Tablet: Tablet,
     Undo2: Undo2,
+    Award: Award,
 }
 
 const iconComponent = computed(() => {
