@@ -5,7 +5,7 @@
             <div class="card-body">
                 <div class="flex justify-between items-center">
                     <h3 class="card-title">作業管理</h3>
-                    <button @click="showAddHomeworkModal" class="btn btn-primary gap-2">
+                    <button @click="showHomeworkModalForAdd" class="btn btn-primary gap-2">
                         <LucideIcon name="Plus" class="w-4 h-4" />
                         新增作業
                     </button>
@@ -29,6 +29,18 @@
                     還沒有作業，點擊上方按鈕新增第一個作業
                 </div>
             </div>
+        </div>
+
+        <!-- 當前作業標題與編輯 -->
+        <div v-if="currentHomework" class="flex items-center gap-2 mb-4">
+            <h2 class="text-2xl font-bold">{{ currentHomework.title }}</h2>
+            <button
+                @click="showHomeworkModalForEdit(currentHomework.id)"
+                class="btn btn-ghost btn-sm btn-circle"
+                title="編輯作業名稱"
+            >
+                <LucideIcon name="Edit" class="w-4 h-4" />
+            </button>
         </div>
 
         <!-- 作業狀態檢視 -->
@@ -186,18 +198,18 @@
             </div>
         </div>
 
-        <!-- 新增作業模態 -->
-        <dialog ref="addHomeworkModal" class="modal">
+        <!-- 新增/編輯作業模態 -->
+        <dialog ref="homeworkModal" class="modal">
             <div class="modal-box">
-                <h3 class="text-lg font-bold mb-4">新增作業</h3>
+                <h3 class="text-lg font-bold mb-4">{{ modalTitle }}</h3>
 
-                <form @submit.prevent="addHomework" class="space-y-4">
+                <form @submit.prevent="handleHomeworkSubmit" class="space-y-4">
                     <div class="form-control">
                         <label class="label mr-2">
                             <span class="label-text">作業名稱</span>
                         </label>
                         <input
-                            v-model="homeworkForm.title"
+                            v-model="homeworkModalForm.title"
                             type="text"
                             placeholder="例如：數學習作 P.30-32"
                             class="input input-bordered"
@@ -206,15 +218,15 @@
                     </div>
 
                     <div class="modal-action">
-                        <button type="button" @click="closeAddHomeworkModal" class="btn btn-ghost">
+                        <button type="button" @click="closeHomeworkModal" class="btn btn-ghost">
                             取消
                         </button>
-                        <button type="submit" class="btn btn-primary">新增</button>
+                        <button type="submit" class="btn btn-primary">{{ submitButtonText }}</button>
                     </div>
                 </form>
             </div>
             <form method="dialog" class="modal-backdrop">
-                <button @click="closeAddHomeworkModal">close</button>
+                <button @click="closeHomeworkModal">close</button>
             </form>
         </dialog>
 
@@ -262,7 +274,7 @@ const classId = computed(() => route.params.id as string)
 const classInfo = computed(() => classesStore.classes.find((c) => c.id === classId.value))
 
 // Modal refs
-const addHomeworkModal = ref<HTMLDialogElement>()
+const homeworkModal = ref<HTMLDialogElement>()
 const reportModal = ref<HTMLDialogElement>()
 
 // State
@@ -271,7 +283,8 @@ const selectedStudents = ref<string[]>([])
 const reportTitle = ref('')
 const reportContent = ref('')
 
-const homeworkForm = reactive({
+const editingHomeworkId = ref<string | null>(null) // 新增：用於追蹤正在編輯的作業ID
+const homeworkModalForm = reactive({
     title: '',
 })
 
@@ -280,6 +293,10 @@ const currentHomework = computed(() => {
     if (!selectedHomework.value || !classInfo.value) return null
     return classInfo.value.homeworks.find((h) => h.id === selectedHomework.value) || null
 })
+
+const isEditing = computed(() => editingHomeworkId.value !== null)
+const modalTitle = computed(() => (isEditing.value ? '編輯作業' : '新增作業'))
+const submitButtonText = computed(() => (isEditing.value ? '更新' : '新增'))
 
 // Constants
 const statusOrder = ['pending', 'submitted', 'needs_correction', 'completed']
@@ -355,24 +372,58 @@ const batchUpdateStatus = (status: string) => {
     selectedStudents.value = []
 }
 
-const showAddHomeworkModal = () => {
-    homeworkForm.title = ''
-    addHomeworkModal.value?.showModal()
+// 顯示新增作業模態框
+const showHomeworkModalForAdd = () => {
+    editingHomeworkId.value = null
+    homeworkModalForm.title = ''
+    homeworkModal.value?.showModal()
 }
 
-const closeAddHomeworkModal = () => {
-    addHomeworkModal.value?.close()
+// 顯示編輯作業模態框
+const showHomeworkModalForEdit = (homeworkId: string) => {
+    const homeworkToEdit = classInfo.value?.homeworks.find((h) => h.id === homeworkId)
+    if (homeworkToEdit) {
+        editingHomeworkId.value = homeworkId
+        homeworkModalForm.title = homeworkToEdit.title
+        homeworkModal.value?.showModal()
+    }
 }
 
+const closeHomeworkModal = () => {
+    homeworkModal.value?.close()
+}
+
+// 新增作業邏輯
 const addHomework = () => {
-    if (!homeworkForm.title.trim() || !classInfo.value) return
+    if (!homeworkModalForm.title.trim() || !classInfo.value) return
 
-    const newHomework = classesStore.addHomework(classInfo.value.id, homeworkForm.title)
+    const newHomework = classesStore.addHomework(classInfo.value.id, homeworkModalForm.title)
     if (newHomework) {
         selectedHomework.value = newHomework.id
     }
 
-    closeAddHomeworkModal()
+    closeHomeworkModal()
+}
+
+// 更新作業邏輯
+const updateHomework = () => {
+    if (!editingHomeworkId.value || !homeworkModalForm.title.trim() || !classInfo.value) return
+
+    classesStore.updateHomeworkTitle(
+        classInfo.value.id,
+        editingHomeworkId.value,
+        homeworkModalForm.title,
+    )
+    closeHomeworkModal()
+}
+
+// 處理模態框提交
+const handleHomeworkSubmit = () => {
+    if (isEditing.value) {
+        updateHomework()
+    } else {
+        addHomework()
+    }
 }
 
 const exportIncompleteList = () => {

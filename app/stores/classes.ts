@@ -204,6 +204,19 @@ export const useClassesStore = defineStore('classes', () => {
         return true
     }
 
+    const updateHomeworkTitle = (classId: string, homeworkId: string, newTitle: string) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return false
+
+        const homework = classData.homeworks.find((h) => h.id === homeworkId)
+        if (!homework) return false
+
+        homework.title = newTitle.trim()
+        classData.updatedAt = new Date()
+        saveToStorage()
+        return true
+    }
+
     const startClassGrouping = (classId: string) => {
         const classData = classes.value.find((c) => c.id === classId);
         if (classData) {
@@ -503,6 +516,7 @@ export const useClassesStore = defineStore('classes', () => {
         removeStudentFromClass,
         addHomework,
         updateHomeworkStatus,
+        updateHomeworkTitle, // 新增
         startClassGrouping,
         endClassGrouping,
         updateGroups,
