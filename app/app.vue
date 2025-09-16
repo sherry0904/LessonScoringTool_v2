@@ -49,7 +49,7 @@
             <!-- 側邊欄 -->
             <aside
                 :class="[
-                    'bg-base-200 border-r border-base-300 transition-all duration-300 z-30',
+                    'bg-base-200 border-r border-base-300 transition-all duration-300 z-30 overflow-hidden flex flex-col h-full',
                     ui.isSidebarOpen ? 'w-64' : 'w-16',
                     ui.isMobile && ui.isSidebarOpen && 'fixed inset-y-0 left-0',
                 ]"
@@ -147,7 +147,7 @@
                 </nav>
 
                 <!-- 底部工具 -->
-                <div class="absolute bottom-4 left-2" :class="ui.isSidebarOpen ? 'right-2' : ''">
+                <div class="mt-auto mb-4 px-2 w-full">
                     <div class="space-y-2 flex flex-col items-start">
                         <!-- 主題切換 -->
                         <button
