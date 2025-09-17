@@ -40,7 +40,7 @@
                                             <span
                                                 v-for="status in statusOrder"
                                                 :key="status"
-                                                class="badge mr-1"
+                                                class="badge mr-1 min-w-[3em] justify-center text-white font-bold"
                                                 :class="getStatusBadgeClass(status)"
                                             >
                                                 {{ getStatusCount(homework, status) }}
