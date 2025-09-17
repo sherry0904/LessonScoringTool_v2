@@ -19,12 +19,19 @@
         <!-- 快速操作與匯出功能 -->
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="form-control">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="form-control md:col-span-2">
                         <label class="label mb-2">
                             <span class="label-text">快速操作</span>
                         </label>
                         <div class="flex gap-2 flex-wrap">
+                            <button
+                                @click="batchUpdateStatus('pending')"
+                                class="btn btn-error btn-sm"
+                                :disabled="selectedStudents.length === 0"
+                            >
+                                批量標記未繳交
+                            </button>
                             <button
                                 @click="batchUpdateStatus('submitted')"
                                 class="btn btn-success btn-sm"
@@ -46,9 +53,15 @@
                             >
                                 批量標記已完成
                             </button>
+                            <button @click="selectAllStudents" class="btn btn-sm btn-outline">
+                                一鍵全選
+                            </button>
+                            <button @click="deselectAllStudents" class="btn btn-sm btn-outline">
+                                取消全選
+                            </button>
                         </div>
                     </div>
-                    <div class="form-control">
+                    <div class="form-control md:col-span-1">
                         <label class="label mb-2">
                             <span class="label-text">匯出功能</span>
                         </label>
@@ -393,5 +406,14 @@ const copyReportToClipboard = async () => {
 
 const closeReportModal = () => {
     reportModal.value?.close()
+}
+
+// 一鍵全選/取消全選
+const selectAllStudents = () => {
+    if (!classInfo.value) return
+    selectedStudents.value = classInfo.value.students.map((s) => s.id)
+}
+const deselectAllStudents = () => {
+    selectedStudents.value = []
 }
 </script>
