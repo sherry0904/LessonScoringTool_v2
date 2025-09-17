@@ -5,9 +5,9 @@
             <div class="container mx-auto px-4 py-4">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-4">
-                        <button @click="backToDashboard" class="btn btn-ghost btn-sm gap-2">
+                        <button @click="backToPrev" class="btn btn-ghost btn-sm gap-2">
                             <LucideIcon name="ArrowLeft" class="w-4 h-4" />
-                            返回總覽
+                            返回上一頁
                         </button>
                         <div>
                             <h1 class="text-2xl font-bold text-base-content">
@@ -119,8 +119,8 @@
         <div class="text-center">
             <LucideIcon name="AlertCircle" class="w-16 h-16 mx-auto text-warning mb-4" />
             <h2 class="text-xl font-semibold mb-2">找不到班級</h2>
-            <p class="text-base-content/70 mb-4">請確認網址是否正確，或返回總覽頁面</p>
-            <button @click="backToDashboard" class="btn btn-primary">返回班級總覽</button>
+            <p class="text-base-content/70 mb-4">請確認網址是否正確，或返回上一頁</p>
+            <button @click="backToPrev" class="btn btn-primary">返回上一頁</button>
         </div>
     </div>
 </template>
@@ -128,6 +128,7 @@
 <script setup lang="ts">
 import { useClassesStore } from '~/stores/classes'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 
 const classesStore = useClassesStore()
 const route = useRoute()
@@ -149,15 +150,16 @@ const tabs = computed(() => {
     const classId = route.params.id as string
     return [
         { id: 'scoring', label: '個人計分', icon: 'Star', path: `/class/${classId}` },
-        // { id: 'homework', label: '作業訂正', icon: 'BookOpen', path: `/class/${classId}/homework` },
+        { id: 'homework', label: '作業管理', icon: 'BookOpen', path: `/class/${classId}/homework` },
         { id: 'grouping', label: '分組模式', icon: 'Users', path: `/class/${classId}/grouping` },
         { id: 'grades', label: '成績結算', icon: 'BarChart3', path: `/class/${classId}/grades` },
     ]
 })
 
 // Methods
-const backToDashboard = () => {
-    navigateTo('/')
+const router = useRouter()
+const backToPrev = () => {
+    router.back()
 }
 
 const addStudent = () => {
