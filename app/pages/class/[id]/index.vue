@@ -46,7 +46,7 @@
                 v-for="student in classInfo.students"
                 :key="student.id"
                 :class="[
-                    'card bg-base-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer',
+                    'card bg-base-100 border-2 border-base-300 shadow-md rounded-xl hover:shadow-xl transition-all duration-200 cursor-pointer',
                     { 'ring-2 ring-primary': selectedStudents.includes(student.id) },
                 ]"
                 @click="toggleStudentSelection(student.id)"
@@ -73,10 +73,10 @@
                                     type="checkbox"
                                     :checked="student.isPresent"
                                     @change.stop="togglePresence(student.id)"
-                                    class="toggle toggle-success toggle-xs"
+                                    class="toggle toggle-success toggle-sm"
                                 />
                                 <span
-                                    class="text-xs font-medium"
+                                    class="text-sm font-medium"
                                     :class="student.isPresent ? 'text-green-600' : 'text-gray-400'"
                                 >
                                     {{ student.isPresent ? '出席' : '缺席' }}
@@ -85,14 +85,18 @@
                         </div>
                         <!-- 右欄：總分與按鈕 -->
                         <div
-                            class="flex flex-col justify-center items-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 rounded-r-2xl px-4 py-4 min-w-[100px] gap-3"
+                            class="flex flex-col justify-center items-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 rounded-r-2xl p-4 min-w-[80px] gap-2"
                         >
                             <div class="flex flex-col items-center">
                                 <span class="text-xs text-base-content/60 mb-1">總分</span>
                                 <span
-                                    class="font-extrabold text-xl md:text-2xl lg:text-3xl text-primary"
-                                    >{{ student.totalScore }}</span
+                                    :class="[
+                                        'font-extrabold text-xl md:text-2xl lg:text-3xl text-primary px-2 py-2',
+                                        scoreAnimation[student.id],
+                                    ]"
                                 >
+                                    {{ student.totalScore }}
+                                </span>
                             </div>
                             <div class="flex gap-2 mt-2">
                                 <button
@@ -187,6 +191,9 @@ const selectedScore = ref<number | null>(1)
 const selectedStudents = ref<string[]>([])
 const viewingStudent = ref<Student | null>(null)
 
+// 分數動畫狀態
+const scoreAnimation = ref<Record<string, string | null>>({})
+
 const quickScores = [3, 2, 1, -1, -2, -3]
 
 // Methods
@@ -205,6 +212,11 @@ const clearSelection = () => {
 
 const quickScore = (studentId: string, score: number) => {
     addScoreToStudent(studentId, score, '快速評分')
+    scoreAnimation.value[studentId] =
+        score > 0 ? 'animate-score-bounce-green' : 'animate-score-bounce-red'
+    setTimeout(() => {
+        scoreAnimation.value[studentId] = null
+    }, 500)
 }
 
 const applyQuickScore = (score: number) => {
@@ -255,3 +267,7 @@ const formatDateTime = (date: Date) => {
     })
 }
 </script>
+
+<style scoped>
+@import '@/assets/score-animate.css';
+</style>
