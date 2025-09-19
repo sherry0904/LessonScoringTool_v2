@@ -51,151 +51,111 @@
                 ]"
                 @click="toggleStudentSelection(student.id)"
             >
-                <div class="card-body p-4">
-                    <!-- 學生信息 -->
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="font-semibold text-base">{{ student.name }}</h3>
-                            <p class="text-sm text-base-content/70">座號 {{ student.id }}</p>
-                        </div>
-                        <div class="dropdown dropdown-end">
-                            <div
-                                tabindex="0"
-                                role="button"
-                                class="btn btn-ghost btn-xs btn-circle"
-                                @click.stop
-                            >
-                                <LucideIcon name="MoreVertical" class="w-3 h-3" />
-                            </div>
-                            <ul
-                                tabindex="0"
-                                class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
-                            >
-                                <li>
-                                    <a v-if="editStudent" @click.stop="editStudent(student.id)" class="flex items-center gap-2">
-                                        <LucideIcon name="Edit" class="w-3 h-3" />
-                                        <span>編輯學生</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a @click.stop="viewStudentHistory(student)" class="flex items-center gap-2">
-                                        <LucideIcon name="ScrollText" class="w-3 h-3" />
-                                        <span>評分記錄</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a @click.stop="togglePresence(student.id)" class="flex items-center gap-2">
-                                        <LucideIcon
-                                            :name="student.isPresent ? 'UserMinus' : 'UserCheck'"
-                                            class="w-3 h-3"
-                                        />
-                                        <span>{{ student.isPresent ? '標記缺席' : '標記出席' }}</span>
-                                    </a>
-                                </li>
-                                <div class="divider my-1"></div>
-                                <li>
-                                    <a @click.stop="deleteStudent(student)" class="text-error flex items-center gap-2">
-                                        <LucideIcon name="Trash2" class="w-3 h-3" />
-                                        <span>刪除學生</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- 分數統計 -->
-                    <div class="space-y-2 mb-3">
-                        <div class="flex justify-between items-center group">
-                            <span class="text-sm text-base-content/70 flex items-center gap-1"
-                                >總分</span
-                            >
-                            <span class="font-bold text-lg text-primary">
-                                {{ student.totalScore }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- 出席狀態 -->
-                    <div class="flex justify-between items-center">
-                        <label class="flex items-center gap-2 select-none">
-                            <input
-                                type="checkbox"
-                                :checked="student.isPresent"
-                                @change.stop="togglePresence(student.id)"
-                                class="toggle toggle-success toggle-sm"
-                            />
-                            <span
-                                class="text-xs font-medium"
-                                :class="student.isPresent ? 'text-green-600' : 'text-gray-400'"
-                            >
-                                {{ student.isPresent ? '出席' : '缺席' }}
-                            </span>
-                        </label>
-
-                        <!-- 快速評分按鈕 -->
-                        <div class="flex gap-1">
-                            <button
-                                @click.stop="quickScore(student.id, 1)"
-                                class="btn btn-xs btn-success"
-                                title="+1分"
-                            >
-                                +1
-                            </button>
-                            <button
-                                @click.stop="quickScore(student.id, -1)"
-                                class="btn btn-xs btn-error"
-                                title="-1分"
-                            >
-                                -1
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 學生評分記錄模態 -->
-        <dialog ref="historyModal" class="modal">
-            <div class="modal-box w-11/12 max-w-2xl">
-                <h3 class="text-lg font-bold mb-4">{{ viewingStudent?.name }} 的評分記錄</h3>
-                <div
-                    v-if="viewingStudent && viewingStudent.scores.length > 0"
-                    class="space-y-3 max-h-96 overflow-y-auto"
-                >
-                    <div
-                        v-for="score in viewingStudent.scores.slice().reverse()"
-                        :key="score.id"
-                        class="flex justify-between items-center p-3 bg-base-200 rounded-lg"
-                    >
-                        <div>
-                            <div class="flex items-center gap-2">
+                <div class="card-body p-0">
+                    <div class="flex flex-row items-stretch divide-x divide-base-100">
+                        <!-- 左欄：姓名、座號、出席 -->
+                        <div class="flex flex-col justify-between p-4 flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-2">
                                 <span
-                                    :class="[
-                                        'badge',
-                                        score.value > 0 ? 'badge-success' : 'badge-error',
-                                    ]"
+                                    class="inline-block w-2 h-2 rounded-full"
+                                    :class="student.isPresent ? 'bg-green-500' : 'bg-gray-400'"
+                                    :title="student.isPresent ? '出席' : '缺席'"
+                                ></span>
+                                <h3
+                                    class="font-bold text-base md:text-lg lg:text-xl xl:text-2xl leading-tight truncate"
                                 >
-                                    {{ score.value > 0 ? '+' : '' }}{{ score.value }}
-                                </span>
-                                <span class="text-sm">{{ score.reason || '快速評分' }}</span>
+                                    {{ student.name }}
+                                </h3>
                             </div>
+                            <p class="text-sm text-base-content/70 mb-2">座號 {{ student.id }}</p>
+                            <label class="flex items-center gap-2 select-none mt-2">
+                                <input
+                                    type="checkbox"
+                                    :checked="student.isPresent"
+                                    @change.stop="togglePresence(student.id)"
+                                    class="toggle toggle-success toggle-xs"
+                                />
+                                <span
+                                    class="text-xs font-medium"
+                                    :class="student.isPresent ? 'text-green-600' : 'text-gray-400'"
+                                >
+                                    {{ student.isPresent ? '出席' : '缺席' }}
+                                </span>
+                            </label>
                         </div>
-                        <div class="text-right">
-                            <div class="text-sm text-base-content/70">
-                                {{ formatDateTime(score.timestamp) }}
+                        <!-- 右欄：總分與按鈕 -->
+                        <div
+                            class="flex flex-col justify-center items-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 rounded-r-2xl px-4 py-4 min-w-[100px] gap-3"
+                        >
+                            <div class="flex flex-col items-center">
+                                <span class="text-xs text-base-content/60 mb-1">總分</span>
+                                <span
+                                    class="font-extrabold text-xl md:text-2xl lg:text-3xl text-primary"
+                                    >{{ student.totalScore }}</span
+                                >
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                                <button
+                                    @click.stop="quickScore(student.id, 1)"
+                                    class="btn btn-md font-bold text-base px-4 py-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white border-none shadow hover:scale-105 hover:from-green-500 hover:to-emerald-600"
+                                    title="+1分"
+                                >
+                                    +1
+                                </button>
+                                <button
+                                    @click.stop="quickScore(student.id, -1)"
+                                    class="btn btn-md font-bold text-base px-4 py-1 rounded-full bg-gradient-to-r from-rose-400 to-red-500 text-white border-none shadow hover:scale-105 hover:from-rose-500 hover:to-red-600"
+                                    title="-1分"
+                                >
+                                    -1
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div v-else class="text-center py-8 text-base-content/70">尚無評分記錄</div>
-                <div class="modal-action">
-                    <button @click="closeHistoryModal" class="btn btn-ghost">關閉</button>
-                </div>
             </div>
-            <form method="dialog" class="modal-backdrop">
-                <button @click="closeHistoryModal">close</button>
-            </form>
-        </dialog>
+            <dialog ref="historyModal" class="modal">
+                <div class="modal-box w-11/12 max-w-2xl">
+                    <h3 class="text-lg font-bold mb-4">{{ viewingStudent?.name }} 的評分記錄</h3>
+                    <div
+                        v-if="viewingStudent && viewingStudent.scores.length > 0"
+                        class="space-y-3 max-h-96 overflow-y-auto"
+                    >
+                        <div
+                            v-for="score in viewingStudent.scores.slice().reverse()"
+                            :key="score.id"
+                            class="flex justify-between items-center p-3 bg-base-200 rounded-lg"
+                        >
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        :class="[
+                                            'badge',
+                                            score.value > 0 ? 'badge-success' : 'badge-error',
+                                        ]"
+                                    >
+                                        {{ score.value > 0 ? '+' : '' }}{{ score.value }}
+                                    </span>
+                                    <span class="text-sm">{{ score.reason || '快速評分' }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-base-content/70">
+                                    {{ formatDateTime(score.timestamp) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-8 text-base-content/70">尚無評分記錄</div>
+                    <div class="modal-action">
+                        <button @click="closeHistoryModal" class="btn btn-ghost">關閉</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button @click="closeHistoryModal">close</button>
+                </form>
+            </dialog>
+        </div>
     </div>
     <div v-else class="text-center p-8">
         <p>正在載入班級資料...</p>
@@ -204,10 +164,10 @@
 </template>
 
 <script setup lang="ts">
-import { useClassesStore } from '~/stores/classes';
-import { useUIStore } from '~/stores/ui';
+import { useClassesStore } from '~/stores/classes'
+import { useUIStore } from '~/stores/ui'
 import type { ClassInfo, Student } from '~/types'
-import { storeToRefs } from 'pinia';
+import { storeToRefs } from 'pinia'
 
 // 1. Get store and route
 const classesStore = useClassesStore()
@@ -256,12 +216,12 @@ const applyQuickScore = (score: number) => {
 }
 
 const addScoreToStudent = (studentId: string, score: number, reason: string) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     classesStore.addScoreToStudent(classInfo.value.id, studentId, score, reason)
 }
 
 const deleteStudent = (student: Student) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     if (confirm(`確定要刪除學生「${student.name}」嗎？此操作無法復原。`)) {
         classesStore.removeStudentFromClass(classInfo.value.id, student.id)
         ui.showSuccess('學生已刪除')
@@ -279,7 +239,7 @@ const closeHistoryModal = () => {
 }
 
 const togglePresence = (studentId: string) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     const student = classInfo.value.students.find((s) => s.id === studentId)
     if (student) {
         classesStore.updateStudent(classInfo.value.id, studentId, { isPresent: !student.isPresent })
