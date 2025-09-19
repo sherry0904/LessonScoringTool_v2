@@ -4,34 +4,34 @@
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body">
                 <div class="flex flex-wrap gap-4 items-center">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">快速加分</span>
-                        </label>
-                        <div class="flex flex-wrap gap-2 items-center justify-between w-full">
-                            <div class="flex flex-wrap gap-2">
-                                <button
-                                    v-for="score in quickScores"
-                                    :key="score"
-                                    @click="applyQuickScore(score)"
-                                    :class="[
-                                        'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/40',
-                                        score === selectedScore
-                                            ? score > 0
-                                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow'
-                                                : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow'
-                                            : score > 0
-                                              ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40'
-                                              : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40',
-                                    ]"
-                                    :title="
-                                        selectedStudents.length
-                                            ? '立即對選取學生套用'
-                                            : '設定批量評分預設分數'
-                                    "
-                                >
-                                    {{ score > 0 ? '+' : '' }}{{ score }}
-                                </button>
+                    <div class="form-control flex-1">
+                        <div class="flex items-center gap-4 justify-between w-full">
+                            <div class="flex items-center gap-2">
+                                <span class="label-text whitespace-nowrap">快速加分</span>
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        v-for="score in quickScores"
+                                        :key="score"
+                                        @click="applyQuickScore(score)"
+                                        :class="[
+                                            'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/40',
+                                            score === selectedScore
+                                                ? score > 0
+                                                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow'
+                                                    : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow'
+                                                : score > 0
+                                                  ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40'
+                                                  : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40',
+                                        ]"
+                                        :title="
+                                            selectedStudents.length
+                                                ? '立即對選取學生套用'
+                                                : '設定批量評分預設分數'
+                                        "
+                                    >
+                                        {{ score > 0 ? '+' : '' }}{{ score }}
+                                    </button>
+                                </div>
                             </div>
                             <div class="flex gap-2 ml-auto">
                                 <button
@@ -134,6 +134,36 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div class="absolute top-3 right-3 z-10">
+                    <div class="dropdown dropdown-end">
+                        <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle">
+                            <LucideIcon name="MoreVertical" class="w-4 h-4" />
+                        </div>
+                        <ul
+                            tabindex="0"
+                            class="dropdown-content menu bg-base-100 rounded-box z-[1] w-40 p-2 shadow"
+                        >
+                            <li>
+                                <a @click="editStudent(student.id)">
+                                    <LucideIcon name="Edit" class="w-4 h-4" />
+                                    編輯
+                                </a>
+                            </li>
+                            <li>
+                                <a @click="viewStudentHistory(student)">
+                                    <LucideIcon name="List" class="w-4 h-4" />
+                                    評分紀錄
+                                </a>
+                            </li>
+                            <li>
+                                <a @click="deleteStudent(student)" class="text-error">
+                                    <LucideIcon name="Trash2" class="w-4 h-4" />
+                                    移除此學生
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
