@@ -2,50 +2,44 @@
     <div v-if="currentClass" class="min-h-screen bg-base-200">
         <!-- 頂部導航 -->
         <div class="bg-base-100 shadow-sm sticky top-0 z-10">
-            <div class="container mx-auto px-4 py-4">
+            <div class="container mx-auto px-4 py-2">
                 <div class="flex justify-between items-center">
+                    <!-- Left side: Back button and Title -->
                     <div class="flex items-center gap-4">
                         <button @click="backToPrev" class="btn btn-ghost btn-sm gap-2">
                             <LucideIcon name="ArrowLeft" class="w-4 h-4" />
-                            返回上一頁
+                            <span class="hidden sm:inline">返回</span>
                         </button>
                         <div>
-                            <h1 class="text-2xl font-bold text-base-content">
+                            <h1 class="text-xl font-bold text-base-content">
                                 {{ currentClass.name }}
                             </h1>
-                            <p class="text-sm text-base-content/70">
+                            <p class="text-xs text-base-content/70">
                                 {{ currentClass.students.length }} 位學生
                             </p>
                         </div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button @click="addStudent" class="btn btn-primary btn-sm gap-2">
-                            <LucideIcon name="UserPlus" class="w-4 h-4" />
-                            新增學生
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 功能分頁 -->
-                <div class="tabs tabs-bordered mt-4">
-                    <NuxtLink
-                        v-for="tab in tabs"
-                        :key="tab.id"
-                        :to="tab.path"
-                        custom
-                        v-slot="{ href, navigate, isExactActive }"
-                    >
-                        <a
-                            :href="href"
-                            @click="navigate"
-                            class="tab tab-lg"
-                            :class="{ 'tab-active': isExactActive }"
+                    <!-- Right side: Tabs -->
+                    <div class="tabs tabs-bordered">
+                        <NuxtLink
+                            v-for="tab in tabs"
+                            :key="tab.id"
+                            :to="tab.path"
+                            custom
+                            v-slot="{ href, navigate, isExactActive }"
                         >
-                            <LucideIcon :name="tab.icon" class="w-4 h-4 mr-2" />
-                            {{ tab.label }}
-                        </a>
-                    </NuxtLink>
+                            <a
+                                :href="href"
+                                @click="navigate"
+                                class="tab"
+                                :class="{ 'tab-active': isExactActive }"
+                            >
+                                <LucideIcon :name="tab.icon" class="w-4 h-4 sm:mr-2" />
+                                <span class="hidden sm:inline">{{ tab.label }}</span>
+                            </a>
+                        </NuxtLink>
+                    </div>
                 </div>
             </div>
         </div>
@@ -64,7 +58,7 @@
 
                 <form @submit.prevent="saveStudent" class="space-y-4">
                     <div class="form-control">
-                        <label class="label">
+                        <label class="label mr-2">
                             <span class="label-text">座號</span>
                         </label>
                         <input
@@ -78,7 +72,7 @@
                     </div>
 
                     <div class="form-control">
-                        <label class="label">
+                        <label class="label mr-2">
                             <span class="label-text">姓名</span>
                         </label>
                         <input
@@ -231,5 +225,6 @@ useHead({
 })
 
 // 提供給子組件的方法
+provide('addStudent', addStudent)
 provide('editStudent', editStudent)
 </script>

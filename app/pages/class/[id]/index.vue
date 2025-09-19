@@ -35,11 +35,23 @@
                             </div>
                         </div>
                     </div>
-                    <div class="form-control">
-                        <button @click="exportClassScores" class="btn btn-outline">
-                            <LucideIcon name="FileSpreadsheet" class="w-4 h-4 mr-2" />
-                            匯出班級成績單 (Excel)
-                        </button>
+                    <div class="flex items-end gap-2">
+                        <div class="form-control">
+                            <div class="flex gap-2">
+                                <button
+                                    v-if="addStudent"
+                                    @click="addStudent"
+                                    class="btn btn-primary"
+                                >
+                                    <LucideIcon name="UserPlus" class="w-4 h-4 mr-2" />
+                                    新增學生
+                                </button>
+                                <button @click="exportClassScores" class="btn btn-outline">
+                                    <LucideIcon name="FileSpreadsheet" class="w-4 h-4 mr-2" />
+                                    匯出成績單
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -241,7 +253,8 @@ const { exportToExcel } = useExcelExport()
 // 2. Get classInfo from store using storeToRefs for reactivity
 const { currentClass: classInfo } = storeToRefs(classesStore)
 
-// 3. Inject the editStudent function from the parent layout
+// 3. Inject functions from the parent layout
+const addStudent = inject<() => void>('addStudent')
 const editStudent = inject<(studentId: string) => void>('editStudent')
 
 // Modal refs
@@ -321,7 +334,7 @@ const formatDateTime = (date: Date) => {
 }
 
 const exportClassScores = () => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
 
     const today = new Date()
     const dateString = today.toISOString().split('T')[0]
@@ -334,11 +347,7 @@ const exportClassScores = () => {
 
     const sheetData = {
         sheetName: `${classInfo.value.name} - 成績單`,
-        header: [
-            [`班級:`, classInfo.value.name],
-            [`匯出日期:`, today.toLocaleString('zh-TW')],
-            [],
-        ],
+        header: [[`班級:`, classInfo.value.name], [`匯出日期:`, today.toLocaleString('zh-TW')], []],
         data: data,
         columnWidths: [{ wch: 10 }, { wch: 20 }, { wch: 10 }],
     }
