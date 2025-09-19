@@ -8,29 +8,47 @@
                         <label class="label">
                             <span class="label-text">快速加分</span>
                         </label>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                v-for="score in quickScores"
-                                :key="score"
-                                @click="applyQuickScore(score)"
-                                :class="[
-                                    'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/40',
-                                    score === selectedScore
-                                        ? score > 0
-                                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow'
-                                            : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow'
-                                        : score > 0
-                                          ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40'
-                                          : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40',
-                                ]"
-                                :title="
-                                    selectedStudents.length
-                                        ? '立即對選取學生套用'
-                                        : '設定批量評分預設分數'
-                                "
-                            >
-                                {{ score > 0 ? '+' : '' }}{{ score }}
-                            </button>
+                        <div class="flex flex-wrap gap-2 items-center justify-between w-full">
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="score in quickScores"
+                                    :key="score"
+                                    @click="applyQuickScore(score)"
+                                    :class="[
+                                        'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/40',
+                                        score === selectedScore
+                                            ? score > 0
+                                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow'
+                                                : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow'
+                                            : score > 0
+                                              ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40'
+                                              : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40',
+                                    ]"
+                                    :title="
+                                        selectedStudents.length
+                                            ? '立即對選取學生套用'
+                                            : '設定批量評分預設分數'
+                                    "
+                                >
+                                    {{ score > 0 ? '+' : '' }}{{ score }}
+                                </button>
+                            </div>
+                            <div class="flex gap-2 ml-auto">
+                                <button
+                                    class="btn btn-sm btn-outline btn-primary"
+                                    @click="selectAllStudents"
+                                    type="button"
+                                >
+                                    全選
+                                </button>
+                                <button
+                                    class="btn btn-sm btn-outline btn-secondary"
+                                    @click="clearSelection"
+                                    type="button"
+                                >
+                                    取消全選
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -72,6 +90,7 @@
                                 <input
                                     type="checkbox"
                                     :checked="student.isPresent"
+                                    @click.stop
                                     @change.stop="togglePresence(student.id)"
                                     class="toggle toggle-success toggle-sm"
                                 />
@@ -265,6 +284,11 @@ const formatDateTime = (date: Date) => {
         hour: '2-digit',
         minute: '2-digit',
     })
+}
+
+const selectAllStudents = () => {
+    if (!classInfo.value) return
+    selectedStudents.value = classInfo.value.students.map((s) => s.id)
 }
 </script>
 
