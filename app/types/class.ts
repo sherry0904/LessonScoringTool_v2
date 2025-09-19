@@ -31,23 +31,23 @@ export interface Group {
     color: string
 }
 
+export interface ClassHomeworkSettings {
+    homeworkId: string; // 對應 GlobalHomework 的 id
+    releaseDate?: string;
+    dueDate?: string;
+    studentStatus: Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>;
+}
+
 export interface ClassInfo {
     id: string
     name: string
     students: Student[]
-    homeworks: Homework[]
+    homeworkSettings: ClassHomeworkSettings[]
     groups: Group[]
     groupCount: number
     groupingActive: boolean
     createdAt: Date
     updatedAt: Date
-}
-
-export interface Homework {
-    id: string
-    title: string
-    createdAt: Date
-    studentStatus: Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>
 }
 
 export interface ClassSession {

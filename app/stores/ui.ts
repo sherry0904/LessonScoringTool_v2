@@ -64,6 +64,7 @@ export const useUIStore = defineStore('ui', () => {
     const currentTabInfo = computed(() => {
         const tabMap: Record<string, Tab> = {
             dashboard: { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
+            homework: { id: 'homework', label: '作業管理', icon: 'BookMarked', color: 'accent' },
             students: { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
             settings: { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         }
@@ -83,6 +84,7 @@ export const useUIStore = defineStore('ui', () => {
     const tabs = computed(() => {
         return [
             { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
+            { id: 'homework', label: '作業管理', icon: 'BookMarked', color: 'accent' },
             { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
             { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         ]

@@ -1,120 +1,71 @@
 <template>
     <NuxtPage />
     <template v-if="route.name === 'class-id-homework'">
-        <div v-if="classInfo" class="space-y-6">
-            <div class="card bg-base-100 shadow-sm">
-                <div class="card-body">
-                    <div class="flex justify-between items-center">
-                        <h3 class="card-title">作業列表</h3>
-                        <button @click="showHomeworkModalForAdd" class="btn btn-primary gap-2">
-                            <LucideIcon name="Plus" class="w-4 h-4" />
-                            新增作業
-                        </button>
-                    </div>
-                    <!-- 搜尋欄 -->
-                    <div class="mt-4">
-                        <input
-                            v-model="searchText"
-                            type="text"
-                            class="input input-bordered w-full"
-                            placeholder="搜尋作業名稱..."
-                        />
-                    </div>
-                    <!-- 作業列表 -->
-                    <div v-if="filteredHomeworks.length > 0" class="mt-4">
-                        <div class="overflow-x-auto">
-                            <table class="table w-full">
-                                <thead>
-                                    <tr>
-                                        <th>名稱</th>
-                                        <th>建立日期</th>
-                                        <th>狀態統計</th>
-                                        <th>操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="homework in pagedHomeworks" :key="homework.id">
-                                        <td class="font-semibold">{{ homework.title }}</td>
-                                        <td>{{ formatDate(homework.createdAt) }}</td>
-                                        <td>
-                                            <span
-                                                v-for="status in statusOrder"
-                                                :key="status"
-                                                class="badge mr-1 min-w-[3em] justify-center text-white font-bold"
-                                                :class="getStatusBadgeClass(status)"
-                                            >
-                                                {{ getStatusCount(homework, status) }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button
-                                                @click="goToHomeworkDetail(homework.id)"
-                                                class="btn btn-sm btn-outline"
-                                            >
-                                                詳情
-                                            </button>
-                                            <button
-                                                @click="showHomeworkModalForEdit(homework.id)"
-                                                class="btn btn-sm btn-ghost"
-                                            >
-                                                <LucideIcon name="Edit" class="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- 分頁 -->
-                        <div class="flex justify-end items-center mt-4 gap-2">
-                            <button class="btn btn-sm" :disabled="page === 1" @click="page--">
-                                上一頁
-                            </button>
-                            <span>第 {{ page }} 頁 / 共 {{ totalPages }} 頁</span>
-                            <button
-                                class="btn btn-sm"
-                                :disabled="page === totalPages"
-                                @click="page++"
-                            >
-                                下一頁
-                            </button>
-                        </div>
-                    </div>
-                    <div v-else class="text-center py-8 text-base-content/70">
-                        還沒有作業，點擊上方按鈕新增第一個作業
-                    </div>
-                </div>
+        <div v-if="classInfo" class="space-y-6 p-4 sm:p-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-2xl font-bold">班級作業列表</h3>
+                <!-- 移除新增作業按鈕 -->
             </div>
-            <!-- 新增/編輯作業模態 -->
-            <dialog ref="homeworkModal" class="modal">
-                <div class="modal-box">
-                    <h3 class="text-lg font-bold mb-4">{{ modalTitle }}</h3>
-                    <form @submit.prevent="handleHomeworkSubmit" class="space-y-4">
-                        <div class="form-control">
-                            <label class="label mr-2">
-                                <span class="label-text">作業名稱</span>
-                            </label>
-                            <input
-                                v-model="homeworkModalForm.title"
-                                type="text"
-                                placeholder="例如：數學習作 P.30-32"
-                                class="input input-bordered"
-                                required
-                            />
-                        </div>
-                        <div class="modal-action">
-                            <button type="button" @click="closeHomeworkModal" class="btn btn-ghost">
-                                取消
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                {{ submitButtonText }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <form method="dialog" class="modal-backdrop">
-                    <button @click="closeHomeworkModal">close</button>
-                </form>
-            </dialog>
+            <p class="text-base-content/70">
+                此處顯示的作業來自「全域作業管理」。您可以在此為班級設定專屬的開始與繳交日期。
+            </p>
+
+            <!-- 作業列表 -->
+            <div
+                v-if="visibleHomeworks.length > 0"
+                class="mt-4 overflow-x-auto glass-card p-4 rounded-xl"
+            >
+                <table class="table w-full">
+                    <thead>
+                        <tr>
+                            <th>作業名稱</th>
+                            <th>狀態</th>
+                            <th>開始日期</th>
+                            <th>繳交截止日</th>
+                            <th class="text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="hw in visibleHomeworks" :key="hw.id">
+                            <td class="font-semibold">{{ hw.name }}</td>
+                            <td>
+                                <span class="badge" :class="getHomeworkStatus(hw.id).badgeClass">
+                                    {{ getHomeworkStatus(hw.id).text }}
+                                </span>
+                            </td>
+                            <td>
+                                <input
+                                    type="date"
+                                    :value="getHomeworkSettings(hw.id)?.releaseDate?.split('T')[0]"
+                                    @change="updateDate(hw.id, 'releaseDate', $event)"
+                                    class="input input-bordered input-sm w-40 bg-transparent"
+                                />
+                            </td>
+                            <td>
+                                <input
+                                    type="date"
+                                    :value="getHomeworkSettings(hw.id)?.dueDate?.split('T')[0]"
+                                    @change="updateDate(hw.id, 'dueDate', $event)"
+                                    class="input input-bordered input-sm w-40 bg-transparent"
+                                />
+                            </td>
+                            <td class="text-right">
+                                <button
+                                    @click="goToHomeworkDetail(hw.id)"
+                                    class="btn btn-sm btn-ghost"
+                                >
+                                    查看繳交詳情
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div v-else class="text-center py-12 text-base-content/70 glass-card rounded-xl">
+                <LucideIcon name="BookX" class="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>目前沒有指派給這個班級的作業。</p>
+                <p class="text-sm mt-2">您可以到「全域作業管理」建立新作業。</p>
+            </div>
         </div>
         <div v-else class="text-center p-8">
             <p>正在載入班級資料...</p>
@@ -124,128 +75,80 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useClassesStore } from '~/stores/classes'
+import { useHomeworkStore } from '~/stores/homework'
 import { useRoute, useRouter } from 'vue-router'
-import type { ClassInfo, Homework } from '~/types'
+import type { ClassInfo } from '~/types'
 import LucideIcon from '~/components/LucideIcon.vue'
 
 const classesStore = useClassesStore()
+const homeworkStore = useHomeworkStore()
 const route = useRoute()
 const router = useRouter()
 
 const classId = computed(() => route.params.id as string)
 const classInfo = computed(() => classesStore.classes.find((c) => c.id === classId.value))
 
-// Modal refs
-const homeworkModal = ref<HTMLDialogElement>()
-const editingHomeworkId = ref<string | null>(null)
-const homeworkModalForm = reactive({ title: '' })
-
-// 搜尋、分頁
-const searchText = ref('')
-const page = ref(1)
-const pageSize = 10
-
-const statusOrder = ['pending', 'submitted', 'needs_correction', 'completed']
-const statusText = {
-    pending: { text: '未繳交' },
-    submitted: { text: '已繳交' },
-    needs_correction: { text: '待訂正' },
-    completed: { text: '已完成' },
-}
-
-const filteredHomeworks = computed(() => {
+const visibleHomeworks = computed(() => {
     if (!classInfo.value) return []
-    if (!searchText.value.trim()) return classInfo.value.homeworks
-    return classInfo.value.homeworks.filter((hw) => hw.title.includes(searchText.value.trim()))
+    return homeworkStore.homeworkList.filter(
+        (hw) => !hw.isArchived && !hw.hiddenFromClassIds.includes(classId.value),
+    )
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredHomeworks.value.length / pageSize)))
-const pagedHomeworks = computed(() => {
-    const start = (page.value - 1) * pageSize
-    return filteredHomeworks.value.slice(start, start + pageSize)
-})
+const getHomeworkSettings = (homeworkId: string) => {
+    return classInfo.value?.homeworkSettings.find((s) => s.homeworkId === homeworkId)
+}
 
-const getStatusBadgeClass = (status: string) => {
-    const classes = {
-        pending: 'badge-error',
-        submitted: 'badge-success',
-        needs_correction: 'badge-warning',
-        completed: 'badge-info',
+const getHomeworkStatus = (homeworkId: string) => {
+    const settings = getHomeworkSettings(homeworkId)
+    const now = new Date()
+    const releaseDate = settings?.releaseDate ? new Date(settings.releaseDate) : null
+    const dueDate = settings?.dueDate ? new Date(settings.dueDate) : null
+
+    now.setHours(0, 0, 0, 0)
+    if (releaseDate) releaseDate.setHours(0, 0, 0, 0)
+    if (dueDate) dueDate.setHours(0, 0, 0, 0)
+
+    if (!releaseDate || !dueDate) {
+        return { text: '未指定日期', badgeClass: 'badge-ghost' }
     }
-    return classes[status as keyof typeof classes] || 'badge-neutral'
+    if (now < releaseDate) {
+        return { text: '待開始', badgeClass: 'badge-info' }
+    }
+    if (now > dueDate) {
+        return { text: '已逾期', badgeClass: 'badge-error text-white' }
+    }
+    if (now.getTime() === dueDate.getTime()) {
+        return { text: '今日截止', badgeClass: 'badge-warning' }
+    }
+    if (now >= releaseDate && now <= dueDate) {
+        return { text: '進行中', badgeClass: 'badge-success text-white' }
+    }
+    return { text: '未知', badgeClass: 'badge-neutral' }
 }
 
-const getStatusText = (status: string) => {
-    return statusText[status as keyof typeof statusText]?.text || '未知'
-}
+const updateDate = (homeworkId: string, dateType: 'releaseDate' | 'dueDate', event: Event) => {
+    const target = event.target as HTMLInputElement
+    const value = target.value
 
-const getStatusCount = (homework: Homework, status: string) => {
-    if (!homework) return 0
-    return Object.values(homework.studentStatus).filter((s) => s === status).length
-}
-
-const formatDate = (date: string | Date) => {
-    if (!date) return ''
-    const d = typeof date === 'string' ? new Date(date) : date
-    return d.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    classesStore.updateClassHomeworkSettings(classId.value, homeworkId, {
+        [dateType]: value ? new Date(value).toISOString() : undefined,
+    })
 }
 
 const goToHomeworkDetail = (hwid: string) => {
     router.push({ path: `/class/${classId.value}/homework/${hwid}` })
 }
 
-const isEditing = computed(() => editingHomeworkId.value !== null)
-const modalTitle = computed(() => (isEditing.value ? '編輯作業' : '新增作業'))
-const submitButtonText = computed(() => (isEditing.value ? '更新' : '新增'))
-
-const showHomeworkModalForAdd = () => {
-    editingHomeworkId.value = null
-    homeworkModalForm.title = ''
-    homeworkModal.value?.showModal()
-}
-
-const showHomeworkModalForEdit = (homeworkId: string) => {
-    const homeworkToEdit = classInfo.value?.homeworks.find((h) => h.id === homeworkId)
-    if (homeworkToEdit) {
-        editingHomeworkId.value = homeworkId
-        homeworkModalForm.title = homeworkToEdit.title
-        homeworkModal.value?.showModal()
+onMounted(() => {
+    // 確保 store 資料已載入
+    if (homeworkStore.homeworkList.length === 0) {
+        homeworkStore.fetchAllHomework()
     }
-}
-
-const closeHomeworkModal = () => {
-    homeworkModal.value?.close()
-}
-
-const addHomework = () => {
-    if (!homeworkModalForm.title.trim() || !classInfo.value) return
-    classesStore.addHomework(classInfo.value.id, homeworkModalForm.title)
-    closeHomeworkModal()
-}
-
-const updateHomework = () => {
-    if (!editingHomeworkId.value || !homeworkModalForm.title.trim() || !classInfo.value) return
-    classesStore.updateHomeworkTitle(
-        classInfo.value.id,
-        editingHomeworkId.value,
-        homeworkModalForm.title,
-    )
-    closeHomeworkModal()
-}
-
-const handleHomeworkSubmit = () => {
-    if (isEditing.value) {
-        updateHomework()
-    } else {
-        addHomework()
+    if (classesStore.classes.length === 0) {
+        classesStore.loadFromStorage()
     }
-}
-
-watch(searchText, () => {
-    page.value = 1
-})
-watch(filteredHomeworks, () => {
-    if (page.value > totalPages.value) page.value = totalPages.value
 })
 </script>

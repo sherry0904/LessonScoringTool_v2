@@ -3,35 +3,43 @@
         <!-- 操作面板 -->
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body">
-                <div class="flex flex-wrap gap-4 items-center">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">快速加分</span>
-                        </label>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                v-for="score in quickScores"
-                                :key="score"
-                                @click="applyQuickScore(score)"
-                                :class="[
-                                    'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/40',
-                                    score === selectedScore
-                                        ? score > 0
-                                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow'
-                                            : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow'
-                                        : score > 0
-                                          ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40'
-                                          : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40',
-                                ]"
-                                :title="
-                                    selectedStudents.length
-                                        ? '立即對選取學生套用'
-                                        : '設定批量評分預設分數'
-                                "
-                            >
-                                {{ score > 0 ? '+' : '' }}{{ score }}
-                            </button>
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="form-control">
+                            <label class="label mb-2">
+                                <span class="label-text">快速加分</span>
+                            </label>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="score in quickScores"
+                                    :key="score"
+                                    @click="applyQuickScore(score)"
+                                    :class="[
+                                        'px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary/40',
+                                        score === selectedScore
+                                            ? score > 0
+                                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow'
+                                                : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow'
+                                            : score > 0
+                                              ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/40'
+                                              : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 border-rose-200 dark:border-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40',
+                                    ]"
+                                    :title="
+                                        selectedStudents.length
+                                            ? '立即對選取學生套用'
+                                            : '設定批量評分預設分數'
+                                    "
+                                >
+                                    {{ score > 0 ? '+' : '' }}{{ score }}
+                                </button>
+                            </div>
                         </div>
+                    </div>
+                    <div class="form-control">
+                        <button @click="exportClassScores" class="btn btn-outline">
+                            <LucideIcon name="FileSpreadsheet" class="w-4 h-4 mr-2" />
+                            匯出班級成績單 (Excel)
+                        </button>
                     </div>
                 </div>
             </div>
@@ -72,29 +80,44 @@
                                 class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
                             >
                                 <li>
-                                    <a v-if="editStudent" @click.stop="editStudent(student.id)" class="flex items-center gap-2">
+                                    <a
+                                        v-if="editStudent"
+                                        @click.stop="editStudent(student.id)"
+                                        class="flex items-center gap-2"
+                                    >
                                         <LucideIcon name="Edit" class="w-3 h-3" />
                                         <span>編輯學生</span>
                                     </a>
                                 </li>
                                 <li>
-                                    <a @click.stop="viewStudentHistory(student)" class="flex items-center gap-2">
+                                    <a
+                                        @click.stop="viewStudentHistory(student)"
+                                        class="flex items-center gap-2"
+                                    >
                                         <LucideIcon name="ScrollText" class="w-3 h-3" />
                                         <span>評分記錄</span>
                                     </a>
                                 </li>
                                 <li>
-                                    <a @click.stop="togglePresence(student.id)" class="flex items-center gap-2">
+                                    <a
+                                        @click.stop="togglePresence(student.id)"
+                                        class="flex items-center gap-2"
+                                    >
                                         <LucideIcon
                                             :name="student.isPresent ? 'UserMinus' : 'UserCheck'"
                                             class="w-3 h-3"
                                         />
-                                        <span>{{ student.isPresent ? '標記缺席' : '標記出席' }}</span>
+                                        <span>{{
+                                            student.isPresent ? '標記缺席' : '標記出席'
+                                        }}</span>
                                     </a>
                                 </li>
                                 <div class="divider my-1"></div>
                                 <li>
-                                    <a @click.stop="deleteStudent(student)" class="text-error flex items-center gap-2">
+                                    <a
+                                        @click.stop="deleteStudent(student)"
+                                        class="text-error flex items-center gap-2"
+                                    >
                                         <LucideIcon name="Trash2" class="w-3 h-3" />
                                         <span>刪除學生</span>
                                     </a>
@@ -204,14 +227,16 @@
 </template>
 
 <script setup lang="ts">
-import { useClassesStore } from '~/stores/classes';
-import { useUIStore } from '~/stores/ui';
+import { useClassesStore } from '~/stores/classes'
+import { useUIStore } from '~/stores/ui'
 import type { ClassInfo, Student } from '~/types'
-import { storeToRefs } from 'pinia';
+import { storeToRefs } from 'pinia'
+import { useExcelExport } from '~/composables/useExcelExport'
 
 // 1. Get store and route
 const classesStore = useClassesStore()
 const ui = useUIStore()
+const { exportToExcel } = useExcelExport()
 
 // 2. Get classInfo from store using storeToRefs for reactivity
 const { currentClass: classInfo } = storeToRefs(classesStore)
@@ -256,12 +281,12 @@ const applyQuickScore = (score: number) => {
 }
 
 const addScoreToStudent = (studentId: string, score: number, reason: string) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     classesStore.addScoreToStudent(classInfo.value.id, studentId, score, reason)
 }
 
 const deleteStudent = (student: Student) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     if (confirm(`確定要刪除學生「${student.name}」嗎？此操作無法復原。`)) {
         classesStore.removeStudentFromClass(classInfo.value.id, student.id)
         ui.showSuccess('學生已刪除')
@@ -279,7 +304,7 @@ const closeHistoryModal = () => {
 }
 
 const togglePresence = (studentId: string) => {
-    if (!classInfo.value) return;
+    if (!classInfo.value) return
     const student = classInfo.value.students.find((s) => s.id === studentId)
     if (student) {
         classesStore.updateStudent(classInfo.value.id, studentId, { isPresent: !student.isPresent })
@@ -293,5 +318,32 @@ const formatDateTime = (date: Date) => {
         hour: '2-digit',
         minute: '2-digit',
     })
+}
+
+const exportClassScores = () => {
+    if (!classInfo.value) return;
+
+    const today = new Date()
+    const dateString = today.toISOString().split('T')[0]
+
+    const data = classInfo.value.students.map((student) => ({
+        座號: student.id,
+        姓名: student.name,
+        總分: student.totalScore,
+    }))
+
+    const sheetData = {
+        sheetName: `${classInfo.value.name} - 成績單`,
+        header: [
+            [`班級:`, classInfo.value.name],
+            [`匯出日期:`, today.toLocaleString('zh-TW')],
+            [],
+        ],
+        data: data,
+        columnWidths: [{ wch: 10 }, { wch: 20 }, { wch: 10 }],
+    }
+
+    const fileName = `${dateString}-${classInfo.value.name}-成績單`
+    exportToExcel([sheetData], fileName)
 }
 </script>

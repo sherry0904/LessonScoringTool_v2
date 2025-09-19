@@ -56,6 +56,9 @@ import {
     Tablet,
     Undo2,
     Award,
+    BookMarked,
+    ClipboardEdit,
+    ClipboardList,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -116,4 +119,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideTablet', Tablet)
     nuxtApp.vueApp.component('LucideUndo2', Undo2)
     nuxtApp.vueApp.component('LucideAward', Award)
+    nuxtApp.vueApp.component('LucideBookMarked', BookMarked)
+    nuxtApp.vueApp.component('LucideClipboardEdit', ClipboardEdit)
+    nuxtApp.vueApp.component('LucideClipboardList', ClipboardList)
 })

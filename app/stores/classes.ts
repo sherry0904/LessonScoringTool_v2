@@ -1,6 +1,7 @@
 // ...保留唯一一份正確的 defineStore 區塊...
 import { defineStore } from 'pinia'
 import type { ClassInfo, Student, Homework, Group, StudentScore } from '~/types/class'
+import { useExcelExport } from '~/composables/useExcelExport'
 
 export const useClassesStore = defineStore('classes', () => {
     // State
@@ -83,7 +84,7 @@ export const useClassesStore = defineStore('classes', () => {
             id: classId,
             name: name.trim(),
             students,
-            homeworks: [],
+            homeworkSettings: [], // <--- 修正於此
             groups: [],
             groupCount: 4,
             groupingActive: false,
@@ -163,59 +164,68 @@ export const useClassesStore = defineStore('classes', () => {
         return false
     }
 
-    const addHomework = (classId: string, title: string) => {
-        const classData = classes.value.find((c) => c.id === classId)
-        if (!classData) return null
+    const updateClassHomeworkSettings = (
+        classId: string,
+        homeworkId: string,
+        settings: { releaseDate?: string; dueDate?: string },
+    ) => {
+        const classData = classes.value.find((c) => c.id === classId);
+        if (!classData) return false;
 
-        const newHomework: Homework = {
-            id: `homework_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            title: title.trim(),
-            createdAt: new Date(),
-            studentStatus: classData.students.reduce(
-                (acc, student) => {
-                    acc[student.id] = 'pending'
-                    return acc
-                },
-                {} as Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>,
-            ),
+        const settingIndex = classData.homeworkSettings.findIndex(
+            (s) => s.homeworkId === homeworkId,
+        );
+
+        if (settingIndex > -1) {
+            // 更新現有設定
+            classData.homeworkSettings[settingIndex] = {
+                ...classData.homeworkSettings[settingIndex],
+                ...settings,
+            };
+        } else {
+            // 新增設定時，初始化所有學生的狀態為 'pending'
+            const studentStatus = classData.students.reduce((acc, student) => {
+                acc[student.id] = 'pending';
+                return acc;
+            }, {} as Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>);
+
+            classData.homeworkSettings.push({ homeworkId, ...settings, studentStatus });
         }
+        classData.updatedAt = new Date();
+        saveToStorage();
+        return true;
+    };
 
-        classData.homeworks.push(newHomework)
-        classData.updatedAt = new Date()
-        saveToStorage()
-        return newHomework
-    }
-
-    const updateHomeworkStatus = (
+    const updateStudentHomeworkStatus = (
         classId: string,
         homeworkId: string,
         studentId: string,
         status: 'pending' | 'submitted' | 'needs_correction' | 'completed',
     ) => {
-        const classData = classes.value.find((c) => c.id === classId)
-        if (!classData) return false
+        const classData = classes.value.find((c) => c.id === classId);
+        if (!classData) return false;
 
-        const homework = classData.homeworks.find((h) => h.id === homeworkId)
-        if (!homework) return false
+        let homeworkSetting = classData.homeworkSettings.find(
+            (s) => s.homeworkId === homeworkId,
+        );
 
-        homework.studentStatus[studentId] = status
-        classData.updatedAt = new Date()
-        saveToStorage()
-        return true
-    }
+        // 如果設定不存在，則自動建立
+        if (!homeworkSetting) {
+            const studentStatus = classData.students.reduce((acc, student) => {
+                acc[student.id] = 'pending';
+                return acc;
+            }, {} as Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>);
+            
+            const newSetting = { homeworkId, studentStatus };
+            classData.homeworkSettings.push(newSetting);
+            homeworkSetting = newSetting;
+        }
 
-    const updateHomeworkTitle = (classId: string, homeworkId: string, newTitle: string) => {
-        const classData = classes.value.find((c) => c.id === classId)
-        if (!classData) return false
-
-        const homework = classData.homeworks.find((h) => h.id === homeworkId)
-        if (!homework) return false
-
-        homework.title = newTitle.trim()
-        classData.updatedAt = new Date()
-        saveToStorage()
-        return true
-    }
+        homeworkSetting.studentStatus[studentId] = status;
+        classData.updatedAt = new Date();
+        saveToStorage();
+        return true;
+    };
 
     const startClassGrouping = (classId: string) => {
         const classData = classes.value.find((c) => c.id === classId);
@@ -447,45 +457,43 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
-    const exportAllAsCSV = () => {
+    const exportDashboardSummary = () => {
         if (!process.client) return;
+        const { exportToExcel } = useExcelExport()
 
-        const headers = ['班級名稱', '學生座號', '學生姓名', '總分'];
-        
-        const escapeCSV = (field: any): string => {
-            const str = String(field ?? '');
-            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                return `"${str.replace(/"/g, '""')}"`;
-            }
-            return str;
-        };
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0];
 
-        const csvRows = [headers.join(',')];
-
-        classes.value.forEach(cls => {
-            if (cls.students && cls.students.length > 0) {
-                cls.students.forEach(student => {
-                    const row = [
-                        escapeCSV(cls.name),
-                        escapeCSV(student.id),
-                        escapeCSV(student.name),
-                        escapeCSV(student.totalScore ?? 0)
-                    ];
-                    csvRows.push(row.join(','));
-                });
+        const summaryData = classes.value.map(cls => {
+            const studentCount = cls.students.length;
+            const totalScore = cls.students.reduce((sum, s) => sum + (s.totalScore ?? 0), 0);
+            const averageScore = studentCount > 0 ? (totalScore / studentCount).toFixed(2) : 0;
+            return {
+                '班級名稱': cls.name,
+                '學生人數': studentCount,
+                '班級總分': totalScore,
+                '班級平均分': averageScore,
             }
         });
 
-        const csvContent = '\uFEFF' + csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `全體學生分數總表-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        if (summaryData.length === 0) {
+            console.warn("沒有班級資料可匯出。");
+            return;
+        }
+
+        const sheetData = {
+            sheetName: '班級總覽報告',
+            data: summaryData,
+            columnWidths: [
+                { wch: 25 }, // 班級名稱
+                { wch: 12 }, // 學生人數
+                { wch: 12 }, // 班級總分
+                { wch: 15 }, // 班級平均分
+            ],
+        };
+
+        const fileName = `班級總覽報告-${dateString}`;
+        exportToExcel([sheetData], fileName);
     };
 
     // 初始化，這個動作應該由 app.vue 或 plugin 觸發
@@ -514,9 +522,8 @@ export const useClassesStore = defineStore('classes', () => {
         addStudentToClass,
         updateStudent,
         removeStudentFromClass,
-        addHomework,
-        updateHomeworkStatus,
-        updateHomeworkTitle, // 新增
+        updateClassHomeworkSettings,
+        updateStudentHomeworkStatus, // 新增
         startClassGrouping,
         endClassGrouping,
         updateGroups,
@@ -532,6 +539,6 @@ export const useClassesStore = defineStore('classes', () => {
         loadFromStorage,
         exportAllClasses,
         importAllClasses,
-        exportAllAsCSV,
+        exportDashboardSummary,
     }
 })

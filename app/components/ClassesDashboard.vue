@@ -46,9 +46,9 @@
                                 class="dropdown-content menu p-2 shadow bg-base-200 rounded-box w-52"
                             >
                                 <li>
-                                    <a @click="exportCSV">
+                                    <a @click="exportSummary">
                                         <LucideIcon name="FileSpreadsheet" class="w-4 h-4" />
-                                        匯出 Excel (CSV)
+                                        匯出總覽報告 (Excel)
                                     </a>
                                 </li>
                                 <li>
@@ -482,8 +482,8 @@ const exportJSONBackup = () => {
     }
 }
 
-const exportCSV = () => {
-    classesStore.exportAllAsCSV()
+const exportSummary = () => {
+    classesStore.exportDashboardSummary()
 }
 
 const importData = () => {

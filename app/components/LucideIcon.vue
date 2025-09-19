@@ -72,6 +72,9 @@ import {
     Tablet,
     Undo2,
     Award,
+    BookMarked,
+    ClipboardEdit,
+    ClipboardList,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -148,6 +151,9 @@ const iconMap = {
     Tablet: Tablet,
     Undo2: Undo2,
     Award: Award,
+    BookMarked: BookMarked,
+    ClipboardEdit: ClipboardEdit,
+    ClipboardList: ClipboardList,
 }
 
 const iconComponent = computed(() => {

@@ -25,6 +25,10 @@
                                 <LucideIcon name="Shuffle" class="w-4 h-4 mr-2" />
                                 一鍵隨機分組
                             </button>
+                            <button @click="resetAllGroups" class="btn btn-ghost">
+                                <LucideIcon name="Undo2" class="w-4 h-4 mr-2" />
+                                一鍵還原
+                            </button>
                         </div>
                         <!-- 開始分組 -->
                         <button
@@ -433,6 +437,7 @@
 import { ref, computed, watchEffect } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { ClassInfo, Student, Group } from '~/types'
+import { useExcelExport } from '~/composables/useExcelExport'
 
 // Helper function for debouncing
 function debounce<T extends (...args: any[]) => any>(
@@ -456,6 +461,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const classesStore = useClassesStore()
+const { exportToExcel } = useExcelExport()
 
 // --- Use Store as the Single Source of Truth ---
 const { groupingBaseScores, groupingSessionScores, groupingActivityNames } =
@@ -561,6 +567,15 @@ const randomAssignGroups = () => {
         shuffledStudents.forEach((student, index) => {
             const groupIndex = index % groupCount.value
             addStudentToGroup(student.id, localGroups.value[groupIndex].id, false)
+        })
+        persistGroups()
+    }
+}
+
+const resetAllGroups = () => {
+    if (confirm('這會將所有學生移回未分組狀態，但會保留現有組別。確定嗎？')) {
+        localGroups.value.forEach((group) => {
+            group.members = []
         })
         persistGroups()
     }
@@ -674,62 +689,59 @@ const closeScoreboardModal = () => {
 
 const exportActivityReport = () => {
     const today = new Date()
-    const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
-    const fileName = `${activityName.value || '分組活動報告'}-${props.classInfo.name}-${dateStr}.csv`
+    const dateString = today.toISOString().split('T')[0]
 
-    const header = ['組別名稱', '組別得分', '組員座號', '組員姓名', '組員總分']
-    const rows = []
+    // --- Sheet 1: Group Summary ---
+    const groupSummaryData = sortedGroups.value.map((group, index) => ({
+        排行: index + 1,
+        組別: group.name,
+        總分: group.totalScore,
+        人數: getGroupMembers(group).length,
+    }))
 
-    // Add metadata to the top of the CSV
-    rows.push([`活動名稱: ${activityName.value || '未命名'}`])
-    rows.push([`班級: ${props.classInfo.name}`])
-    rows.push([`匯出日期: ${today.toLocaleString('zh-TW')}`])
-    rows.push([]) // Add a blank row for spacing
-    rows.push(header)
-
-    localGroups.value.forEach((group) => {
-        const members = getGroupMembers(group)
-        if (members.length > 0) {
-            members.forEach((member) => {
-                const student = props.classInfo.students.find((s) => s.id === member.id)
-                if (student) {
-                    rows.push([
-                        group.name,
-                        group.totalScore,
-                        student.id,
-                        student.name,
-                        student.totalScore,
-                    ])
-                }
-            })
-        } else {
-            rows.push([group.name, group.totalScore, 'N/A', '本組無成員', 'N/A'])
-        }
-    })
-
-    // Function to escape CSV fields
-    const escapeCsvField = (field: any): string => {
-        const str = String(field)
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-            return `"${str.replace(/"/g, '""')}"`
-        }
-        return str
+    const groupSheet = {
+        sheetName: '分組摘要',
+        header: [
+            [`活動名稱:`, activityName.value || '未命名'],
+            [`班級:`, props.classInfo.name],
+            [`匯出日期:`, today.toLocaleString('zh-TW')],
+            [],
+        ],
+        data: groupSummaryData,
+        columnWidths: [{ wch: 8 }, { wch: 25 }, { wch: 10 }, { wch: 10 }],
     }
 
-    const csvContent = rows.map((row) => row.map(escapeCsvField).join(',')).join('\n')
+    // --- Sheet 2: Student Details ---
+    const studentDetailsData = localGroups.value.flatMap((group) =>
+        getGroupMembers(group).map((member) => {
+            const baseScore = baseScoresForClass.value[member.id] ?? 0
+            const sessionScore = sessionScoresForClass.value[member.id] ?? 0
+            return {
+                組別: group.name,
+                座號: member.id,
+                姓名: member.name,
+                出席情況: member.isPresent ? '出席' : '缺席',
+                本次活動得分: sessionScore,
+                活動後總分: baseScore + sessionScore,
+            }
+        }),
+    )
 
-    // Create a Blob and trigger download
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob)
-        link.setAttribute('href', url)
-        link.setAttribute('download', fileName)
-        link.style.visibility = 'hidden'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+    const studentSheet = {
+        sheetName: '學生得分明細',
+        data: studentDetailsData,
+        columnWidths: [
+            { wch: 25 },
+            { wch: 10 },
+            { wch: 15 },
+            { wch: 12 },
+            { wch: 15 },
+            { wch: 15 },
+        ],
     }
+
+    const fileName = `${dateString}-${activityName.value || '分組活動報告'}-${props.classInfo.name}`
+    exportToExcel([groupSheet, studentSheet], fileName)
 }
 
 // Sync local state with the store/props state

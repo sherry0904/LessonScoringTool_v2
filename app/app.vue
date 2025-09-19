@@ -271,6 +271,7 @@ const router = useRouter()
 const tabRoute = (id: string) => {
     const map: Record<string, string> = {
         dashboard: '/',
+        homework: '/homework',
         students: '/students',
         groups: '/groups',
         settings: '/settings',
@@ -299,7 +300,9 @@ watchEffect(() => {
     if (classesStore.classes.length === 0) {
         classesStore.selectClass(null) // 確保沒有班級被選中
         // 根據非班級頁面的路徑設定分頁
-        if (path.startsWith('/students')) {
+        if (path.startsWith('/homework')) {
+            ui.setCurrentTab('homework')
+        } else if (path.startsWith('/students')) {
             ui.setCurrentTab('students')
         } else if (path.startsWith('/groups')) {
             ui.setCurrentTab('groups')
@@ -321,7 +324,9 @@ watchEffect(() => {
 
     // 如果不是班級頁面，確保沒有班級被選中並設定主分頁
     classesStore.selectClass(null)
-    if (path.startsWith('/students')) {
+    if (path.startsWith('/homework')) {
+        ui.setCurrentTab('homework')
+    } else if (path.startsWith('/students')) {
         ui.setCurrentTab('students')
     } else if (path.startsWith('/groups')) {
         ui.setCurrentTab('groups')
