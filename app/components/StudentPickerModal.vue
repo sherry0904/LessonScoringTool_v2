@@ -77,13 +77,22 @@ const classesStore = useClassesStore()
 
 const students = computed<Student[]>(() => classesStore.currentClass?.students || [])
 
+function fisherYatesShuffle(array: string[]): string[] {
+    const arr = array.slice()
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    return arr
+}
+
 const shuffledNames = computed(() => {
     if (students.value.length === 0) return []
 
     // Create a long list for a better scrolling effect
     let list: string[] = []
     for (let i = 0; i < 5; i++) {
-        list = list.concat(students.value.map((s) => s.name).sort(() => Math.random() - 0.5))
+        list = list.concat(fisherYatesShuffle(students.value.map((s) => s.name)))
     }
 
     // Ensure the winner is at a predictable position near the end for the animation
