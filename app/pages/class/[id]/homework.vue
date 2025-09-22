@@ -98,7 +98,7 @@ const visibleHomeworks = computed(() => {
 })
 
 const getHomeworkSettings = (homeworkId: string) => {
-    return classInfo.value?.homeworkSettings.find((s) => s.homeworkId === homeworkId)
+    return classInfo.value?.homeworkSettings?.find((s) => s.homeworkId === homeworkId)
 }
 
 const getHomeworkStatus = (homeworkId: string) => {

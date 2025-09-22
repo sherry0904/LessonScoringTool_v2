@@ -75,6 +75,7 @@ import {
     BookMarked,
     ClipboardEdit,
     ClipboardList,
+    ArchiveRestore,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -154,6 +155,7 @@ const iconMap = {
     BookMarked: BookMarked,
     ClipboardEdit: ClipboardEdit,
     ClipboardList: ClipboardList,
+    ArchiveRestore: ArchiveRestore,
 }
 
 const iconComponent = computed(() => {
