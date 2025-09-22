@@ -1,13 +1,22 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ToastType, ToastMessage, ViewModeType, UserPreferences, Tab, Student } from '~/types/class'
+import type {
+    ToastType,
+    ToastMessage,
+    ViewModeType,
+    UserPreferences,
+    Tab,
+    Student,
+} from '~/types/class'
 
 // Helper function to apply theme to the DOM
 const applyThemeToDOM = (theme: 'light' | 'dark' | 'auto') => {
     if (process.client) {
         let actualTheme = theme
         if (theme === 'auto') {
-            actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+            actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
         }
         document.documentElement.setAttribute('data-theme', actualTheme)
     }
@@ -49,6 +58,7 @@ export const useUIStore = defineStore('ui', () => {
     const isPickerVisible = ref(false)
     const pickerWinner = ref<Student | null>(null)
     const isPicking = ref(false)
+    const pickerDrawnStudents = ref<Student[]>([])
 
     // Computed
     const isDarkMode = computed(() => {
@@ -122,7 +132,7 @@ export const useUIStore = defineStore('ui', () => {
             }
         }
     }
-    
+
     const toggleTheme = () => {
         const currentTheme = userPreferences.value.theme
         const newTheme = currentTheme === 'light' ? 'dark' : 'light'
@@ -264,6 +274,15 @@ export const useUIStore = defineStore('ui', () => {
     }
 
     // --- Picker Actions ---
+    // 清空已抽過名單
+    const clearDrawnStudents = () => {
+        pickerDrawnStudents.value = []
+    }
+    // 移除已抽過學生
+    const returnStudentToPool = (studentId: string) => {
+        const idx = pickerDrawnStudents.value.findIndex((s) => s.id === studentId)
+        if (idx !== -1) pickerDrawnStudents.value.splice(idx, 1)
+    }
     const openPicker = () => {
         isPickerVisible.value = true
         pickerWinner.value = null
@@ -283,6 +302,10 @@ export const useUIStore = defineStore('ui', () => {
             const winner = students[Math.floor(Math.random() * students.length)]
             pickerWinner.value = winner
             isPicking.value = false
+            // 加入已抽過名單，避免重複
+            if (winner && !pickerDrawnStudents.value.find((s) => s.id === winner.id)) {
+                pickerDrawnStudents.value.push(winner)
+            }
         }, 1500) // 1.5秒動畫
     }
 
@@ -316,7 +339,7 @@ export const useUIStore = defineStore('ui', () => {
                     console.warn('Failed to parse user preferences:', error)
                 }
             }
-            
+
             // Apply initial theme
             applyThemeToDOM(userPreferences.value.theme)
 
@@ -360,6 +383,8 @@ export const useUIStore = defineStore('ui', () => {
         isPickerVisible,
         pickerWinner,
         isPicking,
+        pickerDrawnStudents,
+        clearDrawnStudents,
 
         // Computed
         isDarkMode,
@@ -412,6 +437,7 @@ export const useUIStore = defineStore('ui', () => {
         openPicker,
         closePicker,
         startPicking,
+        returnStudentToPool,
 
         // Lifecycle
         initialize,

@@ -299,6 +299,7 @@ watchEffect(() => {
     // 如果班級列表為空，則無法根據路由選擇班級
     if (classesStore.classes.length === 0) {
         classesStore.selectClass(null) // 確保沒有班級被選中
+        ui.clearDrawnStudents() // 清除抽籤狀態
         // 根據非班級頁面的路徑設定分頁
         if (path.startsWith('/homework')) {
             ui.setCurrentTab('homework')
@@ -324,6 +325,8 @@ watchEffect(() => {
 
     // 如果不是班級頁面，確保沒有班級被選中並設定主分頁
     classesStore.selectClass(null)
+    ui.clearDrawnStudents() // 清除抽籤狀態
+
     if (path.startsWith('/homework')) {
         ui.setCurrentTab('homework')
     } else if (path.startsWith('/students')) {

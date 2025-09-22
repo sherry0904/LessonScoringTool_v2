@@ -1,0 +1,50 @@
+.animate-score-bounce-green {
+    animation: scoreBounceGreen 0.5s;
+}
+.animate-score-bounce-red {
+    animation: scoreBounceRed 0.5s;
+}
+@keyframes scoreBounceGreen {
+    0% {
+        background: #e6fffa;
+        color: #059669;
+        transform: scale(1);
+    }
+    30% {
+        background: #bbf7d0;
+        color: #059669;
+        transform: scale(1.25);
+    }
+    60% {
+        background: #bbf7d0;
+        color: #059669;
+        transform: scale(0.95);
+    }
+    100% {
+        background: transparent;
+        color: inherit;
+        transform: scale(1);
+    }
+}
+@keyframes scoreBounceRed {
+    0% {
+        background: #fff1f2;
+        color: #e11d48;
+        transform: scale(1);
+    }
+    30% {
+        background: #fecdd3;
+        color: #e11d48;
+        transform: scale(1.25);
+    }
+    60% {
+        background: #fecdd3;
+        color: #e11d48;
+        transform: scale(0.95);
+    }
+    100% {
+        background: transparent;
+        color: inherit;
+        transform: scale(1);
+    }
+}
