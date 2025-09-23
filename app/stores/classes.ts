@@ -10,8 +10,8 @@ export const useClassesStore = defineStore('classes', () => {
     const isLoaded = ref(false) // 新增狀態旗標
 
     // 分組活動狀態（每個 classId 一份）
-    const groupingBaseScores = ref<Record<string, Record<string, number>>>({}) 
-    const groupingSessionScores = ref<Record<string, Record<string, number>>>({}) 
+    const groupingBaseScores = ref<Record<string, Record<string, number>>>({})
+    const groupingSessionScores = ref<Record<string, Record<string, number>>>({})
     const groupingActivityNames = ref<Record<string, string>>({})
 
     // Computed
@@ -23,33 +23,33 @@ export const useClassesStore = defineStore('classes', () => {
 
     // Actions
     const setGroupingActivityName = (classId: string, name: string) => {
-        groupingActivityNames.value[classId] = name;
-        saveToStorage();
-    };
+        groupingActivityNames.value[classId] = name
+        saveToStorage()
+    }
 
     const setGroupingBaseScores = (classId: string, scores: Record<string, number>) => {
-        groupingBaseScores.value[classId] = scores;
-        saveToStorage();
-    };
+        groupingBaseScores.value[classId] = scores
+        saveToStorage()
+    }
 
     const getGroupingBaseScores = (classId: string): Record<string, number> | undefined => {
-        return groupingBaseScores.value[classId];
-    };
+        return groupingBaseScores.value[classId]
+    }
 
     const setGroupingSessionScores = (classId: string, scores: Record<string, number>) => {
-        groupingSessionScores.value[classId] = scores;
-        saveToStorage();
-    };
+        groupingSessionScores.value[classId] = scores
+        saveToStorage()
+    }
 
     const getGroupingSessionScores = (classId: string): Record<string, number> | undefined => {
-        return groupingSessionScores.value[classId];
-    };
+        return groupingSessionScores.value[classId]
+    }
 
     const clearGroupingScores = (classId: string) => {
-        delete groupingBaseScores.value[classId];
-        delete groupingSessionScores.value[classId];
-        saveToStorage();
-    };
+        delete groupingBaseScores.value[classId]
+        delete groupingSessionScores.value[classId]
+        saveToStorage()
+    }
 
     const updateClass = (classId: string, updates: Partial<ClassInfo>) => {
         const classData = classes.value.find((c) => c.id === classId)
@@ -169,32 +169,35 @@ export const useClassesStore = defineStore('classes', () => {
         homeworkId: string,
         settings: { releaseDate?: string; dueDate?: string },
     ) => {
-        const classData = classes.value.find((c) => c.id === classId);
-        if (!classData) return false;
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return false
 
         const settingIndex = classData.homeworkSettings.findIndex(
             (s) => s.homeworkId === homeworkId,
-        );
+        )
 
         if (settingIndex > -1) {
             // 更新現有設定
             classData.homeworkSettings[settingIndex] = {
                 ...classData.homeworkSettings[settingIndex],
                 ...settings,
-            };
+            }
         } else {
             // 新增設定時，初始化所有學生的狀態為 'pending'
-            const studentStatus = classData.students.reduce((acc, student) => {
-                acc[student.id] = 'pending';
-                return acc;
-            }, {} as Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>);
+            const studentStatus = classData.students.reduce(
+                (acc, student) => {
+                    acc[student.id] = 'pending'
+                    return acc
+                },
+                {} as Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>,
+            )
 
-            classData.homeworkSettings.push({ homeworkId, ...settings, studentStatus });
+            classData.homeworkSettings.push({ homeworkId, ...settings, studentStatus })
         }
-        classData.updatedAt = new Date();
-        saveToStorage();
-        return true;
-    };
+        classData.updatedAt = new Date()
+        saveToStorage()
+        return true
+    }
 
     const updateStudentHomeworkStatus = (
         classId: string,
@@ -202,50 +205,52 @@ export const useClassesStore = defineStore('classes', () => {
         studentId: string,
         status: 'pending' | 'submitted' | 'needs_correction' | 'completed',
     ) => {
-        const classData = classes.value.find((c) => c.id === classId);
-        if (!classData) return false;
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return false
+        if (!Array.isArray(classData.homeworkSettings)) classData.homeworkSettings = []
 
-        let homeworkSetting = classData.homeworkSettings.find(
-            (s) => s.homeworkId === homeworkId,
-        );
+        let homeworkSetting = classData.homeworkSettings.find((s) => s.homeworkId === homeworkId)
 
         // 如果設定不存在，則自動建立
         if (!homeworkSetting) {
-            const studentStatus = classData.students.reduce((acc, student) => {
-                acc[student.id] = 'pending';
-                return acc;
-            }, {} as Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>);
-            
-            const newSetting = { homeworkId, studentStatus };
-            classData.homeworkSettings.push(newSetting);
-            homeworkSetting = newSetting;
+            const studentStatus = classData.students.reduce(
+                (acc, student) => {
+                    acc[student.id] = 'pending'
+                    return acc
+                },
+                {} as Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>,
+            )
+            const newSetting = { homeworkId, studentStatus }
+            classData.homeworkSettings.push(newSetting)
+            homeworkSetting = newSetting
         }
 
-        homeworkSetting.studentStatus[studentId] = status;
-        classData.updatedAt = new Date();
-        saveToStorage();
-        return true;
-    };
+        if (!homeworkSetting.studentStatus) homeworkSetting.studentStatus = {}
+        homeworkSetting.studentStatus[studentId] = status
+        classData.updatedAt = new Date()
+        saveToStorage()
+        return true
+    }
 
     const startClassGrouping = (classId: string) => {
-        const classData = classes.value.find((c) => c.id === classId);
+        const classData = classes.value.find((c) => c.id === classId)
         if (classData) {
             // 1. 快照學生的基底分數
-            const baseScores: Record<string, number> = {};
+            const baseScores: Record<string, number> = {}
             for (const student of classData.students) {
-                baseScores[student.id] = student.totalScore;
+                baseScores[student.id] = student.totalScore
             }
-            groupingBaseScores.value[classId] = baseScores;
+            groupingBaseScores.value[classId] = baseScores
 
             // 2. 重設本次活動的加分紀錄
-            groupingSessionScores.value[classId] = {};
+            groupingSessionScores.value[classId] = {}
 
             // 3. 啟動分組模式
-            classData.groupingActive = true;
-            classData.updatedAt = new Date();
-            saveToStorage();
+            classData.groupingActive = true
+            classData.updatedAt = new Date()
+            saveToStorage()
         }
-    };
+    }
 
     const endClassGrouping = (classId: string) => {
         const classData = classes.value.find((c) => c.id === classId)
@@ -266,29 +271,29 @@ export const useClassesStore = defineStore('classes', () => {
     }
 
     const addScoreToGroup = (classId: string, groupId: string, score: number) => {
-        const classData = classes.value.find((c) => c.id === classId);
-        if (!classData) return;
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return
 
-        const group = classData.groups.find((g) => g.id === groupId);
-        if (!group) return;
+        const group = classData.groups.find((g) => g.id === groupId)
+        if (!group) return
 
         // 初始化 session scores 物件 (如果不存在)
         if (!groupingSessionScores.value[classId]) {
-            groupingSessionScores.value[classId] = {};
+            groupingSessionScores.value[classId] = {}
         }
 
         // 1. 組別總分直接加分（獨立計算）
-        group.totalScore += score;
+        group.totalScore += score
 
         // 2. 只為出席的組員加分
         group.members.forEach((member) => {
-            const student = classData.students.find((s) => s.id === member.id);
+            const student = classData.students.find((s) => s.id === member.id)
             if (student && student.isPresent) {
                 // 更新 session 分數
                 if (!groupingSessionScores.value[classId][student.id]) {
-                    groupingSessionScores.value[classId][student.id] = 0;
+                    groupingSessionScores.value[classId][student.id] = 0
                 }
-                groupingSessionScores.value[classId][student.id] += score;
+                groupingSessionScores.value[classId][student.id] += score
 
                 // 更新學生個人總分 (這會將小組分數計入永久紀錄)
                 const newScore: StudentScore = {
@@ -298,21 +303,26 @@ export const useClassesStore = defineStore('classes', () => {
                     categoryName: '小組活動',
                     reason: `${group.name} 小組評分`,
                     timestamp: new Date(),
-                };
-                student.scores.push(newScore);
-                _updateStudentStats(student);
+                }
+                student.scores.push(newScore)
+                _updateStudentStats(student)
             }
-        });
+        })
 
-        saveToStorage();
-    };
+        saveToStorage()
+    }
 
-    const addScoreToStudent = (classId: string, studentId: string, score: number, reason: string) => {
-        const classData = classes.value.find((c) => c.id === classId);
-        if (!classData) return;
+    const addScoreToStudent = (
+        classId: string,
+        studentId: string,
+        score: number,
+        reason: string,
+    ) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return
 
-        const student = classData.students.find((s) => s.id === studentId);
-        if (!student) return;
+        const student = classData.students.find((s) => s.id === studentId)
+        if (!student) return
 
         const newScore: StudentScore = {
             id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -321,12 +331,12 @@ export const useClassesStore = defineStore('classes', () => {
             categoryName: '快速評分',
             reason: reason,
             timestamp: new Date(),
-        };
+        }
 
-        student.scores.push(newScore);
-        _updateStudentStats(student);
-        saveToStorage();
-    };
+        student.scores.push(newScore)
+        _updateStudentStats(student)
+        saveToStorage()
+    }
 
     // Private helpers
     const _updateStudentStats = (student: Student) => {
@@ -380,14 +390,14 @@ export const useClassesStore = defineStore('classes', () => {
                         createdAt: new Date(),
                         isPresent: true,
                     }
-                } 
+                }
                 return null
             })
             .filter(Boolean) as Student[]
     }
 
     const saveToStorage = () => {
-        if (!process.client) return;
+        if (!process.client) return
         try {
             const data = {
                 classes: classes.value,
@@ -396,31 +406,31 @@ export const useClassesStore = defineStore('classes', () => {
                 groupingSessionScores: groupingSessionScores.value,
                 groupingActivityNames: groupingActivityNames.value,
                 lastSaved: new Date().toISOString(),
-            };
-            localStorage.setItem('classes-data', JSON.stringify(data));
+            }
+            localStorage.setItem('classes-data', JSON.stringify(data))
         } catch (error) {
-            console.error('儲存班級資料失敗:', error);
+            console.error('儲存班級資料失敗:', error)
         }
-    };
+    }
 
     const loadFromStorage = () => {
-        if (!process.client) return;
+        if (!process.client) return
         try {
-            const saved = localStorage.getItem('classes-data');
+            const saved = localStorage.getItem('classes-data')
             if (saved) {
-                const data = JSON.parse(saved);
-                classes.value = data.classes || [];
-                currentClassId.value = data.currentClassId || null;
-                groupingBaseScores.value = data.groupingBaseScores || {};
-                groupingSessionScores.value = data.groupingSessionScores || {};
-                groupingActivityNames.value = data.groupingActivityNames || {};
+                const data = JSON.parse(saved)
+                classes.value = data.classes || []
+                currentClassId.value = data.currentClassId || null
+                groupingBaseScores.value = data.groupingBaseScores || {}
+                groupingSessionScores.value = data.groupingSessionScores || {}
+                groupingActivityNames.value = data.groupingActivityNames || {}
             }
         } catch (error) {
-            console.error('載入班級資料失敗:', error);
+            console.error('載入班級資料失敗:', error)
         } finally {
-            isLoaded.value = true; // 確保無論成功或失敗都標記為已載入
+            isLoaded.value = true // 確保無論成功或失敗都標記為已載入
         }
-    };
+    }
 
     const exportAllClasses = () => {
         const data = {
@@ -458,27 +468,27 @@ export const useClassesStore = defineStore('classes', () => {
     }
 
     const exportDashboardSummary = () => {
-        if (!process.client) return;
+        if (!process.client) return
         const { exportToExcel } = useExcelExport()
 
-        const today = new Date();
-        const dateString = today.toISOString().split('T')[0];
+        const today = new Date()
+        const dateString = today.toISOString().split('T')[0]
 
-        const summaryData = classes.value.map(cls => {
-            const studentCount = cls.students.length;
-            const totalScore = cls.students.reduce((sum, s) => sum + (s.totalScore ?? 0), 0);
-            const averageScore = studentCount > 0 ? (totalScore / studentCount).toFixed(2) : 0;
+        const summaryData = classes.value.map((cls) => {
+            const studentCount = cls.students.length
+            const totalScore = cls.students.reduce((sum, s) => sum + (s.totalScore ?? 0), 0)
+            const averageScore = studentCount > 0 ? (totalScore / studentCount).toFixed(2) : 0
             return {
-                '班級名稱': cls.name,
-                '學生人數': studentCount,
-                '班級總分': totalScore,
-                '班級平均分': averageScore,
+                班級名稱: cls.name,
+                學生人數: studentCount,
+                班級總分: totalScore,
+                班級平均分: averageScore,
             }
-        });
+        })
 
         if (summaryData.length === 0) {
-            console.warn("沒有班級資料可匯出。");
-            return;
+            console.warn('沒有班級資料可匯出。')
+            return
         }
 
         const sheetData = {
@@ -490,11 +500,11 @@ export const useClassesStore = defineStore('classes', () => {
                 { wch: 12 }, // 班級總分
                 { wch: 15 }, // 班級平均分
             ],
-        };
+        }
 
-        const fileName = `班級總覽報告-${dateString}`;
-        exportToExcel([sheetData], fileName);
-    };
+        const fileName = `班級總覽報告-${dateString}`
+        exportToExcel([sheetData], fileName)
+    }
 
     // 初始化，這個動作應該由 app.vue 或 plugin 觸發
     // onMounted(() => {

@@ -2,14 +2,25 @@
     <div v-if="classInfo && globalHomeworkInfo" class="p-4 sm:p-6 space-y-6">
         <!-- 作業標題 -->
         <div class="flex items-center gap-2 mb-2">
-            <NuxtLink :to="`/class/${classId}/homework`" class="btn btn-ghost btn-sm btn-circle">
-                <LucideIcon name="ArrowLeft" class="w-5 h-5" />
-            </NuxtLink>
             <h2 class="text-2xl font-bold">{{ globalHomeworkInfo.name }}</h2>
         </div>
 
+        <!-- 作業備註 -->
+        <div
+            v-if="globalHomeworkInfo.notes"
+            class="alert bg-base-100 border border-base-200 shadow-sm flex items-start gap-3"
+        >
+            <LucideIcon name="Info" class="w-5 h-5 text-primary mt-1" />
+            <div>
+                <p class="text-sm font-semibold text-base-content/80 mb-1">作業備註</p>
+                <p class="text-sm leading-relaxed text-base-content/70 whitespace-pre-line">
+                    {{ globalHomeworkInfo.notes }}
+                </p>
+            </div>
+        </div>
+
         <!-- 狀態統計 -->
-        <div class="stats stats-horizontal shadow-md overflow-x-auto">
+        <div class="stats stats-vertical sm:stats-horizontal bg-base-100 shadow-md">
             <div class="stat" v-for="status in statusOrder" :key="status">
                 <div class="stat-title">{{ statusText[status].text }}</div>
                 <div class="stat-value" :class="[statusTextColors[status]]">
@@ -70,35 +81,42 @@
             <div
                 v-for="student in classInfo.students"
                 :key="student.id"
-                class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative overflow-hidden"
                 :class="{ 'ring-2 ring-primary': selectedStudents.includes(student.id) }"
                 @click="toggleStudentSelection(student.id)"
             >
-                <div class="card-body p-4">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="font-semibold text-base">{{ student.name }}</h3>
-                            <p class="text-sm text-base-content/70">座號 {{ student.id }}</p>
-                        </div>
-                        <div
-                            class="badge badge-md font-bold"
-                            :class="statusBadgeClasses[getStudentStatus(student.id)]"
-                        >
-                            {{ statusText[getStudentStatus(student.id)].text }}
-                        </div>
+                <!-- 狀態 badge 浮在右上角（使用 DaisyUI badge） -->
+                <div class="absolute top-3 right-3 z-20">
+                    <span
+                        class="badge badge-lg gap-2 px-4 py-3 font-semibold shadow"
+                        :class="statusBadgeClasses[getStudentStatus(student.id)]"
+                    >
+                        <LucideIcon
+                            :name="statusText[getStudentStatus(student.id)].icon"
+                            class="w-4 h-4"
+                        />
+                        {{ statusText[getStudentStatus(student.id)].text }}
+                    </span>
+                </div>
+                <div class="card-body p-4 space-y-3">
+                    <div class="flex flex-col gap-0.5 mb-1">
+                        <h3 class="font-semibold text-base truncate">{{ student.name }}</h3>
+                        <p class="text-sm text-base-content/70">座號 {{ student.id }}</p>
                     </div>
-                    <div class="grid grid-cols-2 gap-1">
+                    <!-- 操作按鈕：兩列網格，按鈕寬度填滿格子，文字不換行 -->
+                    <div class="grid grid-cols-2 gap-2 mt-2">
                         <button
                             v-for="status in statusOrder"
                             :key="status"
                             @click.stop="updateStatus(student.id, status)"
-                            class="btn btn-xs"
+                            class="btn btn-sm w-full rounded-lg font-normal flex items-center justify-center gap-1 transition-all duration-150 whitespace-nowrap"
                             :class="{
-                                'btn-primary': getStudentStatus(student.id) === status,
-                                'btn-ghost': getStudentStatus(student.id) !== status,
+                                'btn-primary shadow': getStudentStatus(student.id) === status,
+                                'btn-outline': getStudentStatus(student.id) !== status,
                             }"
                         >
-                            {{ statusText[status].text }}
+                            <LucideIcon :name="statusText[status].icon" class="w-4 h-4" />
+                            <span class="text-sm">{{ statusText[status].text }}</span>
                         </button>
                     </div>
                 </div>
@@ -144,12 +162,17 @@ const { exportToExcel } = useExcelExport()
 const classId = computed(() => route.params.id as string)
 const hwid = computed(() => route.params.hwid as string)
 
-const classInfo = computed(() => classesStore.classes.find((c) => c.id === classId.value))
-const globalHomeworkInfo = computed(() =>
-    homeworkStore.homeworkList.find((h) => h.id === hwid.value),
-)
+const classInfo = computed(() => {
+    if (!classesStore.classes || !Array.isArray(classesStore.classes)) return undefined
+    return classesStore.classes.find((c) => c.id === classId.value)
+})
+const globalHomeworkInfo = computed(() => {
+    if (!homeworkStore.homeworkList || !Array.isArray(homeworkStore.homeworkList)) return undefined
+    return homeworkStore.homeworkList.find((h) => h.id === hwid.value)
+})
 const homeworkSetting = computed(() => {
-    return classInfo.value?.homeworkSettings.find((s) => s.homeworkId === hwid.value)
+    if (!classInfo.value || !Array.isArray(classInfo.value.homeworkSettings)) return undefined
+    return classInfo.value.homeworkSettings.find((s) => s.homeworkId === hwid.value)
 })
 
 // --- Local State for UI ---
