@@ -112,19 +112,50 @@
                         </th>
                         <th>備註</th>
                         <th>狀態</th>
+                        <th>班級概況</th>
                         <th class="text-right">操作</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="hw in filteredHomeworkList" :key="hw.id">
-                        <td>
-                            <div class="font-bold">{{ hw.name }}</div>
+                    <tr v-for="hw in filteredHomeworkList" :key="hw.id" class="align-top">
+                        <td class="align-top">
+                            <div class="font-semibold text-base-content">{{ hw.name }}</div>
+                            <div
+                                v-if="(hw.hiddenFromClassIds?.length ?? 0) > 0"
+                                class="text-xs text-base-content/60 mt-1"
+                            >
+                                已對 {{ hw.hiddenFromClassIds?.length }} 個班級隱藏
+                            </div>
                         </td>
-                        <td>{{ new Date(hw.createdAt).toLocaleDateString() }}</td>
-                        <td>{{ hw.notes }}</td>
-                        <td>
+                        <td class="align-top whitespace-nowrap">
+                            {{ new Date(hw.createdAt).toLocaleDateString() }}
+                        </td>
+                        <td class="align-top max-w-xs">
+                            <p class="text-sm text-base-content/70 whitespace-pre-line">
+                                {{ hw.notes || '—' }}
+                            </p>
+                        </td>
+                        <td class="align-top">
                             <span v-if="hw.isArchived" class="badge badge-ghost">已封存</span>
                             <span v-else class="badge badge-success">啟用中</span>
+                        </td>
+                        <td class="align-top">
+                            <div
+                                v-if="(homeworkClassSummaries[hw.id] || []).length > 0"
+                                class="flex items-center gap-2"
+                            >
+                                <button
+                                    class="btn btn-xs btn-outline gap-1"
+                                    @click="openSummaryModal(hw.id)"
+                                >
+                                    <LucideIcon name="BarChart3" class="w-3 h-3" />
+                                    <span>概況</span>
+                                </button>
+                                <span class="text-xs text-base-content/60">
+                                    {{ homeworkClassSummaries[hw.id].length }} 班
+                                </span>
+                            </div>
+                            <span v-else class="text-xs text-base-content/60">尚未指派</span>
                         </td>
                         <td class="text-right">
                             <div class="flex justify-end space-x-2">
@@ -159,7 +190,7 @@
                         </td>
                     </tr>
                     <tr v-if="filteredHomeworkList.length === 0">
-                        <td colspan="5" class="text-center py-8">
+                        <td colspan="6" class="text-center py-8">
                             <p class="text-base-content/60">
                                 {{ showArchived ? '沒有已封存的作業' : '尚未建立任何作業範本' }}
                             </p>
@@ -168,6 +199,92 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- 班級概況 Modal -->
+        <dialog ref="summaryModalRef" class="modal" @close="handleSummaryModalClose">
+            <div class="modal-box max-w-3xl bg-base-100">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold">
+                            班級概況
+                            <span v-if="summaryModalHomework" class="text-base-content/70 text-sm font-normal">
+                                - {{ summaryModalHomework.name }}
+                            </span>
+                        </h3>
+                        <p class="text-xs text-base-content/60 mt-1">
+                            顯示目前已指派班級的繳交狀態統計，協助快速掌握進度。
+                        </p>
+                    </div>
+                    <button class="btn btn-sm btn-ghost" @click="closeSummaryModal">關閉</button>
+                </div>
+
+                <div v-if="summaryModalSummaries.length > 0" class="overflow-x-auto">
+                    <table class="table table-sm table-zebra">
+                        <thead>
+                            <tr>
+                                <th>班級</th>
+                                <th class="text-center">學生數</th>
+                                <th v-for="status in statusOrder" :key="status" class="text-center">
+                                    {{ statusText[status].text }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="summary in summaryModalSummaries"
+                                :key="summary.classId"
+                                class="transition-colors hover:bg-primary/10 group"
+                            >
+                                <td class="align-top">
+                                    <div class="font-semibold text-base-content group-hover:text-primary">
+                                        {{ summary.className }}
+                                    </div>
+                                    <div
+                                        v-if="!summary.hasData"
+                                        class="text-xs text-base-content/50 mt-1 group-hover:text-base-content/70"
+                                    >
+                                        尚未設定繳交紀錄
+                                    </div>
+                                </td>
+                                <td class="text-center font-medium group-hover:text-primary">
+                                    {{ summary.totalStudents }}
+                                </td>
+                                <td
+                                    v-for="status in statusOrder"
+                                    :key="status"
+                                    class="text-center font-medium transition-colors"
+                                >
+                                    <span v-if="summary.hasData" class="group-hover:text-primary">
+                                        {{ summary.counts[status] }}
+                                    </span>
+                                    <span v-else class="text-base-content/30">—</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-base-200">
+                                <th>總計</th>
+                                <th class="text-center">{{ summaryModalTotals.totalStudents }}</th>
+                                <th
+                                    v-for="status in statusOrder"
+                                    :key="status"
+                                    class="text-center"
+                                >
+                                    {{ summaryModalTotals.counts[status] }}
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div v-else class="py-10 text-center text-base-content/60">
+                    目前沒有可顯示的班級紀錄。
+                </div>
+
+                <div class="modal-action">
+                    <button class="btn btn-primary" @click="closeSummaryModal">了解</button>
+                </div>
+            </div>
+        </dialog>
 
         <!-- 新增/編輯作業 Modal -->
         <div class="modal" :class="{ 'modal-open': isModalOpen }" @click="closeHomeworkModal">
@@ -241,7 +358,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useHomeworkStore } from '~/stores/homework'
 import { useClassesStore } from '~/stores/classes'
 import type { GlobalHomework } from '~/types/homework'
@@ -296,6 +413,138 @@ const filteredHomeworkList = computed(() => {
     })
     return list
 })
+
+type Status = 'pending' | 'submitted' | 'needs_correction' | 'completed'
+
+const statusOrder: Status[] = ['pending', 'submitted', 'needs_correction', 'completed']
+const statusText: Record<Status, { text: string; short: string }> = {
+    pending: { text: '未繳交', short: '未交' },
+    submitted: { text: '已繳交', short: '已交' },
+    needs_correction: { text: '待訂正', short: '待訂' },
+    completed: { text: '已完成', short: '完成' },
+}
+const statusBadgeClasses: Record<Status, string> = {
+    pending: 'badge-outline border-error text-error',
+    submitted: 'badge-outline border-success text-success',
+    needs_correction: 'badge-outline border-warning text-warning',
+    completed: 'badge-outline border-info text-info',
+}
+
+interface HomeworkClassSummary {
+    classId: string
+    className: string
+    totalStudents: number
+    counts: Record<Status, number>
+    hasData: boolean
+}
+
+const homeworkClassSummaries = computed<Record<string, HomeworkClassSummary[]>>(() => {
+    const summaries: Record<string, HomeworkClassSummary[]> = {}
+
+    if (!Array.isArray(homeworkStore.homeworkList) || !Array.isArray(classesStore.classes)) {
+        return summaries
+    }
+
+    for (const homework of homeworkStore.homeworkList) {
+        const visibleClasses = classesStore.classes.filter((classInfo) => {
+            if (!Array.isArray(homework.hiddenFromClassIds)) return true
+            return !homework.hiddenFromClassIds.includes(classInfo.id)
+        })
+
+        summaries[homework.id] = visibleClasses.map((classInfo) => {
+            const counts: Record<Status, number> = {
+                pending: 0,
+                submitted: 0,
+                needs_correction: 0,
+                completed: 0,
+            }
+
+            const settings = classInfo.homeworkSettings?.find(
+                (setting) => setting.homeworkId === homework.id,
+            )
+
+            if (!settings || !settings.studentStatus) {
+                return {
+                    classId: classInfo.id,
+                    className: classInfo.name,
+                    totalStudents: classInfo.students.length,
+                    counts,
+                    hasData: false,
+                }
+            }
+
+            classInfo.students.forEach((student) => {
+                const rawStatus = settings.studentStatus?.[student.id] ?? 'pending'
+                const status = (statusOrder.includes(rawStatus as Status)
+                    ? (rawStatus as Status)
+                    : 'pending') as Status
+                counts[status] += 1
+            })
+
+            return {
+                classId: classInfo.id,
+                className: classInfo.name,
+                totalStudents: classInfo.students.length,
+                counts,
+                hasData: true,
+            }
+        })
+    }
+
+    return summaries
+})
+
+const summaryModalRef = ref<HTMLDialogElement | null>(null)
+const summaryModalHomeworkId = ref<string | null>(null)
+
+const summaryModalHomework = computed(() => {
+    if (!summaryModalHomeworkId.value) return null
+    return (
+        homeworkStore.homeworkList.find((hw) => hw.id === summaryModalHomeworkId.value) || null
+    )
+})
+
+const summaryModalSummaries = computed(() => {
+    if (!summaryModalHomeworkId.value) return []
+    return homeworkClassSummaries.value[summaryModalHomeworkId.value] || []
+})
+
+const summaryModalTotals = computed(() => {
+    const counts: Record<Status, number> = {
+        pending: 0,
+        submitted: 0,
+        needs_correction: 0,
+        completed: 0,
+    }
+    let totalStudents = 0
+
+    summaryModalSummaries.value.forEach((summary) => {
+        totalStudents += summary.totalStudents
+        if (!summary.hasData) return
+        statusOrder.forEach((status) => {
+            counts[status] += summary.counts[status]
+        })
+    })
+
+    return { totalStudents, counts }
+})
+
+const openSummaryModal = async (homeworkId: string) => {
+    const summaries = homeworkClassSummaries.value[homeworkId] || []
+    if (summaries.length === 0) return
+
+    summaryModalHomeworkId.value = homeworkId
+    await nextTick()
+    summaryModalRef.value?.showModal()
+}
+
+const closeSummaryModal = () => {
+    summaryModalRef.value?.close()
+}
+
+const handleSummaryModalClose = () => {
+    summaryModalHomeworkId.value = null
+}
 
 const openHomeworkModal = (homework: GlobalHomework | null = null) => {
     if (homework) {
