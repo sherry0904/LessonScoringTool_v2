@@ -10,59 +10,37 @@
                 </h1>
                 <p class="text-base-content/70 mt-2">跨班級檢視與管理所有學生</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div class="relative">
                     <input
-                        :value="ui.searchQuery"
-                        @input="ui.setSearchQuery(($event.target as HTMLInputElement).value)"
+                        :value="searchQuery"
+                        @input="updateSearch(($event.target as HTMLInputElement).value)"
                         type="text"
                         placeholder="搜尋學生、班級或座號..."
-                        class="input input-bordered pl-10 w-72"
+                        class="input input-bordered pl-10 w-full sm:w-72"
                     />
                     <LucideIcon
                         name="Search"
                         class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/50"
                     />
                 </div>
-            </div>
-        </div>
-
-        <!-- 總覽統計 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-primary">
-                        <LucideIcon name="Users" class="w-8 h-8" />
-                    </div>
-                    <div class="stat-title">總學生數</div>
-                    <div class="stat-value text-primary">{{ totalStudents }}</div>
-                </div>
-            </div>
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-secondary">
-                        <LucideIcon name="GraduationCap" class="w-8 h-8" />
-                    </div>
-                    <div class="stat-title">班級數</div>
-                    <div class="stat-value text-secondary">{{ classesStore.totalClasses }}</div>
-                </div>
-            </div>
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-accent">
-                        <LucideIcon name="Activity" class="w-8 h-8" />
-                    </div>
-                    <div class="stat-title">本週更新班級</div>
-                    <div class="stat-value text-accent">{{ weeklyUpdatedClasses }}</div>
-                </div>
-            </div>
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-figure text-info">
-                        <LucideIcon name="Sparkles" class="w-8 h-8" />
-                    </div>
-                    <div class="stat-title">平均每班學生</div>
-                    <div class="stat-value text-info">{{ averagePerClass }}</div>
+                <div class="flex items-center gap-2">
+                    <label for="student-sort" class="text-sm font-semibold whitespace-nowrap"
+                        >排序方式</label
+                    >
+                    <select
+                        id="student-sort"
+                        v-model="sortOption"
+                        class="select select-bordered select-sm sm:select-md"
+                    >
+                        <option
+                            v-for="option in sortOptions"
+                            :key="option.value"
+                            :value="option.value"
+                        >
+                            {{ option.label }}
+                        </option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -72,13 +50,13 @@
             <div class="p-4 flex items-center justify-between border-b border-base-300">
                 <h2 class="font-semibold flex items-center gap-2">
                     <LucideIcon name="List" class="w-5 h-5" /> 全部學生 ({{
-                        filteredStudents.length
+                        sortedStudents.length
                     }})
                 </h2>
                 <div class="text-sm text-base-content/60">點擊學生可快速跳轉至其班級頁面</div>
             </div>
 
-            <div v-if="filteredStudents.length" class="max-h-[60vh] overflow-auto custom-scrollbar">
+            <div v-if="sortedStudents.length" class="max-h-[60vh] overflow-auto custom-scrollbar">
                 <table class="table table-zebra">
                     <thead class="sticky top-0 bg-base-200 z-10">
                         <tr>
@@ -91,7 +69,7 @@
                     </thead>
                     <tbody>
                         <tr
-                            v-for="item in filteredStudents"
+                            v-for="item in sortedStudents"
                             :key="item.uniqueKey"
                             class="hover cursor-pointer"
                             @click="goToClass(item.classId)"
@@ -107,7 +85,7 @@
             </div>
             <div v-else class="p-10 text-center text-base-content/60">
                 <LucideIcon name="UserX" class="w-10 h-10 mx-auto mb-4 opacity-50" />
-                <p v-if="ui.searchQuery">找不到符合「{{ ui.searchQuery }}」的學生</p>
+                <p v-if="searchQuery">找不到符合「{{ searchQuery }}」的學生</p>
                 <p v-else>目前沒有任何學生資料</p>
             </div>
         </div>
@@ -120,6 +98,25 @@ import { useUIStore } from '~/stores/ui'
 
 const classesStore = useClassesStore()
 const ui = useUIStore()
+const searchQuery = ref('')
+
+const sortOptions = [
+    { value: 'nameAsc', label: '姓名 (A → Z)' },
+    { value: 'nameDesc', label: '姓名 (Z → A)' },
+    { value: 'idAsc', label: '座號 (小 → 大)' },
+    { value: 'idDesc', label: '座號 (大 → 小)' },
+    { value: 'scoreDesc', label: '總分 (高 → 低)' },
+    { value: 'scoreAsc', label: '總分 (低 → 高)' },
+    { value: 'createdDesc', label: '建立時間 (新 → 舊)' },
+    { value: 'createdAsc', label: '建立時間 (舊 → 新)' },
+] as const
+
+type SortOptionValue = (typeof sortOptions)[number]['value']
+const sortOption = ref<SortOptionValue>('nameAsc')
+
+const updateSearch = (value: string) => {
+    searchQuery.value = value
+}
 
 interface FlatStudent {
     id: string
@@ -146,7 +143,7 @@ const flatStudents = computed<FlatStudent[]>(() => {
 })
 
 const filteredStudents = computed(() => {
-    const q = ui.searchQuery.trim().toLowerCase()
+    const q = searchQuery.value.trim().toLowerCase()
     if (!q) return flatStudents.value
 
     return flatStudents.value.filter(
@@ -155,6 +152,30 @@ const filteredStudents = computed(() => {
             s.className.toLowerCase().includes(q) ||
             s.id.toLowerCase().includes(q),
     )
+})
+
+const sortedStudents = computed(() => {
+    const students = [...filteredStudents.value]
+
+    switch (sortOption.value) {
+        case 'nameAsc':
+            return students.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
+        case 'nameDesc':
+            return students.sort((a, b) => b.name.localeCompare(a.name, 'zh-Hant'))
+        case 'idAsc':
+            return students.sort((a, b) => a.id.localeCompare(b.id, 'zh-Hant', { numeric: true }))
+        case 'idDesc':
+            return students.sort((a, b) => b.id.localeCompare(a.id, 'zh-Hant', { numeric: true }))
+        case 'scoreDesc':
+            return students.sort((a, b) => b.totalScore - a.totalScore)
+        case 'scoreAsc':
+            return students.sort((a, b) => a.totalScore - b.totalScore)
+        case 'createdAsc':
+            return students.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        case 'createdDesc':
+        default:
+            return students.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    }
 })
 
 const totalStudents = computed(() => flatStudents.value.length)
@@ -174,9 +195,12 @@ const goToClass = (classId: string) => {
 const formatDate = (date: Date) =>
     new Date(date).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })
 
-onUnmounted(() => {
-    // 離開頁面時清空搜尋，避免影響其他頁面
-    ui.setSearchQuery('')
+onMounted(() => {
+    searchQuery.value = ui.searchQuery || ''
+})
+
+watch(searchQuery, (value) => {
+    ui.setSearchQuery(value)
 })
 
 useHead({ title: '學生管理 - 班級分組計分工具' })
