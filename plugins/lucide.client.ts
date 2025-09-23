@@ -59,6 +59,7 @@ import {
     BookMarked,
     ClipboardEdit,
     ClipboardList,
+    Palette,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -122,4 +123,5 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideBookMarked', BookMarked)
     nuxtApp.vueApp.component('LucideClipboardEdit', ClipboardEdit)
     nuxtApp.vueApp.component('LucideClipboardList', ClipboardList)
+    nuxtApp.vueApp.component('LucidePalette', Palette)
 })

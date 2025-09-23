@@ -98,5 +98,10 @@ export const useHomeworkStore = defineStore('homework', {
                 console.error('儲存作業資料失敗:', error)
             }
         },
+
+        replaceAll(homeworks: GlobalHomework[]) {
+            this.homeworkList = Array.isArray(homeworks) ? [...homeworks] : []
+            this.persist()
+        },
     },
 })

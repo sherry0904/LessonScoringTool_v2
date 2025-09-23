@@ -76,6 +76,7 @@ import {
     ClipboardEdit,
     ClipboardList,
     ArchiveRestore,
+    Palette,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -156,6 +157,7 @@ const iconMap = {
     ClipboardEdit: ClipboardEdit,
     ClipboardList: ClipboardList,
     ArchiveRestore: ArchiveRestore,
+    Palette: Palette,
 }
 
 const iconComponent = computed(() => {

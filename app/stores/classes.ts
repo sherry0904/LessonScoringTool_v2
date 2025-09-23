@@ -2,6 +2,9 @@
 import { defineStore } from 'pinia'
 import type { ClassInfo, Student, Homework, Group, StudentScore } from '~/types/class'
 import { useExcelExport } from '~/composables/useExcelExport'
+import { useHomeworkStore } from '~/stores/homework'
+
+const BACKUP_SCHEMA_VERSION = '2.1.0'
 
 export const useClassesStore = defineStore('classes', () => {
     // State
@@ -436,18 +439,170 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
-    const exportAllClasses = () => {
-        const data = {
-            classes: classes.value,
-            exportedAt: new Date().toISOString(),
-            version: '2.0',
-        }
+    const buildBackupPayload = () => {
+        const homeworkStore = useHomeworkStore()
+        // 確保最新的作業資料已載入
+        homeworkStore.fetchAllHomework?.()
 
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+        return {
+            version: BACKUP_SCHEMA_VERSION,
+            exportedAt: new Date().toISOString(),
+            classes: classes.value,
+            currentClassId: currentClassId.value,
+            groupingBaseScores: groupingBaseScores.value,
+            groupingSessionScores: groupingSessionScores.value,
+            groupingActivityNames: groupingActivityNames.value,
+            homeworks: homeworkStore.homeworkList,
+        }
+    }
+
+    const extractHomeworkPayload = (data: any) => {
+        if (Array.isArray(data?.homeworks)) return data.homeworks
+        if (Array.isArray(data?.homeworkList)) return data.homeworkList
+        return []
+    }
+
+    const isPlainObject = (value: unknown): value is Record<string, any> => {
+        return value !== null && typeof value === 'object' && !Array.isArray(value)
+    }
+
+    const parseDate = (value: any) => {
+        const date = new Date(value)
+        return isNaN(date.getTime()) ? new Date() : date
+    }
+
+    const sanitizeClassesPayload = (incoming: any[]): ClassInfo[] => {
+        return incoming.map((cls) => {
+            const normalizedStudents = Array.isArray(cls.students)
+                ? cls.students.map((student: any) => ({
+                      ...student,
+                      scores: Array.isArray(student?.scores)
+                          ? student.scores.map((score: any) => ({
+                                ...score,
+                                timestamp: parseDate(score?.timestamp),
+                            }))
+                          : [],
+                      totalScore: typeof student?.totalScore === 'number' ? student.totalScore : 0,
+                      averageScore:
+                          typeof student?.averageScore === 'number' ? student.averageScore : 0,
+                      isPresent:
+                          typeof student?.isPresent === 'boolean' ? student.isPresent : true,
+                      createdAt: parseDate(student?.createdAt),
+                  }))
+                : []
+
+            const normalizedHomeworkSettings = Array.isArray(cls.homeworkSettings)
+                ? cls.homeworkSettings
+                      .filter(
+                          (setting: any) => setting && typeof setting.homeworkId === 'string' && setting.homeworkId.trim(),
+                      )
+                      .map((setting: any) => ({
+                          homeworkId: setting.homeworkId,
+                          releaseDate: setting.releaseDate ?? setting.startDate ?? undefined,
+                          dueDate: setting.dueDate ?? setting.endDate ?? undefined,
+                          studentStatus: isPlainObject(setting.studentStatus)
+                              ? setting.studentStatus
+                              : {},
+                      }))
+                : []
+
+            const normalizedGroups = Array.isArray(cls.groups)
+                ? cls.groups.map((group: any) => ({
+                      ...group,
+                      members: Array.isArray(group?.members)
+                          ? group.members.map((member: any) => ({
+                                ...member,
+                                totalScore:
+                                    typeof member?.totalScore === 'number' ? member.totalScore : 0,
+                                averageScore:
+                                    typeof member?.averageScore === 'number'
+                                        ? member.averageScore
+                                        : 0,
+                                scores: Array.isArray(member?.scores)
+                                    ? member.scores.map((score: any) => ({
+                                          ...score,
+                                          timestamp: parseDate(score?.timestamp),
+                                      }))
+                                    : [],
+                                isPresent:
+                                    typeof member?.isPresent === 'boolean' ? member.isPresent : true,
+                                createdAt: parseDate(member?.createdAt),
+                            }))
+                          : [],
+                      totalScore: typeof group?.totalScore === 'number' ? group.totalScore : 0,
+                      averageScore:
+                          typeof group?.averageScore === 'number' ? group.averageScore : 0,
+                      createdAt: parseDate(group?.createdAt),
+                      color: typeof group?.color === 'string' ? group.color : '#3b82f6',
+                  }))
+                : []
+
+            const normalized: ClassInfo = {
+                ...cls,
+                students: normalizedStudents,
+                homeworkSettings: normalizedHomeworkSettings,
+                groups: normalizedGroups,
+                groupCount:
+                    typeof cls.groupCount === 'number' && cls.groupCount > 0
+                        ? cls.groupCount
+                        : Math.max(2, normalizedGroups.length || 4),
+                groupingActive: Boolean(cls.groupingActive),
+                createdAt: parseDate(cls.createdAt),
+                updatedAt: parseDate(cls.updatedAt),
+            }
+
+            return normalized
+        })
+    }
+
+    const applyLegacyMigrations = (version: string) => {
+        // 目前主要確保 studentStatus 存在
+        classes.value.forEach((cls) => {
+            if (!Array.isArray(cls.homeworkSettings)) return
+            cls.homeworkSettings.forEach((setting) => {
+                if (!isPlainObject(setting.studentStatus)) {
+                    setting.studentStatus = {}
+                }
+            })
+        })
+    }
+
+    const syncClassHomeworkSettingsWithGlobal = () => {
+        const homeworkStore = useHomeworkStore()
+        const homeworkIds = new Set(homeworkStore.homeworkList.map((hw) => hw.id))
+
+        classes.value.forEach((cls) => {
+            if (!Array.isArray(cls.homeworkSettings)) {
+                cls.homeworkSettings = []
+                return
+            }
+
+            cls.homeworkSettings = cls.homeworkSettings.filter((setting) => {
+                if (!setting || typeof setting.homeworkId !== 'string') return false
+                if (!homeworkIds.has(setting.homeworkId)) return false
+                if (!isPlainObject(setting.studentStatus)) {
+                    setting.studentStatus = {}
+                }
+                return true
+            })
+        })
+    }
+
+    const ensureCurrentClassIsValid = () => {
+        if (!currentClassId.value) return
+        const exists = classes.value.some((cls) => cls.id === currentClassId.value)
+        if (!exists) {
+            currentClassId.value = classes.value[0]?.id ?? null
+        }
+    }
+
+    const exportAllClasses = () => {
+        const payload = buildBackupPayload()
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `all-classes-data-${new Date().toISOString().split('T')[0]}.json`
+        a.download = `class-backup-${new Date().toISOString().split('T')[0]}.json`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
@@ -459,12 +614,39 @@ export const useClassesStore = defineStore('classes', () => {
             const text = await file.text()
             const data = JSON.parse(text)
 
-            if (data.classes && Array.isArray(data.classes)) {
-                classes.value = data.classes
-                saveToStorage()
-                return true
+            if (!Array.isArray(data.classes)) {
+                console.error('匯入班級資料失敗: 缺少 classes 陣列')
+                return false
             }
-            return false
+
+            const version = typeof data.version === 'string' ? data.version : '1.0.0'
+
+            const sanitizedClasses = sanitizeClassesPayload(data.classes)
+            classes.value = sanitizedClasses
+
+            groupingBaseScores.value = isPlainObject(data.groupingBaseScores)
+                ? data.groupingBaseScores
+                : {}
+            groupingSessionScores.value = isPlainObject(data.groupingSessionScores)
+                ? data.groupingSessionScores
+                : {}
+            groupingActivityNames.value = isPlainObject(data.groupingActivityNames)
+                ? data.groupingActivityNames
+                : {}
+
+            currentClassId.value = typeof data.currentClassId === 'string' ? data.currentClassId : null
+
+            applyLegacyMigrations(version)
+
+            const homeworkStore = useHomeworkStore()
+            const homeworkPayload = extractHomeworkPayload(data)
+            homeworkStore.replaceAll(homeworkPayload)
+
+            syncClassHomeworkSettingsWithGlobal()
+            ensureCurrentClassIsValid()
+            saveToStorage()
+
+            return true
         } catch (error) {
             console.error('匯入班級資料失敗:', error)
             return false

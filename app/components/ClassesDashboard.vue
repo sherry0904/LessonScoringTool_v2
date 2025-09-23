@@ -14,23 +14,9 @@
                     </p>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <!-- 搜尋框 -->
-                    <div class="relative">
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="搜尋班級..."
-                            class="input input-bordered pl-10 w-64"
-                        />
-                        <LucideIcon
-                            name="Search"
-                            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/50"
-                        />
-                    </div>
-
+                <div class="flex flex-col items-end gap-1">
                     <!-- 操作按鈕 -->
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-2 justify-end">
                         <button @click="importData" class="btn btn-outline gap-2">
                             <LucideIcon name="Upload" class="w-4 h-4" />
                             還原備份 (JSON)
@@ -54,7 +40,7 @@
                                 <li>
                                     <a @click="exportJSONBackup">
                                         <LucideIcon name="Archive" class="w-4 h-4" />
-                                        建立備份 (JSON)
+                                        建立完整備份 (JSON)
                                     </a>
                                 </li>
                             </ul>
@@ -64,6 +50,9 @@
                             新增班級
                         </button>
                     </div>
+                    <p class="text-xs text-base-content/60 text-right">
+                        備份檔會包含全域作業、班級資料與分組設定；匯入時將以全域作業為主，同步移除各班中不存在的作業設定。
+                    </p>
                 </div>
             </div>
 
@@ -115,7 +104,21 @@
 
         <!-- 班級網格 -->
         <div v-if="filteredClasses && filteredClasses.length > 0" class="space-y-6">
-            <h2 class="text-2xl font-semibold text-base-content">您的班級</h2>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 class="text-2xl font-semibold text-base-content">您的班級</h2>
+                <div class="relative sm:w-72">
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="搜尋班級..."
+                        class="input input-bordered pl-10 w-full"
+                    />
+                    <LucideIcon
+                        name="Search"
+                        class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/50"
+                    />
+                </div>
+            </div>
 
             <div class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <div
@@ -476,7 +479,9 @@ const openClass = (classId: string) => {
 
 const exportJSONBackup = () => {
     if (
-        confirm('這將會下載一個系統專用的備份檔 (.json)，用於未來還原整個系統的資料，請妥善保管。')
+        confirm(
+            '將匯出完整備份 (含全域作業、班級、分組資料)。匯入時會以全域作業為主同步各班作業設定，請妥善保管檔案。',
+        )
     ) {
         classesStore.exportAllClasses()
     }

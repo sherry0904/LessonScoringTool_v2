@@ -1,7 +1,11 @@
 <template>
     <div class="p-4 sm:p-6">
         <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-bold">全域作業管理</h1>
+            <h1
+                class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
+            >
+                全域作業管理
+            </h1>
             <button class="btn btn-primary" @click="openHomeworkModal()">
                 <LucideIcon name="Plus" class="w-4 h-4" />
                 新增作業
@@ -228,7 +232,9 @@
                 <button
                     class="btn btn-sm join-item"
                     :disabled="homeworkCurrentPage === homeworkTotalPages"
-                    @click="homeworkCurrentPage = Math.min(homeworkTotalPages, homeworkCurrentPage + 1)"
+                    @click="
+                        homeworkCurrentPage = Math.min(homeworkTotalPages, homeworkCurrentPage + 1)
+                    "
                 >
                     »
                 </button>
@@ -242,7 +248,10 @@
                     <div>
                         <h3 class="text-lg font-bold">
                             班級概況
-                            <span v-if="summaryModalHomework" class="text-base-content/70 text-sm font-normal">
+                            <span
+                                v-if="summaryModalHomework"
+                                class="text-base-content/70 text-sm font-normal"
+                            >
                                 - {{ summaryModalHomework.name }}
                             </span>
                         </h3>
@@ -271,7 +280,9 @@
                                 class="transition-colors hover:bg-primary/10 group"
                             >
                                 <td class="align-top">
-                                    <div class="font-semibold text-base-content group-hover:text-primary">
+                                    <div
+                                        class="font-semibold text-base-content group-hover:text-primary"
+                                    >
                                         {{ summary.className }}
                                     </div>
                                     <div
@@ -300,11 +311,7 @@
                             <tr class="bg-base-200">
                                 <th>總計</th>
                                 <th class="text-center">{{ summaryModalTotals.totalStudents }}</th>
-                                <th
-                                    v-for="status in statusOrder"
-                                    :key="status"
-                                    class="text-center"
-                                >
+                                <th v-for="status in statusOrder" :key="status" class="text-center">
                                     {{ summaryModalTotals.counts[status] }}
                                 </th>
                             </tr>
@@ -380,13 +387,20 @@
                         </div>
                     </div>
                     <div class="modal-action mt-6">
-                        <button type="button" class="btn btn-ghost" @click="closeHomeworkModal">取消</button>
+                        <button type="button" class="btn btn-ghost" @click="closeHomeworkModal">
+                            取消
+                        </button>
                         <button type="submit" class="btn btn-primary">
                             {{ isEditing ? '儲存變更' : '確認新增' }}
                         </button>
                     </div>
                 </form>
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" @click="closeHomeworkModal">✕</button>
+                <button
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    @click="closeHomeworkModal"
+                >
+                    ✕
+                </button>
             </div>
         </div>
     </div>
@@ -547,9 +561,9 @@ const homeworkClassSummaries = computed<Record<string, HomeworkClassSummary[]>>(
 
             classInfo.students.forEach((student) => {
                 const rawStatus = settings.studentStatus?.[student.id] ?? 'pending'
-                const status = (statusOrder.includes(rawStatus as Status)
-                    ? (rawStatus as Status)
-                    : 'pending') as Status
+                const status = (
+                    statusOrder.includes(rawStatus as Status) ? (rawStatus as Status) : 'pending'
+                ) as Status
                 counts[status] += 1
             })
 
@@ -571,9 +585,7 @@ const summaryModalHomeworkId = ref<string | null>(null)
 
 const summaryModalHomework = computed(() => {
     if (!summaryModalHomeworkId.value) return null
-    return (
-        homeworkStore.homeworkList.find((hw) => hw.id === summaryModalHomeworkId.value) || null
-    )
+    return homeworkStore.homeworkList.find((hw) => hw.id === summaryModalHomeworkId.value) || null
 })
 
 const summaryModalSummaries = computed(() => {

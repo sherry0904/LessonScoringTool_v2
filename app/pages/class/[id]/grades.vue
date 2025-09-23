@@ -49,6 +49,7 @@
                                 <button
                                     :class="[
                                         'btn btn-sm',
+                                        'mr-2',
                                         sortOrder === 'desc' ? 'btn-active' : '',
                                     ]"
                                     @click="sortOrder = 'desc'"
