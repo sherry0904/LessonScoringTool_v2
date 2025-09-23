@@ -2,9 +2,6 @@
     <div v-if="classInfo && globalHomeworkInfo" class="p-4 sm:p-6 space-y-6">
         <!-- 作業標題 -->
         <div class="flex items-center gap-2 mb-2">
-            <NuxtLink :to="`/class/${classId}/homework`" class="btn btn-ghost btn-sm btn-circle">
-                <LucideIcon name="ArrowLeft" class="w-5 h-5" />
-            </NuxtLink>
             <h2 class="text-2xl font-bold">{{ globalHomeworkInfo.name }}</h2>
         </div>
 

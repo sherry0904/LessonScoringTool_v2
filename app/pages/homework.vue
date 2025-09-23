@@ -117,7 +117,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="hw in filteredHomeworkList" :key="hw.id" class="align-top">
+                    <tr v-for="hw in paginatedHomeworkList" :key="hw.id" class="align-top">
                         <td class="align-top">
                             <div class="font-semibold text-base-content">{{ hw.name }}</div>
                             <div
@@ -198,6 +198,41 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <div
+            v-if="filteredHomeworkList.length > 0"
+            class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3"
+        >
+            <span class="text-sm text-base-content/70">
+                顯示第 {{ homeworkPageStart }} - {{ homeworkPageEnd }} 筆，共
+                {{ filteredHomeworkList.length }} 筆
+            </span>
+            <div class="join">
+                <button
+                    class="btn btn-sm join-item"
+                    :disabled="homeworkCurrentPage === 1"
+                    @click="homeworkCurrentPage = Math.max(1, homeworkCurrentPage - 1)"
+                >
+                    «
+                </button>
+                <button
+                    v-for="page in homeworkPageNumbers"
+                    :key="page"
+                    class="btn btn-sm join-item"
+                    :class="{ 'btn-active': homeworkCurrentPage === page }"
+                    @click="homeworkCurrentPage = page"
+                >
+                    {{ page }}
+                </button>
+                <button
+                    class="btn btn-sm join-item"
+                    :disabled="homeworkCurrentPage === homeworkTotalPages"
+                    @click="homeworkCurrentPage = Math.min(homeworkTotalPages, homeworkCurrentPage + 1)"
+                >
+                    »
+                </button>
+            </div>
         </div>
 
         <!-- 班級概況 Modal -->
@@ -358,7 +393,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import { useHomeworkStore } from '~/stores/homework'
 import { useClassesStore } from '~/stores/classes'
 import type { GlobalHomework } from '~/types/homework'
@@ -412,6 +447,43 @@ const filteredHomeworkList = computed(() => {
         }
     })
     return list
+})
+
+const homeworkPageSize = 10
+const homeworkCurrentPage = ref(1)
+
+const homeworkTotalPages = computed(() => {
+    const total = Math.ceil(filteredHomeworkList.value.length / homeworkPageSize)
+    return total > 0 ? total : 1
+})
+
+const homeworkPageNumbers = computed(() =>
+    Array.from({ length: homeworkTotalPages.value }, (_, index) => index + 1),
+)
+
+const paginatedHomeworkList = computed(() => {
+    const start = (homeworkCurrentPage.value - 1) * homeworkPageSize
+    return filteredHomeworkList.value.slice(start, start + homeworkPageSize)
+})
+
+const homeworkPageStart = computed(() => {
+    if (filteredHomeworkList.value.length === 0) return 0
+    return (homeworkCurrentPage.value - 1) * homeworkPageSize + 1
+})
+
+const homeworkPageEnd = computed(() => {
+    const end = homeworkCurrentPage.value * homeworkPageSize
+    return Math.min(end, filteredHomeworkList.value.length)
+})
+
+watch([searchKeyword, showArchived], () => {
+    homeworkCurrentPage.value = 1
+})
+
+watch(homeworkTotalPages, (newTotal) => {
+    if (homeworkCurrentPage.value > newTotal) {
+        homeworkCurrentPage.value = newTotal
+    }
 })
 
 type Status = 'pending' | 'submitted' | 'needs_correction' | 'completed'

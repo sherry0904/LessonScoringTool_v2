@@ -172,6 +172,10 @@ export const useClassesStore = defineStore('classes', () => {
         const classData = classes.value.find((c) => c.id === classId)
         if (!classData) return false
 
+        if (!Array.isArray(classData.homeworkSettings)) {
+            classData.homeworkSettings = []
+        }
+
         const settingIndex = classData.homeworkSettings.findIndex(
             (s) => s.homeworkId === homeworkId,
         )

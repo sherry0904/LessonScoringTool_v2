@@ -70,7 +70,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="hw in processedHomeworks" :key="hw.id">
+                            <tr v-for="hw in paginatedHomeworks" :key="hw.id">
                                 <td class="font-semibold">{{ hw.name }}</td>
                                 <td>
                                     <span class="badge" :class="getHomeworkStatus(hw.id).badgeClass">
@@ -108,6 +108,41 @@
                         <p>沒有符合條件的作業。</p>
                     </div>
                 </div>
+
+                <div
+                    v-if="processedHomeworks.length > 0"
+                    class="flex flex-col sm:flex-row items-center justify-between gap-3"
+                >
+                    <span class="text-sm text-base-content/70">
+                        顯示第 {{ classHomeworkPageStart }} - {{ classHomeworkPageEnd }} 筆，共
+                        {{ processedHomeworks.length }} 筆
+                    </span>
+                    <div class="join">
+                        <button
+                            class="btn btn-sm join-item"
+                            :disabled="classHomeworkCurrentPage === 1"
+                            @click="classHomeworkCurrentPage = Math.max(1, classHomeworkCurrentPage - 1)"
+                        >
+                            «
+                        </button>
+                        <button
+                            v-for="page in classHomeworkPageNumbers"
+                            :key="page"
+                            class="btn btn-sm join-item"
+                            :class="{ 'btn-active': classHomeworkCurrentPage === page }"
+                            @click="classHomeworkCurrentPage = page"
+                        >
+                            {{ page }}
+                        </button>
+                        <button
+                            class="btn btn-sm join-item"
+                            :disabled="classHomeworkCurrentPage === classHomeworkTotalPages"
+                            @click="classHomeworkCurrentPage = Math.min(classHomeworkTotalPages, classHomeworkCurrentPage + 1)"
+                        >
+                            »
+                        </button>
+                    </div>
+                </div>
             </div>
             <div v-else class="text-center py-12 text-base-content/70 glass-card rounded-xl">
                 <LucideIcon name="BookX" class="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -123,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useClassesStore } from '~/stores/classes'
 import { useHomeworkStore } from '~/stores/homework'
 import { useRoute, useRouter } from 'vue-router'
@@ -183,9 +218,9 @@ const processedHomeworks = computed(() => {
 
     const filtered = visibleHomeworks.value.filter((hw) => {
         const matchesSearch = term ? hw.name.toLowerCase().includes(term) : true
-        const statusText = getHomeworkStatus(hw.id).text
+        const statusLabel = getHomeworkStatus(hw.id).text
         const matchesStatus =
-            selectedStatus.value === 'all' || statusText === selectedStatus.value
+            selectedStatus.value === 'all' || statusLabel === selectedStatus.value
         return matchesSearch && matchesStatus
     })
 
@@ -222,11 +257,48 @@ const processedHomeworks = computed(() => {
     return filtered.sort(sorter)
 })
 
-const getHomeworkSettings = (homeworkId: string) => {
+const classHomeworkPageSize = 10
+const classHomeworkCurrentPage = ref(1)
+
+const classHomeworkTotalPages = computed(() => {
+    const total = Math.ceil(processedHomeworks.value.length / classHomeworkPageSize)
+    return total > 0 ? total : 1
+})
+
+const classHomeworkPageNumbers = computed(() =>
+    Array.from({ length: classHomeworkTotalPages.value }, (_, index) => index + 1),
+)
+
+const paginatedHomeworks = computed(() => {
+    const start = (classHomeworkCurrentPage.value - 1) * classHomeworkPageSize
+    return processedHomeworks.value.slice(start, start + classHomeworkPageSize)
+})
+
+const classHomeworkPageStart = computed(() => {
+    if (processedHomeworks.value.length === 0) return 0
+    return (classHomeworkCurrentPage.value - 1) * classHomeworkPageSize + 1
+})
+
+const classHomeworkPageEnd = computed(() => {
+    const end = classHomeworkCurrentPage.value * classHomeworkPageSize
+    return Math.min(end, processedHomeworks.value.length)
+})
+
+watch([searchTerm, selectedStatus, sortOption], () => {
+    classHomeworkCurrentPage.value = 1
+})
+
+watch(classHomeworkTotalPages, (newTotal) => {
+    if (classHomeworkCurrentPage.value > newTotal) {
+        classHomeworkCurrentPage.value = newTotal
+    }
+})
+
+function getHomeworkSettings(homeworkId: string) {
     return classInfo.value?.homeworkSettings?.find((s) => s.homeworkId === homeworkId)
 }
 
-const getHomeworkStatus = (homeworkId: string) => {
+function getHomeworkStatus(homeworkId: string) {
     const settings = getHomeworkSettings(homeworkId)
     const now = new Date()
     const releaseDate = settings?.releaseDate ? new Date(settings.releaseDate) : null
