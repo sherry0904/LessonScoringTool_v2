@@ -345,6 +345,31 @@ export const useClassesStore = defineStore('classes', () => {
         saveToStorage()
     }
 
+    const resetClassTotals = (classId: string) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData) return false
+
+        classData.students.forEach((student) => {
+            student.scores = []
+            _updateStudentStats(student)
+        })
+
+        if (Array.isArray(classData.groups)) {
+            classData.groups.forEach((group) => {
+                group.totalScore = 0
+                group.averageScore = 0
+                _updateGroupStats(group, classData.students)
+            })
+        }
+
+        groupingBaseScores.value[classId] = {}
+        groupingSessionScores.value[classId] = {}
+
+        classData.updatedAt = new Date()
+        saveToStorage()
+        return true
+    }
+
     // Private helpers
     const _updateStudentStats = (student: Student) => {
         const scores = student.scores.map((s) => s.value)
@@ -725,6 +750,7 @@ export const useClassesStore = defineStore('classes', () => {
         updateGroups,
         addScoreToGroup,
         addScoreToStudent,
+        resetClassTotals,
         setGroupingActivityName,
         setGroupingBaseScores,
         getGroupingBaseScores,

@@ -45,6 +45,14 @@
                                     <LucideIcon name="Download" class="w-4 h-4 mr-1" />
                                     匯出成績
                                 </button>
+                                <button
+                                    class="btn btn-sm btn-outline btn-warning"
+                                    @click="resetClassScores"
+                                    type="button"
+                                >
+                                    <LucideIcon name="RotateCcw" class="w-4 h-4 mr-1" />
+                                    全班總分歸零
+                                </button>
                                 <button v-if="addStudent" class="btn btn-sm btn-primary" @click="addStudent" type="button">
                                     <LucideIcon name="UserPlus" class="w-4 h-4 mr-1" />
                                     新增學生
@@ -355,6 +363,20 @@ const exportClassScores = () => {
 
     const fileName = `${dateString}-${classInfo.value.name}-成績單`
     exportToExcel([sheetData], fileName)
+}
+
+const resetClassScores = () => {
+    if (!classInfo.value) return
+    const confirmed = confirm(
+        `將會把「${classInfo.value.name}」全體學生的總分歸零並清除評分紀錄，確定要執行嗎？`,
+    )
+    if (!confirmed) return
+
+    const success = classesStore.resetClassTotals(classInfo.value.id)
+    if (success) {
+        ui.showSuccess('已重置全班總分')
+        scoreAnimation.value = {}
+    }
 }
 </script>
 
