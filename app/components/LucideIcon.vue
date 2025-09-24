@@ -77,6 +77,7 @@ import {
     ClipboardList,
     ArchiveRestore,
     Palette,
+    BookX,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -158,6 +159,7 @@ const iconMap = {
     ClipboardList: ClipboardList,
     ArchiveRestore: ArchiveRestore,
     Palette: Palette,
+    BookX: BookX,
 }
 
 const iconComponent = computed(() => {
