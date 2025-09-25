@@ -40,24 +40,44 @@
                             開始分組
                         </button>
                     </div>
-                    <div class="flex items-center gap-2 mt-4 border-t pt-4">
-                        <label class="whitespace-nowrap text-base-content/80 mr-2"
+                    <div class="flex flex-wrap items-center gap-2 mt-4 border-t pt-4">
+                        <label class="whitespace-nowrap text-base-content/80"
                             >活動名稱 (選填)</label
                         >
                         <input
                             v-model="activityName"
                             type="text"
                             placeholder="例如：第二次分組討論"
-                            class="input input-bordered flex-1 min-w-0"
+                            class="input input-bordered w-60"
                         />
-                        <button
-                            @click="showGroupScoreboard"
-                            class="btn btn-warning ml-2"
-                            :disabled="localGroups.length === 0"
-                        >
-                            <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />
-                            積分儀表板
-                        </button>
+                        <div class="flex items-center gap-2 ml-auto">
+                            <button
+                                @click="expandAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="展開所有組員"
+                            >
+                                <LucideIcon name="ChevronDown" class="w-4 h-4" />
+                                展開組員
+                            </button>
+                            <button
+                                @click="collapseAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="收合所有組員"
+                            >
+                                <LucideIcon name="ChevronUp" class="w-4 h-4" />
+                                收合組員
+                            </button>
+                            <button
+                                @click="showGroupScoreboard"
+                                class="btn btn-warning"
+                                :disabled="localGroups.length === 0"
+                            >
+                                <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />
+                                積分儀表板
+                            </button>
+                        </div>
                     </div>
                 </template>
 
@@ -73,25 +93,28 @@
                                 v-model="activityName"
                                 type="text"
                                 placeholder="請輸入活動名稱..."
-                                class="input input-sm input-bordered w-auto max-w-xs"
+                                class="input input-sm input-bordered w-52"
                             />
-                            <div class="flex flex-nowrap gap-2 ml-2 overflow-x-auto hide-scrollbar">
-                                <div
-                                    v-for="group in localGroups"
-                                    :key="group.id"
-                                    class="flex items-center px-2 py-1 rounded bg-base-200 text-xs font-semibold min-w-[70px] border border-base-300"
-                                    :style="{ borderColor: group.color }"
-                                >
-                                    <span
-                                        class="w-2 h-2 rounded-full mr-1"
-                                        :style="{ backgroundColor: group.color }"
-                                    ></span>
-                                    <span>{{ group.name }}</span>
-                                    <span class="ml-1 text-primary">{{ group.totalScore }} 分</span>
-                                </div>
-                            </div>
                         </div>
                         <div class="flex items-center gap-2">
+                            <button
+                                @click="expandAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="展開所有組員"
+                            >
+                                <LucideIcon name="ChevronDown" class="w-4 h-4" />
+                                展開組員
+                            </button>
+                            <button
+                                @click="collapseAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="收合所有組員"
+                            >
+                                <LucideIcon name="ChevronUp" class="w-4 h-4" />
+                                收合組員
+                            </button>
                             <button
                                 @click="exportActivityReport"
                                 class="btn btn-sm btn-info gap-1"
@@ -257,7 +280,7 @@
 
                         <!-- 組別總分 -->
                         <div class="stats shadow mb-3">
-                            <div class="stat py-2 flex flex-col items-center">
+                            <div class="stat py-5 flex flex-col items-center">
                                 <div class="stat-title text-xs">總分</div>
                                 <div class="stat-value text-2xl text-primary mb-1">
                                     {{ group.totalScore }}
@@ -299,6 +322,7 @@
 
                         <!-- 組員列表 -->
                         <div
+                            v-if="!areGroupsCollapsed"
                             class="min-h-32 p-3 border-2 border-dashed border-base-300 rounded-lg space-y-2"
                             @drop="handleDrop(group.id)"
                             @dragover.prevent
@@ -355,6 +379,9 @@
                                 拖拽學生到此組
                             </div>
                         </div>
+                        <p v-else class="text-xs text-base-content/60 italic text-center">
+                            組員已收合，點擊「展開組員」查看
+                        </p>
                     </div>
                 </div>
             </main>
@@ -447,7 +474,7 @@
 <script setup lang="ts">
 import { ref, computed, watchEffect } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { ClassInfo, Student, Group } from '~/types'
+import type { ClassInfo, Group } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
 
 // Helper function for debouncing
@@ -488,6 +515,7 @@ const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
 // const activityName = ref('') // Replaced by computed property linked to store
 const isEndingFlow = ref(false)
+const areGroupsCollapsed = ref(false)
 
 // --- Computed Properties for easier template access ---
 const activityName = computed({
@@ -514,6 +542,15 @@ const sortedGroups = computed(() => {
 })
 
 // --- Methods ---
+
+const expandAllGroups = () => {
+    areGroupsCollapsed.value = false
+}
+
+const collapseAllGroups = () => {
+    if (localGroups.value.length === 0) return
+    areGroupsCollapsed.value = true
+}
 
 const getGroupMembers = (group: Group) => {
     // Returns real-time student information from props, not the potentially stale snapshot in group.members
@@ -760,5 +797,8 @@ watchEffect(() => {
     // Use stringify/parse for a deep copy to avoid mutation issues
     localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
     groupCount.value = props.classInfo.groupCount || 4
+    if (localGroups.value.length === 0) {
+        areGroupsCollapsed.value = false
+    }
 })
 </script>
