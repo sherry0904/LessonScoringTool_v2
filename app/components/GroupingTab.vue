@@ -279,44 +279,58 @@
                         </div>
 
                         <!-- 組別總分 -->
-                        <div class="stats shadow mb-3">
-                            <div class="stat py-5 flex flex-col items-center">
-                                <div class="stat-title text-xs">總分</div>
-                                <div class="stat-value text-2xl text-primary mb-1">
-                                    {{ group.totalScore }}
-                                </div>
-                                <div class="flex gap-2 w-full">
-                                    <button
-                                        @click="addGroupScore(group.id, 1)"
-                                        class="btn btn-success btn-xs flex-1 text-white text-lg py-3"
-                                        :disabled="
-                                            !classInfo.groupingActive ||
-                                            getGroupMembers(group).every((m) => !m.isPresent)
-                                        "
-                                        :title="
-                                            getGroupMembers(group).every((m) => !m.isPresent)
-                                                ? '本組全員缺席，無法加分'
-                                                : ''
-                                        "
-                                    >
-                                        +1
-                                    </button>
-                                    <button
-                                        @click="addGroupScore(group.id, -1)"
-                                        class="btn btn-error btn-xs flex-1 text-white text-lg py-3"
-                                        :disabled="
-                                            !classInfo.groupingActive ||
-                                            getGroupMembers(group).every((m) => !m.isPresent)
-                                        "
-                                        :title="
-                                            getGroupMembers(group).every((m) => !m.isPresent)
-                                                ? '本組全員缺席，無法扣分'
-                                                : ''
-                                        "
-                                    >
-                                        -1
-                                    </button>
-                                </div>
+                        <div
+                            class="flex flex-col items-center justify-center bg-gradient-to-br mb-4 gap-3"
+                        >
+                            <span class="text-xs text-base-content/60">總分</span>
+                            <span
+                                class="font-extrabold text-xl md:text-2xl lg:text-3xl text-primary px-2 py-1"
+                            >
+                                {{ group.totalScore }}
+                            </span>
+                            <div class="flex items-center justify-center gap-3 w-full">
+                                <button
+                                    @click="addGroupScore(group.id, 1)"
+                                    :disabled="
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                    "
+                                    :title="
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? '本組全員缺席，無法加分'
+                                            : ''
+                                    "
+                                    :class="[
+                                        'btn btn-md font-bold text-base px-4 py-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-green-500 hover:to-emerald-600',
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? 'opacity-50 cursor-not-allowed hover:scale-100'
+                                            : '',
+                                    ]"
+                                >
+                                    +1
+                                </button>
+                                <button
+                                    @click="addGroupScore(group.id, -1)"
+                                    :disabled="
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                    "
+                                    :title="
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? '本組全員缺席，無法扣分'
+                                            : ''
+                                    "
+                                    :class="[
+                                        'btn btn-md font-bold text-base px-4 py-1 rounded-full bg-gradient-to-r from-rose-400 to-red-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-rose-500 hover:to-red-600',
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? 'opacity-50 cursor-not-allowed hover:scale-100'
+                                            : '',
+                                    ]"
+                                >
+                                    -1
+                                </button>
                             </div>
                         </div>
 
