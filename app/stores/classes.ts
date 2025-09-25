@@ -337,6 +337,37 @@ export const useClassesStore = defineStore('classes', () => {
         saveToStorage()
     }
 
+    const addIndividualScoreInGroup = (
+        classId: string,
+        studentId: string,
+        score: number,
+    ) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData || !classData.groupingActive) return
+
+        const student = classData.students.find((s) => s.id === studentId)
+        if (!student || !student.isPresent) return
+
+        // 1. Update session score
+        const sessionScores = groupingSessionScores.value[classId] || {}
+        sessionScores[studentId] = (sessionScores[studentId] || 0) + score
+        groupingSessionScores.value[classId] = sessionScores
+
+        // 2. Update permanent score
+        const newScore: StudentScore = {
+            id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            value: score,
+            categoryId: 'group_individual',
+            categoryName: '小組個別評分',
+            reason: '小組內個別評分',
+            timestamp: new Date(),
+        }
+        student.scores.push(newScore)
+        _updateStudentStats(student)
+
+        saveToStorage()
+    }
+
     const addScoreToStudent = (
         classId: string,
         studentId: string,
@@ -768,6 +799,7 @@ export const useClassesStore = defineStore('classes', () => {
         updateGroups,
         updateGroupCount,
         addScoreToGroup,
+        addIndividualScoreInGroup,
         addScoreToStudent,
         resetClassTotals,
         setGroupingActivityName,

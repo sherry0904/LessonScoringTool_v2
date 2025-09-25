@@ -23,10 +23,7 @@
                                 />
                             </div>
                             <!-- 隨機分組 -->
-                            <button
-                                @click="randomAssignGroups"
-                                class="btn btn-primary"
-                            >
+                            <button @click="randomAssignGroups" class="btn btn-primary">
                                 <LucideIcon name="Shuffle" class="w-4 h-4 mr-2" />
                                 一鍵隨機分組
                             </button>
@@ -380,15 +377,39 @@
                                         <span class="opacity-60">{{
                                             baseScoresForClass[member.id] ?? ''
                                         }}</span>
+                                        <span class="opacity-60">分</span>
                                         <LucideIcon
                                             name="ArrowRight"
                                             class="w-3 h-3 text-success"
                                         />
-                                        <span class="text-success font-bold">{{
-                                            (baseScoresForClass[member.id] ?? 0) +
-                                            (sessionScoresForClass[member.id] ?? 0)
-                                        }}</span>
+                                        <span
+                                            :class="[
+                                                'text-success font-bold',
+                                                studentScoreAnimation[member.id],
+                                            ]"
+                                            >{{ 
+                                                (baseScoresForClass[member.id] ?? 0) +
+                                                (sessionScoresForClass[member.id] ?? 0)
+                                            }}</span
+                                        >
                                         <span class="text-success">分</span>
+
+                                        <div class="ml-2 flex gap-1">
+                                            <button
+                                                @click="addIndividualScore(member.id, 1)"
+                                                class="btn btn-xs btn-circle btn-outline btn-success"
+                                                title="個人加分"
+                                            >
+                                                +
+                                            </button>
+                                            <button
+                                                @click="addIndividualScore(member.id, -1)"
+                                                class="btn btn-xs btn-circle btn-outline btn-error"
+                                                title="個人扣分"
+                                            >
+                                                -
+                                            </button>
+                                        </div>
                                     </template>
                                     <template v-else> {{ member.totalScore }}分 </template>
                                 </div>
@@ -532,6 +553,7 @@ const isUngroupedCollapsed = ref(false)
 const isEndingFlow = ref(false)
 const areGroupsCollapsed = ref(false)
 const groupScoreAnimation = ref<Record<string, string | null>>({})
+const studentScoreAnimation = ref<Record<string, string | null>>({})
 
 // --- Computed Properties for easier template access ---
 const activityName = computed({
@@ -623,22 +645,27 @@ const GROUP_COLORS = [
 ]
 
 const generateGroupColor = (index?: number) => {
-    const paletteIndex = typeof index === 'number'
-        ? index % GROUP_COLORS.length
-        : localGroups.value.length % GROUP_COLORS.length
+    const paletteIndex =
+        typeof index === 'number'
+            ? index % GROUP_COLORS.length
+            : localGroups.value.length % GROUP_COLORS.length
     return GROUP_COLORS[paletteIndex]
 }
 
 const getSafeGroupCount = () => normalizeGroupCount(groupCount.value)
 
 const randomAssignGroups = () => {
+    const rawCount = Number(groupCountInput.value)
+    if (!Number.isFinite(rawCount) || rawCount < 2 || rawCount > 10) {
+        alert('組數必須介於 2 到 10 之間。')
+        return
+    }
+
     if (!props.classInfo?.students?.length) return
 
     commitGroupCount()
 
-    const confirmation = confirm(
-        '這將重新分配所有學生，並將所有組別的總分歸零。確定要繼續嗎？',
-    )
+    const confirmation = confirm('這將重新分配所有學生，並將所有組別的總分歸零。確定要繼續嗎？')
     if (!confirmation) return
 
     const existingGroups = localGroups.value.map((group, index) => ({
@@ -821,6 +848,21 @@ const deleteGroup = (groupId: string) => {
             persistGroups()
         }
     }
+}
+
+const addIndividualScore = (studentId: string, score: number) => {
+    if (!props.classInfo.groupingActive) return
+
+    const animationClass =
+        score > 0 ? 'animate-score-bounce-green' : 'animate-score-bounce-red'
+    studentScoreAnimation.value[studentId] = animationClass
+    setTimeout(() => {
+        if (studentScoreAnimation.value[studentId] === animationClass) {
+            studentScoreAnimation.value[studentId] = null
+        }
+    }, 500)
+
+    classesStore.addIndividualScoreInGroup(props.classInfo.id, studentId, score)
 }
 
 const startGrouping = () => {
