@@ -13,15 +13,20 @@
                                     <span class="label-text">組數</span>
                                 </label>
                                 <input
-                                    v-model.number="groupCount"
+                                    v-model="groupCountInput"
                                     type="number"
                                     min="2"
                                     max="10"
                                     class="input input-bordered w-20"
+                                    @blur="commitGroupCount"
+                                    @keyup.enter="commitGroupCount"
                                 />
                             </div>
                             <!-- 隨機分組 -->
-                            <button @click="randomAssignGroups" class="btn btn-primary">
+                            <button
+                                @click="randomAssignGroups"
+                                class="btn btn-primary"
+                            >
                                 <LucideIcon name="Shuffle" class="w-4 h-4 mr-2" />
                                 一鍵隨機分組
                             </button>
@@ -489,27 +494,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { ClassInfo, Group } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
 import { useClassesStore } from '~/stores/classes'
-
-// Helper function for debouncing
-function debounce<T extends (...args: any[]) => any>(
-    func: T,
-    wait: number,
-): (...args: Parameters<T>) => void {
-    let timeout: ReturnType<typeof setTimeout> | null = null
-    return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
-        if (timeout) {
-            clearTimeout(timeout)
-        }
-        timeout = setTimeout(() => {
-            func.apply(this, args)
-        }, wait)
-    }
-}
 
 interface Props {
     classInfo: ClassInfo
@@ -527,7 +516,15 @@ const { groupingBaseScores, groupingSessionScores, groupingActivityNames } =
 const scoreboardModal = ref<HTMLDialogElement>()
 
 // Component-local state
-const groupCount = ref(props.classInfo.groupCount || 4)
+const normalizeGroupCount = (value: number | string | null | undefined): number => {
+    const n = Math.floor(Number(value))
+    if (!Number.isFinite(n) || n < 2) return 2
+    return Math.min(n, 10)
+}
+
+const groupCount = ref(normalizeGroupCount(props.classInfo.groupCount))
+const groupCountInput = ref(String(groupCount.value))
+const isSyncingFromLocal = ref(false)
 const draggedStudentId = ref<string | null>(null)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
@@ -579,21 +576,27 @@ const getGroupMembers = (group: Group) => {
     })
 }
 
-const persistGroups = debounce(() => {
-    classesStore.updateGroups(props.classInfo.id, localGroups.value)
-}, 500)
+const persistGroups = () => {
+    const clonedGroups: Group[] = localGroups.value.map((group) => ({
+        ...group,
+        members: group.members.map((member) => ({ ...member })),
+    }))
+    isSyncingFromLocal.value = true
+    classesStore.updateGroups(props.classInfo.id, clonedGroups)
+}
 
 const initializeGroups = () => {
     localGroups.value = []
-    for (let i = 1; i <= groupCount.value; i++) {
-        createGroup(`第 ${i} 組`, false) // Don't persist for each creation
+    const safeCount = getSafeGroupCount()
+    for (let i = 1; i <= safeCount; i++) {
+        createGroup(`第 ${i} 組`, false)
     }
     persistGroups()
 }
 
-const createGroup = (name: string, shouldPersist = true) => {
+const createGroup = (name: string, shouldPersist = true, id?: string) => {
     const newGroup: Group = {
-        id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: id || `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: name.trim(),
         members: [],
         totalScore: 0,
@@ -608,42 +611,137 @@ const createGroup = (name: string, shouldPersist = true) => {
     return newGroup
 }
 
-const generateGroupColor = () => {
-    const colors = [
-        '#3b82f6',
-        '#ef4444',
-        '#10b981',
-        '#f59e0b',
-        '#8b5cf6',
-        '#ec4899',
-        '#06b6d4',
-        '#84cc16',
-    ]
-    return colors[localGroups.value.length % colors.length]
+const GROUP_COLORS = [
+    '#3b82f6',
+    '#ef4444',
+    '#10b981',
+    '#f59e0b',
+    '#8b5cf6',
+    '#ec4899',
+    '#06b6d4',
+    '#84cc16',
+]
+
+const generateGroupColor = (index?: number) => {
+    const paletteIndex = typeof index === 'number'
+        ? index % GROUP_COLORS.length
+        : localGroups.value.length % GROUP_COLORS.length
+    return GROUP_COLORS[paletteIndex]
 }
 
-const randomAssignGroups = () => {
-    if (confirm('這將重新分配所有學生，確定要繼續嗎？')) {
-        localGroups.value = []
-        for (let i = 1; i <= groupCount.value; i++) {
-            createGroup(`第 ${i} 組`, false)
-        }
+const getSafeGroupCount = () => normalizeGroupCount(groupCount.value)
 
-        const presentStudents = props.classInfo.students.filter((s) => s.isPresent)
-        const shuffledStudents = [...presentStudents].sort(() => Math.random() - 0.5)
-        shuffledStudents.forEach((student, index) => {
-            const groupIndex = index % groupCount.value
-            addStudentToGroup(student.id, localGroups.value[groupIndex].id, false)
-        })
+const randomAssignGroups = () => {
+    if (!props.classInfo?.students?.length) return
+
+    commitGroupCount()
+
+    const confirmation = confirm(
+        '這將重新分配所有學生，並將所有組別的總分歸零。確定要繼續嗎？',
+    )
+    if (!confirmation) return
+
+    const existingGroups = localGroups.value.map((group, index) => ({
+        id: group.id || `group_${Date.now()}_${index}`,
+        name: group.name?.trim() || `第 ${index + 1} 組`,
+        color: group.color || generateGroupColor(index),
+        totalScore: 0, // Reset score
+        averageScore: 0, // Reset score
+        createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
+    }))
+
+    const baseGroups = existingGroups.length
+        ? existingGroups
+        : Array.from({ length: getSafeGroupCount() }, (_, index) => ({
+              id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              name: `第 ${index + 1} 組`,
+              color: generateGroupColor(index),
+              totalScore: 0,
+              averageScore: 0,
+              createdAt: new Date(),
+          }))
+
+    const normalizedGroups: Group[] = baseGroups.map((group, index) => ({
+        ...group,
+        members: [],
+        color: group.color || generateGroupColor(index),
+    }))
+
+    localGroups.value = normalizedGroups
+    groupScoreAnimation.value = {}
+
+    const presentStudents = props.classInfo.students.filter((s) => s.isPresent)
+    if (localGroups.value.length === 0) {
+        alert('未建立任何組別，請先設定有效的組數')
+        return
+    }
+    if (presentStudents.length === 0) {
+        alert('目前沒有出席學生可供分組')
+        return
+    }
+    const shuffledStudents = [...presentStudents].sort(() => Math.random() - 0.5)
+    shuffledStudents.forEach((student, index) => {
+        const groupIndex = index % localGroups.value.length
+        localGroups.value[groupIndex].members.push({ ...student })
+    })
+
+    persistGroups()
+}
+
+const ensureGroupStructure = (targetCount: number, persistAfter = true) => {
+    const current = localGroups.value.length
+    let changed = false
+
+    if (targetCount > current) {
+        for (let i = current; i < targetCount; i++) {
+            createGroup(`第 ${i + 1} 組`, false)
+            changed = true
+        }
+    } else if (targetCount < current) {
+        const removed = localGroups.value.splice(targetCount)
+        changed = removed.length > 0
+    }
+
+    if (changed && persistAfter) {
         persistGroups()
     }
+
+    return changed
+}
+
+const commitGroupCount = () => {
+    if (String(groupCountInput.value).trim() === '') {
+        groupCountInput.value = String(groupCount.value)
+        return
+    }
+
+    const raw = Number(groupCountInput.value)
+
+    if (!Number.isFinite(raw)) {
+        groupCountInput.value = String(groupCount.value)
+        return
+    }
+
+    const normalized = Math.min(Math.max(Math.floor(raw), 2), 10)
+
+    if (normalized !== groupCount.value) {
+        groupCount.value = normalized
+        const changed = ensureGroupStructure(normalized, false)
+        if (changed) {
+            persistGroups()
+        }
+        classesStore.updateGroupCount(props.classInfo.id, normalized)
+    }
+
+    groupCountInput.value = String(groupCount.value)
 }
 
 const resetAllGroups = () => {
     if (confirm('這會將所有學生移回未分組狀態，但會保留現有組別。確定嗎？')) {
-        localGroups.value.forEach((group) => {
-            group.members = []
-        })
+        localGroups.value = localGroups.value.map((group) => ({
+            ...group,
+            members: [],
+        }))
         persistGroups()
     }
 }
@@ -737,7 +835,7 @@ const endGrouping = () => {
 
 const confirmEndGrouping = () => {
     classesStore.endClassGrouping(props.classInfo.id)
-    // No need to clear local state, the watchEffect will handle it
+    // No need to clear local state, the watcher will handle it
     closeScoreboardModal()
 }
 
@@ -818,21 +916,53 @@ const exportActivityReport = () => {
     exportToExcel([groupSheet, studentSheet], fileName)
 }
 
-// Sync local state with the store/props state
-watchEffect(() => {
-    // Use stringify/parse for a deep copy to avoid mutation issues
-    localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
-    groupCount.value = props.classInfo.groupCount || 4
-    if (localGroups.value.length === 0) {
-        areGroupsCollapsed.value = false
-    }
-    const groupIds = new Set(localGroups.value.map((group) => group.id))
-    Object.keys(groupScoreAnimation.value).forEach((id) => {
-        if (!groupIds.has(id)) {
-            delete groupScoreAnimation.value[id]
+watch(
+    () => props.classInfo.groups,
+    (groups) => {
+        const sourceGroups = Array.isArray(groups) ? groups : []
+        localGroups.value = sourceGroups.map((group) => ({
+            ...group,
+            members: group.members?.map((member) => ({ ...member })) || [],
+            createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
+        }))
+
+        if (localGroups.value.length === 0) {
+            areGroupsCollapsed.value = false
         }
-    })
-})
+
+        const groupIds = new Set(localGroups.value.map((group) => group.id))
+        Object.keys(groupScoreAnimation.value).forEach((id) => {
+            if (!groupIds.has(id)) {
+                delete groupScoreAnimation.value[id]
+            }
+        })
+
+        if (isSyncingFromLocal.value) {
+            isSyncingFromLocal.value = false
+        }
+    },
+    { deep: true, immediate: true },
+)
+
+watch(
+    () => props.classInfo.groupCount,
+    (value) => {
+        const normalized = normalizeGroupCount(value)
+        if (groupCount.value !== normalized) {
+            groupCount.value = normalized
+        }
+        groupCountInput.value = String(normalized)
+    },
+    { immediate: true },
+)
+
+watch(
+    () => groupCount.value,
+    (value, oldValue) => {
+        if (value === oldValue) return
+        groupCountInput.value = String(value)
+    },
+)
 </script>
 
 <style scoped>
