@@ -17,11 +17,13 @@
                 <div class="stat-value text-error">{{ lowestScore }}</div>
                 <div class="stat-desc">{{ bottomStudent?.name }}</div>
             </div>
-            <div class="stat">
-                <div class="stat-title">及格率</div>
-                <div class="stat-value">{{ passRate }}%</div>
-                <div class="stat-desc">以60分為及格標準</div>
-            </div>
+            <!--
+                <div class="stat">
+                    <div class="stat-title">及格率</div>
+                    <div class="stat-value">{{ passRate }}%</div>
+                    <div class="stat-desc">以60分為及格標準</div>
+                </div>
+                -->
         </div>
 
         <!-- 操作面板 -->
@@ -29,20 +31,17 @@
             <div class="card-body">
                 <div class="flex flex-wrap gap-4 items-center justify-between">
                     <div class="flex flex-wrap gap-4 items-center">
-                        <div class="form-control">
-                            <label class="label">
+                        <div class="flex items-center gap-4">
+                            <label class="label mb-0">
                                 <span class="label-text">排序方式</span>
                             </label>
-                            <select v-model="sortBy" class="select select-bordered">
+                            <select v-model="sortBy" class="select select-bordered w-32">
                                 <option value="totalScore">總分</option>
                                 <option value="averageScore">平均分</option>
                                 <option value="name">姓名</option>
                                 <option value="id">座號</option>
                             </select>
-                        </div>
-
-                        <div class="form-control">
-                            <label class="label">
+                            <label class="label mb-0 ml-4">
                                 <span class="label-text">排序順序</span>
                             </label>
                             <div class="btn-group">
@@ -65,21 +64,23 @@
                             </div>
                         </div>
 
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">評分類別</span>
-                            </label>
-                            <select v-model="filterCategory" class="select select-bordered">
-                                <option value="">全部類別</option>
-                                <option
-                                    v-for="category in scoreCategories"
-                                    :key="category.id"
-                                    :value="category.id"
-                                >
-                                    {{ category.name }}
-                                </option>
-                            </select>
-                        </div>
+                        <!--
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">評分類別</span>
+                                </label>
+                                <select v-model="filterCategory" class="select select-bordered">
+                                    <option value="">全部類別</option>
+                                    <option
+                                        v-for="category in scoreCategories"
+                                        :key="category.id"
+                                        :value="category.id"
+                                    >
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            -->
                     </div>
 
                     <div class="flex gap-2">
@@ -87,10 +88,12 @@
                             <LucideIcon name="Download" class="w-4 h-4" />
                             匯出成績單
                         </button>
-                        <button @click="showStatisticsChart" class="btn btn-info gap-2">
-                            <LucideIcon name="BarChart3" class="w-4 h-4" />
-                            統計圖表
-                        </button>
+                        <!--
+                            <button @click="showStatisticsChart" class="btn btn-info gap-2">
+                                <LucideIcon name="BarChart3" class="w-4 h-4" />
+                                統計圖表
+                            </button>
+                            -->
                     </div>
                 </div>
             </div>
