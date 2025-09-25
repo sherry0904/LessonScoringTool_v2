@@ -60,6 +60,7 @@ import {
     ClipboardEdit,
     ClipboardList,
     Palette,
+    Minus,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -124,4 +125,5 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucideClipboardEdit', ClipboardEdit)
     nuxtApp.vueApp.component('LucideClipboardList', ClipboardList)
     nuxtApp.vueApp.component('LucidePalette', Palette)
+    nuxtApp.vueApp.component('LucideMinus', Minus)
 })

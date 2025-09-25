@@ -227,15 +227,15 @@
                 >
                     <div class="card-body">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="card-title text-base flex items-center">
+                            <h3 class="flex items-center gap-2 text-lg md:text-xl font-semibold">
                                 <div
                                     class="w-4 h-4 rounded-full mr-2"
                                     :style="{ backgroundColor: group.color }"
                                 ></div>
                                 {{ group.name }}
-                                <span class="badge badge-neutral ml-2"
-                                    >{{ getGroupMembers(group).length }} 人</span
-                                >
+                                <span class="ml-1 text-xs text-base-content/60">
+                                    {{ getGroupMembers(group).length }} 人
+                                </span>
                             </h3>
 
                             <div class="dropdown dropdown-end">
@@ -280,11 +280,14 @@
 
                         <!-- 組別總分 -->
                         <div
-                            class="flex flex-col items-center justify-center bg-gradient-to-br mb-4 gap-3"
+                            class="flex flex-col items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 rounded-xl p-4 mb-4 gap-3"
                         >
                             <span class="text-xs text-base-content/60">總分</span>
                             <span
-                                class="font-extrabold text-xl md:text-2xl lg:text-3xl text-primary px-2 py-1"
+                                :class="[
+                                    'font-extrabold text-xl md:text-2xl lg:text-3xl text-primary px-2 py-1',
+                                    groupScoreAnimation[group.id],
+                                ]"
                             >
                                 {{ group.totalScore }}
                             </span>
@@ -301,7 +304,7 @@
                                             : ''
                                     "
                                     :class="[
-                                        'btn btn-md font-bold text-base px-4 py-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-green-500 hover:to-emerald-600',
+                                        'btn btn-md font-bold text-base px-6 py-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-green-500 hover:to-emerald-600',
                                         !classInfo.groupingActive ||
                                         getGroupMembers(group).every((m) => !m.isPresent)
                                             ? 'opacity-50 cursor-not-allowed hover:scale-100'
@@ -322,7 +325,7 @@
                                             : ''
                                     "
                                     :class="[
-                                        'btn btn-md font-bold text-base px-4 py-1 rounded-full bg-gradient-to-r from-rose-400 to-red-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-rose-500 hover:to-red-600',
+                                        'btn btn-md font-bold text-base px-6 py-1 rounded-full bg-gradient-to-r from-rose-400 to-red-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-rose-500 hover:to-red-600',
                                         !classInfo.groupingActive ||
                                         getGroupMembers(group).every((m) => !m.isPresent)
                                             ? 'opacity-50 cursor-not-allowed hover:scale-100'
@@ -337,7 +340,7 @@
                         <!-- 組員列表 -->
                         <div
                             v-if="!areGroupsCollapsed"
-                            class="min-h-32 p-3 border-2 border-dashed border-base-300 rounded-lg space-y-2"
+                            class="min-h-32 space-y-2 bg-base-100"
                             @drop="handleDrop(group.id)"
                             @dragover.prevent
                             @dragenter.prevent
@@ -490,6 +493,7 @@ import { ref, computed, watchEffect } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { ClassInfo, Group } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
+import { useClassesStore } from '~/stores/classes'
 
 // Helper function for debouncing
 function debounce<T extends (...args: any[]) => any>(
@@ -530,6 +534,7 @@ const isUngroupedCollapsed = ref(false)
 // const activityName = ref('') // Replaced by computed property linked to store
 const isEndingFlow = ref(false)
 const areGroupsCollapsed = ref(false)
+const groupScoreAnimation = ref<Record<string, string | null>>({})
 
 // --- Computed Properties for easier template access ---
 const activityName = computed({
@@ -688,6 +693,13 @@ const removeStudentFromGroups = (studentId: string, shouldPersist = true) => {
 
 const addGroupScore = (groupId: string, score: number) => {
     if (!props.classInfo.groupingActive) return
+    const animationClass = score > 0 ? 'animate-score-bounce-green' : 'animate-score-bounce-red'
+    groupScoreAnimation.value[groupId] = animationClass
+    setTimeout(() => {
+        if (groupScoreAnimation.value[groupId] === animationClass) {
+            groupScoreAnimation.value[groupId] = null
+        }
+    }, 500)
     // The store action now handles all the logic
     classesStore.addScoreToGroup(props.classInfo.id, groupId, score)
 }
@@ -814,5 +826,15 @@ watchEffect(() => {
     if (localGroups.value.length === 0) {
         areGroupsCollapsed.value = false
     }
+    const groupIds = new Set(localGroups.value.map((group) => group.id))
+    Object.keys(groupScoreAnimation.value).forEach((id) => {
+        if (!groupIds.has(id)) {
+            delete groupScoreAnimation.value[id]
+        }
+    })
 })
 </script>
+
+<style scoped>
+@import '@/assets/score-animate.css';
+</style>
