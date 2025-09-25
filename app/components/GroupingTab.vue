@@ -36,10 +36,10 @@
                         <button
                             @click="startGrouping"
                             class="btn btn-success gap-2"
-                            :disabled="localGroups.length === 0"
+                            :disabled="localGroups.length === 0 || !hasStudentsInGroups"
                         >
                             <LucideIcon name="Play" class="w-4 h-4" />
-                            開始分組
+                            開始分組活動
                         </button>
                     </div>
                     <div class="flex flex-wrap items-center gap-2 mt-4 border-t pt-4">
@@ -293,7 +293,7 @@
                             >
                                 {{ group.totalScore }}
                             </span>
-                            <div class="flex items-center justify-center gap-3 w-full">
+                            <div v-if="classInfo.groupingActive" class="flex items-center justify-center gap-3 w-full">
                                 <button
                                     @click="addGroupScore(group.id, 1)"
                                     :disabled="
@@ -387,7 +387,7 @@
                                                 'text-success font-bold',
                                                 studentScoreAnimation[member.id],
                                             ]"
-                                            >{{ 
+                                            >{{
                                                 (baseScoresForClass[member.id] ?? 0) +
                                                 (sessionScoresForClass[member.id] ?? 0)
                                             }}</span
@@ -490,9 +490,6 @@
                                 <button @click="resetGroupScores" class="btn btn-warning">
                                     結束並重設分數
                                 </button>
-                                <button @click="confirmEndGrouping" class="btn btn-success">
-                                    結束並保留分數
-                                </button>
                             </div>
                             <button @click="closeScoreboardModal" class="btn btn-ghost">
                                 取消
@@ -530,8 +527,13 @@ const classesStore = useClassesStore()
 const { exportToExcel } = useExcelExport()
 
 // --- Use Store as the Single Source of Truth ---
-const { groupingBaseScores, groupingSessionScores, groupingActivityNames } =
-    storeToRefs(classesStore)
+const {
+    groupingBaseScores,
+    groupingSessionScores,
+    groupingActivityNames,
+    groupingSessionGroupScores,
+    groupingSessionIndividualScores,
+} = storeToRefs(classesStore)
 
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()
@@ -578,6 +580,10 @@ const ungroupedStudents = computed(() => {
 const sortedGroups = computed(() => {
     return [...localGroups.value].sort((a, b) => b.totalScore - a.totalScore)
 })
+
+const hasStudentsInGroups = computed(() => {
+    return localGroups.value.some(group => group.members.length > 0);
+});
 
 // --- Methods ---
 
@@ -853,8 +859,7 @@ const deleteGroup = (groupId: string) => {
 const addIndividualScore = (studentId: string, score: number) => {
     if (!props.classInfo.groupingActive) return
 
-    const animationClass =
-        score > 0 ? 'animate-score-bounce-green' : 'animate-score-bounce-red'
+    const animationClass = score > 0 ? 'animate-score-bounce-green' : 'animate-score-bounce-red'
     studentScoreAnimation.value[studentId] = animationClass
     setTimeout(() => {
         if (studentScoreAnimation.value[studentId] === animationClass) {
@@ -866,8 +871,12 @@ const addIndividualScore = (studentId: string, score: number) => {
 }
 
 const startGrouping = () => {
-    // The store action now handles all the logic
+    if (!hasStudentsInGroups.value) {
+        alert('請先將學生分組，才能開始分組活動！');
+        return;
+    }
     classesStore.startClassGrouping(props.classInfo.id)
+    areGroupsCollapsed.value = true; // Set to collapsed when starting
 }
 
 const endGrouping = () => {
@@ -875,19 +884,15 @@ const endGrouping = () => {
     scoreboardModal.value?.showModal()
 }
 
-const confirmEndGrouping = () => {
-    classesStore.endClassGrouping(props.classInfo.id)
-    // No need to clear local state, the watcher will handle it
-    closeScoreboardModal()
-}
-
 const resetGroupScores = () => {
     if (confirm('確認要重設各組分數嗎？這將清除所有組別的總分。')) {
         localGroups.value.forEach((group) => {
             group.totalScore = 0
         })
-        persistGroups()
-        confirmEndGrouping()
+        persistGroups() // Persist the reset group scores
+        classesStore.endClassGrouping(props.classInfo.id) // End the grouping session
+        closeScoreboardModal() // Close the modal
+        areGroupsCollapsed.value = false; // Set to expanded when ending
     }
 }
 
@@ -929,14 +934,21 @@ const exportActivityReport = () => {
     const studentDetailsData = localGroups.value.flatMap((group) =>
         getGroupMembers(group).map((member) => {
             const baseScore = baseScoresForClass.value[member.id] ?? 0
-            const sessionScore = sessionScoresForClass.value[member.id] ?? 0
+            const totalSessionScore = sessionScoresForClass.value[member.id] ?? 0
+            const groupWideScore =
+                groupingSessionGroupScores.value[props.classInfo.id]?.[member.id] ?? 0
+            const individualGroupScore =
+                groupingSessionIndividualScores.value[props.classInfo.id]?.[member.id] ?? 0
+
             return {
                 組別: group.name,
                 座號: member.id,
                 姓名: member.name,
                 出席情況: member.isPresent ? '出席' : '缺席',
-                本次活動得分: sessionScore,
-                活動後總分: baseScore + sessionScore,
+                小組團體加分: groupWideScore,
+                小組個人加分: individualGroupScore,
+                本次活動總得分: totalSessionScore,
+                活動後總分: baseScore + totalSessionScore,
             }
         }),
     )
@@ -949,8 +961,10 @@ const exportActivityReport = () => {
             { wch: 10 },
             { wch: 15 },
             { wch: 12 },
-            { wch: 15 },
-            { wch: 15 },
+            { wch: 15 }, // 小組團體加分
+            { wch: 15 }, // 小組個人加分
+            { wch: 15 }, // 本次活動總得分
+            { wch: 15 }, // 活動後總分
         ],
     }
 
