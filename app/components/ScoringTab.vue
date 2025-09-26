@@ -5,7 +5,7 @@
             <div class="card-body">
                 <div class="flex flex-wrap gap-4 items-center">
                     <div class="form-control flex-1">
-                        <div class="flex items-center gap-4 justify-between w-full">
+                        <div class="flex flex-wrap items-center gap-4 justify-between w-full">
                             <div class="flex items-center gap-2">
                                 <span class="label-text whitespace-nowrap">快速加分</span>
                                 <div class="flex flex-wrap gap-2">
@@ -34,14 +34,26 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 ml-auto">
-                                <button class="btn btn-sm btn-outline" @click="selectAllStudents" type="button">
+                                <button
+                                    class="btn btn-sm btn-outline"
+                                    @click="selectAllStudents"
+                                    type="button"
+                                >
                                     全選
                                 </button>
-                                <button class="btn btn-sm btn-outline" @click="clearSelection" type="button">
+                                <button
+                                    class="btn btn-sm btn-outline"
+                                    @click="clearSelection"
+                                    type="button"
+                                >
                                     取消全選
                                 </button>
                                 <div class="divider divider-horizontal mx-1"></div>
-                                <button class="btn btn-sm btn-outline" @click="exportClassScores" type="button">
+                                <button
+                                    class="btn btn-sm btn-outline"
+                                    @click="exportClassScores"
+                                    type="button"
+                                >
                                     <LucideIcon name="Download" class="w-4 h-4 mr-1" />
                                     匯出成績
                                 </button>
@@ -90,11 +102,17 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h3 class="font-semibold text-lg">{{ student.name }}</h3>
-                                    <p class="text-sm text-base-content/70">座號 {{ student.id }}</p>
+                                    <p class="text-sm text-base-content/70">
+                                        座號 {{ student.id }}
+                                    </p>
                                 </div>
                                 <span
                                     class="badge badge-soft"
-                                    :class="student.isPresent ? 'badge-success' : 'badge-ghost text-base-content/60'"
+                                    :class="
+                                        student.isPresent
+                                            ? 'badge-success'
+                                            : 'badge-ghost text-base-content/60'
+                                    "
                                 >
                                     {{ student.isPresent ? '出席' : '缺席' }}
                                 </span>
@@ -111,7 +129,11 @@
                                         />
                                         <span
                                             class="text-sm font-medium"
-                                            :class="student.isPresent ? 'text-green-600' : 'text-gray-400'"
+                                            :class="
+                                                student.isPresent
+                                                    ? 'text-green-600'
+                                                    : 'text-gray-400'
+                                            "
                                         >
                                             {{ student.isPresent ? '出席' : '缺席' }}
                                         </span>
@@ -155,7 +177,12 @@
                 </div>
                 <div class="absolute top-3 right-3 z-10">
                     <div class="dropdown dropdown-end">
-                        <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle" @click.stop>
+                        <div
+                            tabindex="0"
+                            role="button"
+                            class="btn btn-ghost btn-xs btn-circle"
+                            @click.stop
+                        >
                             <LucideIcon name="MoreVertical" class="w-4 h-4" />
                         </div>
                         <ul
@@ -163,26 +190,42 @@
                             class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
                         >
                             <li>
-                                <a v-if="editStudent" @click.stop="editStudent?.(student.id)" class="flex items-center gap-2">
+                                <a
+                                    v-if="editStudent"
+                                    @click.stop="editStudent?.(student.id)"
+                                    class="flex items-center gap-2"
+                                >
                                     <LucideIcon name="Edit" class="w-3 h-3" />
                                     <span>編輯學生</span>
                                 </a>
                             </li>
                             <li>
-                                <a @click.stop="viewStudentHistory(student)" class="flex items-center gap-2">
+                                <a
+                                    @click.stop="viewStudentHistory(student)"
+                                    class="flex items-center gap-2"
+                                >
                                     <LucideIcon name="ScrollText" class="w-3 h-3" />
                                     <span>評分記錄</span>
                                 </a>
                             </li>
                             <li>
-                                <a @click.stop="togglePresence(student.id)" class="flex items-center gap-2">
-                                    <LucideIcon :name="student.isPresent ? 'UserMinus' : 'UserCheck'" class="w-3 h-3" />
+                                <a
+                                    @click.stop="togglePresence(student.id)"
+                                    class="flex items-center gap-2"
+                                >
+                                    <LucideIcon
+                                        :name="student.isPresent ? 'UserMinus' : 'UserCheck'"
+                                        class="w-3 h-3"
+                                    />
                                     <span>{{ student.isPresent ? '標記缺席' : '標記出席' }}</span>
                                 </a>
                             </li>
                             <div class="divider my-1"></div>
                             <li>
-                                <a @click.stop="deleteStudent(student)" class="text-error flex items-center gap-2">
+                                <a
+                                    @click.stop="deleteStudent(student)"
+                                    class="text-error flex items-center gap-2"
+                                >
                                     <LucideIcon name="Trash2" class="w-3 h-3" />
                                     <span>刪除學生</span>
                                 </a>
