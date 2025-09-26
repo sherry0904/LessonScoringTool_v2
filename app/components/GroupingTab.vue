@@ -13,11 +13,13 @@
                                     <span class="label-text">組數</span>
                                 </label>
                                 <input
-                                    v-model.number="groupCount"
+                                    v-model="groupCountInput"
                                     type="number"
                                     min="2"
                                     max="10"
                                     class="input input-bordered w-20"
+                                    @blur="commitGroupCount"
+                                    @keyup.enter="commitGroupCount"
                                 />
                             </div>
                             <!-- 隨機分組 -->
@@ -34,32 +36,50 @@
                         <button
                             @click="startGrouping"
                             class="btn btn-success gap-2"
-                            :disabled="localGroups.length === 0"
+                            :disabled="localGroups.length === 0 || !hasStudentsInGroups"
                         >
                             <LucideIcon name="Play" class="w-4 h-4" />
-                            開始分組
+                            開始分組活動
                         </button>
                     </div>
-                    <div class="flex flex-wrap gap-4 items-end mt-4 border-t pt-4">
-                        <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                            <label class="whitespace-nowrap text-base-content/80 mr-2"
-                                >活動名稱 (選填)</label
-                            >
-                            <input
-                                v-model="activityName"
-                                type="text"
-                                placeholder="例如：第二次分組討論"
-                                class="input input-bordered flex-1 min-w-0"
-                            />
-                        </div>
-                        <button
-                            @click="showGroupScoreboard"
-                            class="btn btn-warning ml-2"
-                            :disabled="localGroups.length === 0"
+                    <div class="flex flex-wrap items-center gap-2 mt-4 border-t pt-4">
+                        <label class="whitespace-nowrap text-base-content/80"
+                            >活動名稱 (選填)</label
                         >
-                            <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />
-                            積分儀表板
-                        </button>
+                        <input
+                            v-model="activityName"
+                            type="text"
+                            placeholder="例如：第二次分組討論"
+                            class="input input-bordered w-60"
+                        />
+                        <div class="flex items-center gap-2 ml-auto">
+                            <button
+                                @click="expandAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="展開所有組員"
+                            >
+                                <LucideIcon name="ChevronDown" class="w-4 h-4" />
+                                展開組員
+                            </button>
+                            <button
+                                @click="collapseAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="收合所有組員"
+                            >
+                                <LucideIcon name="ChevronUp" class="w-4 h-4" />
+                                收合組員
+                            </button>
+                            <button
+                                @click="showGroupScoreboard"
+                                class="btn btn-warning"
+                                :disabled="localGroups.length === 0"
+                            >
+                                <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />
+                                積分儀表板
+                            </button>
+                        </div>
                     </div>
                 </template>
 
@@ -75,10 +95,28 @@
                                 v-model="activityName"
                                 type="text"
                                 placeholder="請輸入活動名稱..."
-                                class="input input-sm input-bordered w-auto max-w-xs"
+                                class="input input-sm input-bordered w-52"
                             />
                         </div>
                         <div class="flex items-center gap-2">
+                            <button
+                                @click="expandAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="展開所有組員"
+                            >
+                                <LucideIcon name="ChevronDown" class="w-4 h-4" />
+                                展開組員
+                            </button>
+                            <button
+                                @click="collapseAllGroups"
+                                class="btn btn-sm btn-outline gap-1"
+                                :disabled="localGroups.length === 0"
+                                title="收合所有組員"
+                            >
+                                <LucideIcon name="ChevronUp" class="w-4 h-4" />
+                                收合組員
+                            </button>
                             <button
                                 @click="exportActivityReport"
                                 class="btn btn-sm btn-info gap-1"
@@ -191,15 +229,15 @@
                 >
                     <div class="card-body">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="card-title text-base flex items-center">
+                            <h3 class="flex items-center gap-2 text-lg md:text-xl font-semibold">
                                 <div
                                     class="w-4 h-4 rounded-full mr-2"
                                     :style="{ backgroundColor: group.color }"
                                 ></div>
                                 {{ group.name }}
-                                <span class="badge badge-neutral ml-2"
-                                    >{{ getGroupMembers(group).length }} 人</span
-                                >
+                                <span class="ml-1 text-xs text-base-content/60">
+                                    {{ getGroupMembers(group).length }} 人
+                                </span>
                             </h3>
 
                             <div class="dropdown dropdown-end">
@@ -243,18 +281,68 @@
                         </div>
 
                         <!-- 組別總分 -->
-                        <div class="stats shadow mb-3">
-                            <div class="stat py-2">
-                                <div class="stat-title text-xs">總分</div>
-                                <div class="stat-value text-lg text-primary">
-                                    {{ group.totalScore }}
-                                </div>
+                        <div
+                            class="flex flex-col items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 rounded-xl p-4 mb-4 gap-3"
+                        >
+                            <span class="text-xs text-base-content/60">總分</span>
+                            <span
+                                :class="[
+                                    'font-extrabold text-xl md:text-2xl lg:text-3xl text-primary px-2 py-1',
+                                    groupScoreAnimation[group.id],
+                                ]"
+                            >
+                                {{ group.totalScore }}
+                            </span>
+                            <div v-if="classInfo.groupingActive" class="flex items-center justify-center gap-3 w-full">
+                                <button
+                                    @click="addGroupScore(group.id, 1)"
+                                    :disabled="
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                    "
+                                    :title="
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? '本組全員缺席，無法加分'
+                                            : ''
+                                    "
+                                    :class="[
+                                        'btn btn-md font-bold text-base px-6 py-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-green-500 hover:to-emerald-600',
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? 'opacity-50 cursor-not-allowed hover:scale-100'
+                                            : '',
+                                    ]"
+                                >
+                                    +1
+                                </button>
+                                <button
+                                    @click="addGroupScore(group.id, -1)"
+                                    :disabled="
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                    "
+                                    :title="
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? '本組全員缺席，無法扣分'
+                                            : ''
+                                    "
+                                    :class="[
+                                        'btn btn-md font-bold text-base px-6 py-1 rounded-full bg-gradient-to-r from-rose-400 to-red-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-rose-500 hover:to-red-600',
+                                        !classInfo.groupingActive ||
+                                        getGroupMembers(group).every((m) => !m.isPresent)
+                                            ? 'opacity-50 cursor-not-allowed hover:scale-100'
+                                            : '',
+                                    ]"
+                                >
+                                    -1
+                                </button>
                             </div>
                         </div>
 
                         <!-- 組員列表 -->
                         <div
-                            class="min-h-32 p-3 border-2 border-dashed border-base-300 rounded-lg space-y-2"
+                            v-if="!areGroupsCollapsed"
+                            class="min-h-32 space-y-2 bg-base-100"
                             @drop="handleDrop(group.id)"
                             @dragover.prevent
                             @dragenter.prevent
@@ -289,15 +377,39 @@
                                         <span class="opacity-60">{{
                                             baseScoresForClass[member.id] ?? ''
                                         }}</span>
+                                        <span class="opacity-60">分</span>
                                         <LucideIcon
                                             name="ArrowRight"
                                             class="w-3 h-3 text-success"
                                         />
-                                        <span class="text-success font-bold">{{
-                                            (baseScoresForClass[member.id] ?? 0) +
-                                            (sessionScoresForClass[member.id] ?? 0)
-                                        }}</span>
+                                        <span
+                                            :class="[
+                                                'text-success font-bold',
+                                                studentScoreAnimation[member.id],
+                                            ]"
+                                            >{{
+                                                (baseScoresForClass[member.id] ?? 0) +
+                                                (sessionScoresForClass[member.id] ?? 0)
+                                            }}</span
+                                        >
                                         <span class="text-success">分</span>
+
+                                        <div class="ml-2 flex gap-1">
+                                            <button
+                                                @click="addIndividualScore(member.id, 1)"
+                                                class="btn btn-xs btn-circle btn-outline btn-success"
+                                                title="個人加分"
+                                            >
+                                                +
+                                            </button>
+                                            <button
+                                                @click="addIndividualScore(member.id, -1)"
+                                                class="btn btn-xs btn-circle btn-outline btn-error"
+                                                title="個人扣分"
+                                            >
+                                                -
+                                            </button>
+                                        </div>
                                     </template>
                                     <template v-else> {{ member.totalScore }}分 </template>
                                 </div>
@@ -310,40 +422,9 @@
                                 拖拽學生到此組
                             </div>
                         </div>
-
-                        <!-- 快速評分 -->
-                        <div class="flex gap-2 mt-3">
-                            <button
-                                @click="addGroupScore(group.id, 1)"
-                                class="btn btn-success btn-sm flex-1"
-                                :disabled="
-                                    !classInfo.groupingActive ||
-                                    getGroupMembers(group).every((m) => !m.isPresent)
-                                "
-                                :title="
-                                    getGroupMembers(group).every((m) => !m.isPresent)
-                                        ? '本組全員缺席，無法加分'
-                                        : ''
-                                "
-                            >
-                                +1
-                            </button>
-                            <button
-                                @click="addGroupScore(group.id, -1)"
-                                class="btn btn-error btn-sm flex-1"
-                                :disabled="
-                                    !classInfo.groupingActive ||
-                                    getGroupMembers(group).every((m) => !m.isPresent)
-                                "
-                                :title="
-                                    getGroupMembers(group).every((m) => !m.isPresent)
-                                        ? '本組全員缺席，無法扣分'
-                                        : ''
-                                "
-                            >
-                                -1
-                            </button>
-                        </div>
+                        <p v-else class="text-xs text-base-content/60 italic text-center">
+                            組員已收合，點擊「展開組員」查看
+                        </p>
                     </div>
                 </div>
             </main>
@@ -409,16 +490,13 @@
                                 <button @click="resetGroupScores" class="btn btn-warning">
                                     結束並重設分數
                                 </button>
-                                <button @click="confirmEndGrouping" class="btn btn-success">
-                                    結束並保留分數
-                                </button>
                             </div>
                             <button @click="closeScoreboardModal" class="btn btn-ghost">
                                 取消
                             </button>
                         </div>
                         <p class="text-xs text-base-content/60 mt-3 w-full">
-                            提醒：活動結束後就不可再匯出此次分組活動的報告。
+                            提醒：設置活動名稱方可匯出活動報告，活動結束後就不可再匯出此次分組活動的報告。
                         </p>
                     </div>
                     <div v-else class="w-full flex justify-end">
@@ -434,26 +512,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { ClassInfo, Student, Group } from '~/types'
+import type { ClassInfo, Group } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
-
-// Helper function for debouncing
-function debounce<T extends (...args: any[]) => any>(
-    func: T,
-    wait: number,
-): (...args: Parameters<T>) => void {
-    let timeout: ReturnType<typeof setTimeout> | null = null
-    return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
-        if (timeout) {
-            clearTimeout(timeout)
-        }
-        timeout = setTimeout(() => {
-            func.apply(this, args)
-        }, wait)
-    }
-}
+import { useClassesStore } from '~/stores/classes'
 
 interface Props {
     classInfo: ClassInfo
@@ -464,19 +527,35 @@ const classesStore = useClassesStore()
 const { exportToExcel } = useExcelExport()
 
 // --- Use Store as the Single Source of Truth ---
-const { groupingBaseScores, groupingSessionScores, groupingActivityNames } =
-    storeToRefs(classesStore)
+const {
+    groupingBaseScores,
+    groupingSessionScores,
+    groupingActivityNames,
+    groupingSessionGroupScores,
+    groupingSessionIndividualScores,
+} = storeToRefs(classesStore)
 
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()
 
 // Component-local state
-const groupCount = ref(props.classInfo.groupCount || 4)
+const normalizeGroupCount = (value: number | string | null | undefined): number => {
+    const n = Math.floor(Number(value))
+    if (!Number.isFinite(n) || n < 2) return 2
+    return Math.min(n, 10)
+}
+
+const groupCount = ref(normalizeGroupCount(props.classInfo.groupCount))
+const groupCountInput = ref(String(groupCount.value))
+const isSyncingFromLocal = ref(false)
 const draggedStudentId = ref<string | null>(null)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
 // const activityName = ref('') // Replaced by computed property linked to store
 const isEndingFlow = ref(false)
+const areGroupsCollapsed = ref(false)
+const groupScoreAnimation = ref<Record<string, string | null>>({})
+const studentScoreAnimation = ref<Record<string, string | null>>({})
 
 // --- Computed Properties for easier template access ---
 const activityName = computed({
@@ -502,7 +581,20 @@ const sortedGroups = computed(() => {
     return [...localGroups.value].sort((a, b) => b.totalScore - a.totalScore)
 })
 
+const hasStudentsInGroups = computed(() => {
+    return localGroups.value.some(group => group.members.length > 0);
+});
+
 // --- Methods ---
+
+const expandAllGroups = () => {
+    areGroupsCollapsed.value = false
+}
+
+const collapseAllGroups = () => {
+    if (localGroups.value.length === 0) return
+    areGroupsCollapsed.value = true
+}
 
 const getGroupMembers = (group: Group) => {
     // Returns real-time student information from props, not the potentially stale snapshot in group.members
@@ -512,21 +604,27 @@ const getGroupMembers = (group: Group) => {
     })
 }
 
-const persistGroups = debounce(() => {
-    classesStore.updateGroups(props.classInfo.id, localGroups.value)
-}, 500)
+const persistGroups = () => {
+    const clonedGroups: Group[] = localGroups.value.map((group) => ({
+        ...group,
+        members: group.members.map((member) => ({ ...member })),
+    }))
+    isSyncingFromLocal.value = true
+    classesStore.updateGroups(props.classInfo.id, clonedGroups)
+}
 
 const initializeGroups = () => {
     localGroups.value = []
-    for (let i = 1; i <= groupCount.value; i++) {
-        createGroup(`第 ${i} 組`, false) // Don't persist for each creation
+    const safeCount = getSafeGroupCount()
+    for (let i = 1; i <= safeCount; i++) {
+        createGroup(`第 ${i} 組`, false)
     }
     persistGroups()
 }
 
-const createGroup = (name: string, shouldPersist = true) => {
+const createGroup = (name: string, shouldPersist = true, id?: string) => {
     const newGroup: Group = {
-        id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: id || `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: name.trim(),
         members: [],
         totalScore: 0,
@@ -541,42 +639,142 @@ const createGroup = (name: string, shouldPersist = true) => {
     return newGroup
 }
 
-const generateGroupColor = () => {
-    const colors = [
-        '#3b82f6',
-        '#ef4444',
-        '#10b981',
-        '#f59e0b',
-        '#8b5cf6',
-        '#ec4899',
-        '#06b6d4',
-        '#84cc16',
-    ]
-    return colors[localGroups.value.length % colors.length]
+const GROUP_COLORS = [
+    '#3b82f6',
+    '#ef4444',
+    '#10b981',
+    '#f59e0b',
+    '#8b5cf6',
+    '#ec4899',
+    '#06b6d4',
+    '#84cc16',
+]
+
+const generateGroupColor = (index?: number) => {
+    const paletteIndex =
+        typeof index === 'number'
+            ? index % GROUP_COLORS.length
+            : localGroups.value.length % GROUP_COLORS.length
+    return GROUP_COLORS[paletteIndex]
 }
 
-const randomAssignGroups = () => {
-    if (confirm('這將重新分配所有學生，確定要繼續嗎？')) {
-        localGroups.value = []
-        for (let i = 1; i <= groupCount.value; i++) {
-            createGroup(`第 ${i} 組`, false)
-        }
+const getSafeGroupCount = () => normalizeGroupCount(groupCount.value)
 
-        const presentStudents = props.classInfo.students.filter((s) => s.isPresent)
-        const shuffledStudents = [...presentStudents].sort(() => Math.random() - 0.5)
-        shuffledStudents.forEach((student, index) => {
-            const groupIndex = index % groupCount.value
-            addStudentToGroup(student.id, localGroups.value[groupIndex].id, false)
-        })
+const randomAssignGroups = () => {
+    const rawCount = Number(groupCountInput.value)
+    if (!Number.isFinite(rawCount) || rawCount < 2 || rawCount > 10) {
+        alert('組數必須介於 2 到 10 之間。')
+        return
+    }
+
+    if (!props.classInfo?.students?.length) return
+
+    commitGroupCount()
+
+    const confirmation = confirm('這將重新分配所有學生，並將所有組別的總分歸零。確定要繼續嗎？')
+    if (!confirmation) return
+
+    const existingGroups = localGroups.value.map((group, index) => ({
+        id: group.id || `group_${Date.now()}_${index}`,
+        name: group.name?.trim() || `第 ${index + 1} 組`,
+        color: group.color || generateGroupColor(index),
+        totalScore: 0, // Reset score
+        averageScore: 0, // Reset score
+        createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
+    }))
+
+    const baseGroups = existingGroups.length
+        ? existingGroups
+        : Array.from({ length: getSafeGroupCount() }, (_, index) => ({
+              id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              name: `第 ${index + 1} 組`,
+              color: generateGroupColor(index),
+              totalScore: 0,
+              averageScore: 0,
+              createdAt: new Date(),
+          }))
+
+    const normalizedGroups: Group[] = baseGroups.map((group, index) => ({
+        ...group,
+        members: [],
+        color: group.color || generateGroupColor(index),
+    }))
+
+    localGroups.value = normalizedGroups
+    groupScoreAnimation.value = {}
+
+    const presentStudents = props.classInfo.students.filter((s) => s.isPresent)
+    if (localGroups.value.length === 0) {
+        alert('未建立任何組別，請先設定有效的組數')
+        return
+    }
+    if (presentStudents.length === 0) {
+        alert('目前沒有出席學生可供分組')
+        return
+    }
+    const shuffledStudents = [...presentStudents].sort(() => Math.random() - 0.5)
+    shuffledStudents.forEach((student, index) => {
+        const groupIndex = index % localGroups.value.length
+        localGroups.value[groupIndex].members.push({ ...student })
+    })
+
+    persistGroups()
+}
+
+const ensureGroupStructure = (targetCount: number, persistAfter = true) => {
+    const current = localGroups.value.length
+    let changed = false
+
+    if (targetCount > current) {
+        for (let i = current; i < targetCount; i++) {
+            createGroup(`第 ${i + 1} 組`, false)
+            changed = true
+        }
+    } else if (targetCount < current) {
+        const removed = localGroups.value.splice(targetCount)
+        changed = removed.length > 0
+    }
+
+    if (changed && persistAfter) {
         persistGroups()
     }
+
+    return changed
+}
+
+const commitGroupCount = () => {
+    if (String(groupCountInput.value).trim() === '') {
+        groupCountInput.value = String(groupCount.value)
+        return
+    }
+
+    const raw = Number(groupCountInput.value)
+
+    if (!Number.isFinite(raw)) {
+        groupCountInput.value = String(groupCount.value)
+        return
+    }
+
+    const normalized = Math.min(Math.max(Math.floor(raw), 2), 10)
+
+    if (normalized !== groupCount.value) {
+        groupCount.value = normalized
+        const changed = ensureGroupStructure(normalized, false)
+        if (changed) {
+            persistGroups()
+        }
+        classesStore.updateGroupCount(props.classInfo.id, normalized)
+    }
+
+    groupCountInput.value = String(groupCount.value)
 }
 
 const resetAllGroups = () => {
     if (confirm('這會將所有學生移回未分組狀態，但會保留現有組別。確定嗎？')) {
-        localGroups.value.forEach((group) => {
-            group.members = []
-        })
+        localGroups.value = localGroups.value.map((group) => ({
+            ...group,
+            members: [],
+        }))
         persistGroups()
     }
 }
@@ -626,6 +824,13 @@ const removeStudentFromGroups = (studentId: string, shouldPersist = true) => {
 
 const addGroupScore = (groupId: string, score: number) => {
     if (!props.classInfo.groupingActive) return
+    const animationClass = score > 0 ? 'animate-score-bounce-green' : 'animate-score-bounce-red'
+    groupScoreAnimation.value[groupId] = animationClass
+    setTimeout(() => {
+        if (groupScoreAnimation.value[groupId] === animationClass) {
+            groupScoreAnimation.value[groupId] = null
+        }
+    }, 500)
     // The store action now handles all the logic
     classesStore.addScoreToGroup(props.classInfo.id, groupId, score)
 }
@@ -651,9 +856,27 @@ const deleteGroup = (groupId: string) => {
     }
 }
 
+const addIndividualScore = (studentId: string, score: number) => {
+    if (!props.classInfo.groupingActive) return
+
+    const animationClass = score > 0 ? 'animate-score-bounce-green' : 'animate-score-bounce-red'
+    studentScoreAnimation.value[studentId] = animationClass
+    setTimeout(() => {
+        if (studentScoreAnimation.value[studentId] === animationClass) {
+            studentScoreAnimation.value[studentId] = null
+        }
+    }, 500)
+
+    classesStore.addIndividualScoreInGroup(props.classInfo.id, studentId, score)
+}
+
 const startGrouping = () => {
-    // The store action now handles all the logic
+    if (!hasStudentsInGroups.value) {
+        alert('請先將學生分組，才能開始分組活動！');
+        return;
+    }
     classesStore.startClassGrouping(props.classInfo.id)
+    areGroupsCollapsed.value = true; // Set to collapsed when starting
 }
 
 const endGrouping = () => {
@@ -661,19 +884,15 @@ const endGrouping = () => {
     scoreboardModal.value?.showModal()
 }
 
-const confirmEndGrouping = () => {
-    classesStore.endClassGrouping(props.classInfo.id)
-    // No need to clear local state, the watchEffect will handle it
-    closeScoreboardModal()
-}
-
 const resetGroupScores = () => {
     if (confirm('確認要重設各組分數嗎？這將清除所有組別的總分。')) {
         localGroups.value.forEach((group) => {
             group.totalScore = 0
         })
-        persistGroups()
-        confirmEndGrouping()
+        persistGroups() // Persist the reset group scores
+        classesStore.endClassGrouping(props.classInfo.id) // End the grouping session
+        closeScoreboardModal() // Close the modal
+        areGroupsCollapsed.value = false; // Set to expanded when ending
     }
 }
 
@@ -715,14 +934,21 @@ const exportActivityReport = () => {
     const studentDetailsData = localGroups.value.flatMap((group) =>
         getGroupMembers(group).map((member) => {
             const baseScore = baseScoresForClass.value[member.id] ?? 0
-            const sessionScore = sessionScoresForClass.value[member.id] ?? 0
+            const totalSessionScore = sessionScoresForClass.value[member.id] ?? 0
+            const groupWideScore =
+                groupingSessionGroupScores.value[props.classInfo.id]?.[member.id] ?? 0
+            const individualGroupScore =
+                groupingSessionIndividualScores.value[props.classInfo.id]?.[member.id] ?? 0
+
             return {
                 組別: group.name,
                 座號: member.id,
                 姓名: member.name,
                 出席情況: member.isPresent ? '出席' : '缺席',
-                本次活動得分: sessionScore,
-                活動後總分: baseScore + sessionScore,
+                小組團體加分: groupWideScore,
+                小組個人加分: individualGroupScore,
+                本次活動總得分: totalSessionScore,
+                活動後總分: baseScore + totalSessionScore,
             }
         }),
     )
@@ -735,8 +961,10 @@ const exportActivityReport = () => {
             { wch: 10 },
             { wch: 15 },
             { wch: 12 },
-            { wch: 15 },
-            { wch: 15 },
+            { wch: 15 }, // 小組團體加分
+            { wch: 15 }, // 小組個人加分
+            { wch: 15 }, // 本次活動總得分
+            { wch: 15 }, // 活動後總分
         ],
     }
 
@@ -744,10 +972,55 @@ const exportActivityReport = () => {
     exportToExcel([groupSheet, studentSheet], fileName)
 }
 
-// Sync local state with the store/props state
-watchEffect(() => {
-    // Use stringify/parse for a deep copy to avoid mutation issues
-    localGroups.value = JSON.parse(JSON.stringify(props.classInfo.groups || []))
-    groupCount.value = props.classInfo.groupCount || 4
-})
+watch(
+    () => props.classInfo.groups,
+    (groups) => {
+        const sourceGroups = Array.isArray(groups) ? groups : []
+        localGroups.value = sourceGroups.map((group) => ({
+            ...group,
+            members: group.members?.map((member) => ({ ...member })) || [],
+            createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
+        }))
+
+        if (localGroups.value.length === 0) {
+            areGroupsCollapsed.value = false
+        }
+
+        const groupIds = new Set(localGroups.value.map((group) => group.id))
+        Object.keys(groupScoreAnimation.value).forEach((id) => {
+            if (!groupIds.has(id)) {
+                delete groupScoreAnimation.value[id]
+            }
+        })
+
+        if (isSyncingFromLocal.value) {
+            isSyncingFromLocal.value = false
+        }
+    },
+    { deep: true, immediate: true },
+)
+
+watch(
+    () => props.classInfo.groupCount,
+    (value) => {
+        const normalized = normalizeGroupCount(value)
+        if (groupCount.value !== normalized) {
+            groupCount.value = normalized
+        }
+        groupCountInput.value = String(normalized)
+    },
+    { immediate: true },
+)
+
+watch(
+    () => groupCount.value,
+    (value, oldValue) => {
+        if (value === oldValue) return
+        groupCountInput.value = String(value)
+    },
+)
 </script>
+
+<style scoped>
+@import '@/assets/score-animate.css';
+</style>

@@ -16,6 +16,8 @@ export const useClassesStore = defineStore('classes', () => {
     const groupingBaseScores = ref<Record<string, Record<string, number>>>({})
     const groupingSessionScores = ref<Record<string, Record<string, number>>>({})
     const groupingActivityNames = ref<Record<string, string>>({})
+    const groupingSessionGroupScores = ref<Record<string, Record<string, number>>>({})
+    const groupingSessionIndividualScores = ref<Record<string, Record<string, number>>>({})
 
     // Computed
     const currentClass = computed(() => {
@@ -251,8 +253,17 @@ export const useClassesStore = defineStore('classes', () => {
 
             // 2. 重設本次活動的加分紀錄
             groupingSessionScores.value[classId] = {}
+            groupingSessionGroupScores.value[classId] = {}
+            groupingSessionIndividualScores.value[classId] = {}
 
-            // 3. 啟動分組模式
+            // 3. 重設組別分數
+            if (Array.isArray(classData.groups)) {
+                classData.groups.forEach((group) => {
+                    group.totalScore = 0
+                })
+            }
+
+            // 4. 啟動分組模式
             classData.groupingActive = true
             classData.updatedAt = new Date()
             saveToStorage()
@@ -261,11 +272,19 @@ export const useClassesStore = defineStore('classes', () => {
 
     const endClassGrouping = (classId: string) => {
         const classData = classes.value.find((c) => c.id === classId)
-        if (classData) {
-            classData.groupingActive = false
-            classData.updatedAt = new Date()
-            saveToStorage()
-        }
+        if (!classData) return
+
+        // 結束分組模式
+        classData.groupingActive = false
+        classData.updatedAt = new Date()
+
+        // 清理本次活動暫存分數
+        delete groupingBaseScores.value[classId]
+        delete groupingSessionScores.value[classId]
+        delete groupingSessionGroupScores.value[classId]
+        delete groupingSessionIndividualScores.value[classId]
+
+        saveToStorage()
     }
 
     const updateGroups = (classId: string, groups: Group[]) => {
@@ -277,44 +296,92 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
+    const updateGroupCount = (classId: string, count: number) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (classData) {
+            classData.groupCount = count
+            classData.updatedAt = new Date()
+            saveToStorage()
+        }
+    }
+
     const addScoreToGroup = (classId: string, groupId: string, score: number) => {
         const classData = classes.value.find((c) => c.id === classId)
-        if (!classData) return
+        if (!classData || !classData.groupingActive) return
 
         const group = classData.groups.find((g) => g.id === groupId)
         if (!group) return
 
-        // 初始化 session scores 物件 (如果不存在)
-        if (!groupingSessionScores.value[classId]) {
-            groupingSessionScores.value[classId] = {}
-        }
-
-        // 1. 組別總分直接加分（獨立計算）
+        // 1. 更新組別的當前活動總分 (僅供顯示)
         group.totalScore += score
 
-        // 2. 只為出席的組員加分
+        // 2. 為每位出席組員更新分數 (session 和 永久)
+        const sessionScores = groupingSessionScores.value[classId] || {}
+        const activityName = groupingActivityNames.value[classId] || '小組活動'
+
         group.members.forEach((member) => {
             const student = classData.students.find((s) => s.id === member.id)
             if (student && student.isPresent) {
                 // 更新 session 分數
-                if (!groupingSessionScores.value[classId][student.id]) {
-                    groupingSessionScores.value[classId][student.id] = 0
-                }
-                groupingSessionScores.value[classId][student.id] += score
+                sessionScores[student.id] = (sessionScores[student.id] || 0) + score
 
-                // 更新學生個人總分 (這會將小組分數計入永久紀錄)
+                // 更新團體加分 session 追蹤
+                if (!groupingSessionGroupScores.value[classId]) {
+                    groupingSessionGroupScores.value[classId] = {}
+                }
+                groupingSessionGroupScores.value[classId][student.id] = (groupingSessionGroupScores.value[classId][student.id] || 0) + score
+
+                // 更新學生個人總分 (計入永久紀錄)
                 const newScore: StudentScore = {
                     id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     value: score,
                     categoryId: 'group',
                     categoryName: '小組活動',
-                    reason: `${group.name} 小組評分`,
+                    reason: `${group.name} (${activityName})`,
                     timestamp: new Date(),
                 }
                 student.scores.push(newScore)
                 _updateStudentStats(student)
             }
         })
+        groupingSessionScores.value[classId] = sessionScores
+
+        saveToStorage()
+    }
+
+    const addIndividualScoreInGroup = (
+        classId: string,
+        studentId: string,
+        score: number,
+    ) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData || !classData.groupingActive) return
+
+        const student = classData.students.find((s) => s.id === studentId)
+        if (!student || !student.isPresent) return
+
+        // 1. Update session score
+        const sessionScores = groupingSessionScores.value[classId] || {}
+        sessionScores[studentId] = (sessionScores[studentId] || 0) + score
+        groupingSessionScores.value[classId] = sessionScores
+
+        // 更新個人加分 session 追蹤
+        if (!groupingSessionIndividualScores.value[classId]) {
+            groupingSessionIndividualScores.value[classId] = {}
+        }
+        groupingSessionIndividualScores.value[classId][studentId] = (groupingSessionIndividualScores.value[classId][studentId] || 0) + score
+
+        // 2. Update permanent score
+        const newScore: StudentScore = {
+            id: `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            value: score,
+            categoryId: 'group_individual',
+            categoryName: '小組個別評分',
+            reason: '小組內個別評分',
+            timestamp: new Date(),
+        }
+        student.scores.push(newScore)
+        _updateStudentStats(student)
 
         saveToStorage()
     }
@@ -437,6 +504,8 @@ export const useClassesStore = defineStore('classes', () => {
                 groupingBaseScores: groupingBaseScores.value,
                 groupingSessionScores: groupingSessionScores.value,
                 groupingActivityNames: groupingActivityNames.value,
+                groupingSessionGroupScores: groupingSessionGroupScores.value,
+                groupingSessionIndividualScores: groupingSessionIndividualScores.value,
                 lastSaved: new Date().toISOString(),
             }
             localStorage.setItem('classes-data', JSON.stringify(data))
@@ -456,6 +525,8 @@ export const useClassesStore = defineStore('classes', () => {
                 groupingBaseScores.value = data.groupingBaseScores || {}
                 groupingSessionScores.value = data.groupingSessionScores || {}
                 groupingActivityNames.value = data.groupingActivityNames || {}
+                groupingSessionGroupScores.value = data.groupingSessionGroupScores || {}
+                groupingSessionIndividualScores.value = data.groupingSessionIndividualScores || {}
             }
         } catch (error) {
             console.error('載入班級資料失敗:', error)
@@ -477,6 +548,8 @@ export const useClassesStore = defineStore('classes', () => {
             groupingBaseScores: groupingBaseScores.value,
             groupingSessionScores: groupingSessionScores.value,
             groupingActivityNames: groupingActivityNames.value,
+            groupingSessionGroupScores: groupingSessionGroupScores.value,
+            groupingSessionIndividualScores: groupingSessionIndividualScores.value,
             homeworks: homeworkStore.homeworkList,
         }
     }
@@ -658,6 +731,12 @@ export const useClassesStore = defineStore('classes', () => {
             groupingActivityNames.value = isPlainObject(data.groupingActivityNames)
                 ? data.groupingActivityNames
                 : {}
+            groupingSessionGroupScores.value = isPlainObject(data.groupingSessionGroupScores)
+                ? data.groupingSessionGroupScores
+                : {}
+            groupingSessionIndividualScores.value = isPlainObject(data.groupingSessionIndividualScores)
+                ? data.groupingSessionIndividualScores
+                : {}
 
             currentClassId.value = typeof data.currentClassId === 'string' ? data.currentClassId : null
 
@@ -730,6 +809,8 @@ export const useClassesStore = defineStore('classes', () => {
         groupingBaseScores,
         groupingSessionScores,
         groupingActivityNames,
+        groupingSessionGroupScores,
+        groupingSessionIndividualScores,
 
         // Computed
         currentClass,
@@ -748,7 +829,9 @@ export const useClassesStore = defineStore('classes', () => {
         startClassGrouping,
         endClassGrouping,
         updateGroups,
+        updateGroupCount,
         addScoreToGroup,
+        addIndividualScoreInGroup,
         addScoreToStudent,
         resetClassTotals,
         setGroupingActivityName,
