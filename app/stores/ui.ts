@@ -9,6 +9,8 @@ import type {
     Student,
 } from '~/types/class'
 
+const SECURITY_NOTICE_KEY = 'security-notice-ack'
+
 // Helper function to apply theme to the DOM
 const applyThemeToDOM = (theme: 'light' | 'dark' | 'auto') => {
     if (process.client) {
@@ -45,6 +47,7 @@ export const useUIStore = defineStore('ui', () => {
     const isMobile = ref(false)
     const isTablet = ref(false)
     const windowWidth = ref(0)
+    const showSecurityNotice = ref(true)
 
     // --- Tool States ---
     // Timer
@@ -343,6 +346,12 @@ export const useUIStore = defineStore('ui', () => {
             // Apply initial theme
             applyThemeToDOM(userPreferences.value.theme)
 
+            // Load security notice acknowledgement status
+            const securityNoticeFlag = localStorage.getItem(SECURITY_NOTICE_KEY)
+            if (securityNoticeFlag === 'true') {
+                showSecurityNotice.value = false
+            }
+
             // Init responsive listeners
             updateScreenSize()
             window.addEventListener('resize', updateScreenSize)
@@ -355,6 +364,13 @@ export const useUIStore = defineStore('ui', () => {
             window.removeEventListener('resize', updateScreenSize)
             window.removeEventListener('keydown', handleKeyboard)
             if (timerInterval.value) clearInterval(timerInterval.value)
+        }
+    }
+
+    const acknowledgeSecurityNotice = () => {
+        showSecurityNotice.value = false
+        if (process.client) {
+            localStorage.setItem(SECURITY_NOTICE_KEY, 'true')
         }
     }
 
@@ -372,6 +388,7 @@ export const useUIStore = defineStore('ui', () => {
         isMobile,
         isTablet,
         windowWidth,
+        showSecurityNotice,
 
         // Timer State
         isTimerVisible,
@@ -442,5 +459,6 @@ export const useUIStore = defineStore('ui', () => {
         // Lifecycle
         initialize,
         cleanup,
+        acknowledgeSecurityNotice,
     }
 })
