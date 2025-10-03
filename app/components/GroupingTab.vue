@@ -225,9 +225,9 @@
                 <div
                     v-for="group in localGroups"
                     :key="group.id"
-                    class="card bg-base-100 shadow-sm"
+                    class="card bg-base-100 shadow-sm h-full"
                 >
-                    <div class="card-body">
+                    <div class="card-body h-full">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="flex items-center gap-2 text-lg md:text-xl font-semibold">
                                 <div
@@ -342,7 +342,7 @@
                         <!-- 組員列表 -->
                         <div
                             v-if="!areGroupsCollapsed"
-                            class="min-h-32 space-y-2 bg-base-100"
+                            class="flex-1 min-h-32 rounded-xl border border-dashed border-base-300 bg-base-100/60 p-2 flex flex-col gap-2"
                             @drop="handleDrop(group.id)"
                             @dragover.prevent
                             @dragenter.prevent
@@ -417,7 +417,7 @@
 
                             <div
                                 v-if="getGroupMembers(group).length === 0"
-                                class="text-center text-base-content/50 py-4 text-sm"
+                                class="flex flex-1 items-center justify-center text-center text-base-content/50 text-sm"
                             >
                                 拖拽學生到此組
                             </div>
