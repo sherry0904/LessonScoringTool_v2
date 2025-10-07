@@ -78,6 +78,11 @@ import {
     ArchiveRestore,
     Palette,
     Minus,
+    SquarePen,
+    Save,
+    Lock,
+    Pencil,
+    PlusCircle,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -160,6 +165,11 @@ const iconMap = {
     ArchiveRestore: ArchiveRestore,
     Palette: Palette,
     Minus: Minus,
+    SquarePen: SquarePen,
+    Save: Save,
+    Lock: Lock,
+    Pencil: Pencil,
+    PlusCircle: PlusCircle,
 }
 
 const iconComponent = computed(() => {
