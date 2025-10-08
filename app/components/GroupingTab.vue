@@ -6,10 +6,7 @@
                 <!-- INACTIVE STATE: Setup Panel -->
                 <template v-if="!classInfo.groupingActive">
                     <div class="flex flex-col gap-3">
-                        <div
-                            v-if="isGroupEditMode"
-                            class="flex flex-wrap items-center gap-2"
-                        >
+                        <div v-if="isGroupEditMode" class="flex flex-wrap items-center gap-2">
                             <span class="badge badge-info gap-2">
                                 <LucideIcon name="Pencil" class="w-3 h-3" />編輯模式中
                             </span>
@@ -50,10 +47,7 @@
                             </div>
                         </div>
 
-                        <div
-                            v-else
-                            class="flex flex-wrap items-center gap-3 border-t pt-3"
-                        >
+                        <div v-else class="flex flex-wrap items-center gap-3">
                             <div class="flex items-center gap-2 text-sm text-base-content/70">
                                 <span
                                     class="badge badge-outline gap-1"
