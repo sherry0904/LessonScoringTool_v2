@@ -85,13 +85,6 @@
                                     <LucideIcon name="SquarePen" class="w-4 h-4 mr-2" />編輯組別
                                 </button>
                                 <button
-                                    v-if="classInfo.groupingActive"
-                                    @click="showGroupScoreboard"
-                                    class="btn btn-warning"
-                                >
-                                    <LucideIcon name="Trophy" class="w-4 h-4 mr-2" />積分儀表板
-                                </button>
-                                <button
                                     @click="startGrouping"
                                     class="btn btn-success gap-2"
                                     :disabled="localGroups.length === 0 || !hasStudentsInGroups"
@@ -166,7 +159,7 @@
 
         <!-- 分組容器 -->
         <div class="flex gap-6 h-[calc(100vh-220px)]">
-            <!-- Left Panel: Ungrouped Students -->
+            <!-- Left Panel: Ungrouped Students or Leaderboard -->
             <aside
                 :class="[
                     'transition-all duration-300 flex-shrink-0',
@@ -174,115 +167,193 @@
                 ]"
             >
                 <div class="card bg-base-100 shadow-sm h-full flex flex-col">
-                    <div class="card-body flex flex-col h-full">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3
-                                v-if="!isUngroupedCollapsed"
-                                class="card-title text-base flex items-center whitespace-nowrap"
-                            >
-                                <LucideIcon name="Users" class="w-5 h-5 mr-2" />
-                                未分組學生
-                                <span class="badge badge-neutral ml-2"
-                                    >{{ ungroupedStudentsCount }} 人</span
+                    <div class="card-body flex flex-col h-full p-4">
+                        <!-- UNGROUPED STUDENTS (Before activity starts) -->
+                        <template v-if="!classInfo.groupingActive">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3
+                                    v-if="!isUngroupedCollapsed"
+                                    class="card-title text-base flex items-center whitespace-nowrap"
                                 >
-                            </h3>
-                            <button
-                                @click="isUngroupedCollapsed = !isUngroupedCollapsed"
-                                class="btn btn-ghost btn-sm btn-circle"
-                                :title="isUngroupedCollapsed ? '展開' : '收合'"
-                            >
-                                <LucideIcon
-                                    :name="isUngroupedCollapsed ? 'ChevronsRight' : 'ChevronsLeft'"
-                                    class="w-4 h-4"
-                                />
-                            </button>
-                        </div>
-
-                        <div
-                            v-if="!isUngroupedCollapsed"
-                            class="flex-1 overflow-y-auto space-y-3 p-1"
-                            @drop="handleUnassignedDrop"
-                            @dragover.prevent
-                            @dragenter.prevent
-                        >
-                            <div class="sticky top-0 bg-base-100 pb-2 z-10">
-                                <label
-                                    class="input input-bordered input-sm flex items-center gap-2"
+                                    <LucideIcon name="Users" class="w-5 h-5 mr-2" />
+                                    未分組學生
+                                    <span class="badge badge-neutral ml-2"
+                                        >{{ ungroupedStudentsCount }} 人</span
+                                    >
+                                </h3>
+                                <button
+                                    @click="isUngroupedCollapsed = !isUngroupedCollapsed"
+                                    class="btn btn-ghost btn-sm btn-circle ml-auto"
+                                    :title="isUngroupedCollapsed ? '展開' : '收合'"
                                 >
                                     <LucideIcon
-                                        name="Search"
-                                        class="w-4 h-4 text-base-content/60"
+                                        :name="
+                                            isUngroupedCollapsed ? 'ChevronsRight' : 'ChevronsLeft'
+                                        "
+                                        class="w-4 h-4"
                                     />
-                                    <input
-                                        v-model="ungroupedSearch"
-                                        type="text"
-                                        class="grow"
-                                        placeholder="搜尋姓名或座號"
-                                    />
-                                    <button
-                                        v-if="ungroupedSearch"
-                                        type="button"
-                                        class="btn btn-xs btn-ghost"
-                                        @click="ungroupedSearch = ''"
-                                    >
-                                        清除
-                                    </button>
-                                </label>
-                                <div
-                                    class="mt-3 flex items-center justify-between text-xs text-base-content/70"
-                                >
-                                    <span>已選 {{ selectedStudentIds.length }} 人</span>
-                                    <button
-                                        type="button"
-                                        class="btn btn-ghost btn-xs"
-                                        :disabled="selectedStudentIds.length === 0"
-                                        @click="clearStudentSelection"
-                                    >
-                                        清除選取
-                                    </button>
-                                </div>
+                                </button>
                             </div>
 
                             <div
-                                v-for="student in filteredUngroupedStudents"
-                                :key="student.id"
-                                :class="[
-                                    'p-3 bg-base-200 rounded-lg cursor-move hover:bg-base-300 transition-colors',
-                                    'flex justify-between items-center gap-3',
-                                    selectedStudentIds.includes(student.id) && canModifyGroups
-                                        ? 'ring-2 ring-primary ring-offset-2'
-                                        : '',
-                                    'mt-2',
-                                ]"
-                                :draggable="canModifyGroups"
-                                @dragstart="handleDragStart(student.id, 'unassigned', $event)"
-                                @dragend="handleDragEnd"
+                                v-if="!isUngroupedCollapsed"
+                                class="flex-1 overflow-y-auto space-y-3 p-1"
+                                @drop="handleUnassignedDrop"
+                                @dragover.prevent
+                                @dragenter.prevent
                             >
-                                <div class="flex items-start gap-3 flex-1">
-                                    <input
-                                        v-if="canModifyGroups"
-                                        type="checkbox"
-                                        class="checkbox checkbox-sm mt-1"
-                                        :checked="selectedStudentIds.includes(student.id)"
-                                        @click.stop="toggleStudentSelection(student.id)"
-                                    />
-                                    <div class="font-medium">{{ student.name }}</div>
-                                    <div class="text-sm text-base-content/70">
-                                        座號 {{ student.id }}
+                                <div class="sticky top-0 bg-base-100 pb-2 z-10">
+                                    <label
+                                        class="input input-bordered input-sm flex items-center gap-2"
+                                    >
+                                        <LucideIcon
+                                            name="Search"
+                                            class="w-4 h-4 text-base-content/60"
+                                        />
+                                        <input
+                                            v-model="ungroupedSearch"
+                                            type="text"
+                                            class="grow"
+                                            placeholder="搜尋姓名或座號"
+                                        />
+                                        <button
+                                            v-if="ungroupedSearch"
+                                            type="button"
+                                            class="btn btn-xs btn-ghost"
+                                            @click="ungroupedSearch = ''"
+                                        >
+                                            清除
+                                        </button>
+                                    </label>
+                                    <div
+                                        class="mt-3 flex items-center justify-between text-xs text-base-content/70"
+                                    >
+                                        <span>已選 {{ selectedStudentIds.length }} 人</span>
+                                        <button
+                                            type="button"
+                                            class="btn btn-ghost btn-xs"
+                                            :disabled="selectedStudentIds.length === 0"
+                                            @click="clearStudentSelection"
+                                        >
+                                            清除選取
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="text-sm font-semibold text-primary">
-                                    {{ student.totalScore }}分
+
+                                <div
+                                    v-for="student in filteredUngroupedStudents"
+                                    :key="student.id"
+                                    :class="[
+                                        'p-3 bg-base-200 rounded-lg cursor-move hover:bg-base-300 transition-colors',
+                                        'flex justify-between items-center gap-3',
+                                        selectedStudentIds.includes(student.id) && canModifyGroups
+                                            ? 'ring-2 ring-primary ring-offset-2'
+                                            : '',
+                                        'mt-2',
+                                    ]"
+                                    :draggable="canModifyGroups"
+                                    @dragstart="handleDragStart(student.id, 'unassigned', $event)"
+                                    @dragend="handleDragEnd"
+                                >
+                                    <div class="flex items-start gap-3 flex-1">
+                                        <input
+                                            v-if="canModifyGroups"
+                                            type="checkbox"
+                                            class="checkbox checkbox-sm mt-1"
+                                            :checked="selectedStudentIds.includes(student.id)"
+                                            @click.stop="toggleStudentSelection(student.id)"
+                                        />
+                                        <div class="font-medium">{{ student.name }}</div>
+                                        <div class="text-sm text-base-content/70">
+                                            座號 {{ student.id }}
+                                        </div>
+                                    </div>
+                                    <div class="text-sm font-semibold text-primary">
+                                        {{ student.totalScore }}分
+                                    </div>
+                                </div>
+
+                                <div
+                                    v-if="filteredUngroupedStudents.length === 0"
+                                    class="text-center text-base-content/50 py-8"
+                                >
+                                    所有學生都已分組
                                 </div>
                             </div>
-
                             <div
-                                v-if="filteredUngroupedStudents.length === 0"
-                                class="text-center text-base-content/50 py-8"
+                                v-if="isUngroupedCollapsed"
+                                class="flex justify-center items-center h-full"
                             >
-                                所有學生都已分組
+                                <LucideIcon name="Users" class="w-8 h-8 text-base-content/30" />
                             </div>
-                        </div>
+                        </template>
+                        <!-- LEADERBOARD (During activity) -->
+                        <template v-else>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3
+                                    v-if="!isUngroupedCollapsed"
+                                    class="card-title text-base flex items-center whitespace-nowrap"
+                                >
+                                    <LucideIcon name="Trophy" class="w-5 h-5 mr-2" />
+                                    即時積分榜
+                                </h3>
+                                <button
+                                    @click="isUngroupedCollapsed = !isUngroupedCollapsed"
+                                    class="btn btn-ghost btn-sm btn-circle ml-auto"
+                                    :title="isUngroupedCollapsed ? '展開' : '收合'"
+                                >
+                                    <LucideIcon
+                                        :name="
+                                            isUngroupedCollapsed ? 'ChevronsRight' : 'ChevronsLeft'
+                                        "
+                                        class="w-4 h-4"
+                                    />
+                                </button>
+                            </div>
+                            <div v-if="!isUngroupedCollapsed" class="flex-1 overflow-y-auto">
+                                <TransitionGroup name="leaderboard" tag="div" class="space-y-2">
+                                    <div
+                                        v-for="(group, index) in leaderboardGroups"
+                                        :key="group.id"
+                                        :class="[
+                                            'p-3 rounded-lg flex items-center gap-3 transition-all',
+                                            index === 0
+                                                ? 'bg-amber-100 border-2 border-amber-400'
+                                                : 'bg-base-200',
+                                        ]"
+                                    >
+                                        <div
+                                            class="text-lg font-bold w-6 text-center"
+                                            :class="{
+                                                'text-amber-500': index === 0,
+                                                'text-slate-400': index > 2,
+                                            }"
+                                        >
+                                            {{ index + 1 }}
+                                        </div>
+                                        <div
+                                            class="w-4 h-4 rounded-full shrink-0"
+                                            :style="{ backgroundColor: group.color }"
+                                        ></div>
+                                        <div class="font-semibold text-sm truncate flex-1">
+                                            {{ group.name }}
+                                        </div>
+                                        <div
+                                            v-if="groupingSettings.showGroupTotalScores"
+                                            class="text-lg font-bold text-primary"
+                                        >
+                                            {{ group.totalScore }}
+                                        </div>
+                                    </div>
+                                </TransitionGroup>
+                            </div>
+                            <div
+                                v-if="isUngroupedCollapsed"
+                                class="flex justify-center items-center h-full"
+                            >
+                                <LucideIcon name="Trophy" class="w-8 h-8 text-base-content/30" />
+                            </div>
+                        </template>
                     </div>
                 </div>
             </aside>
@@ -290,276 +361,245 @@
             <!-- Right Panel: Groups -->
             <main
                 ref="groupsContainer"
-                class="flex-1 grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 content-start overflow-y-auto"
+                class="flex-1 content-start overflow-y-auto"
                 @dragover.prevent="handleContainerDragOver"
             >
-                <!-- 各組 -->
                 <div
-                    v-for="group in localGroups"
-                    :key="group.id"
-                    class="card bg-base-100 shadow-sm h-full"
+                    :class="[
+                        'p-1 gap-4',
+                        classInfo.groupingActive
+                            ? 'grid grid-cols-4 content-start'
+                            : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4',
+                    ]"
                 >
-                    <div class="card-body h-full">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="flex items-center gap-2 text-lg md:text-xl font-semibold">
-                                <div
-                                    class="w-4 h-4 rounded-full mr-2"
-                                    :style="{ backgroundColor: group.color }"
-                                ></div>
-                                {{ group.name }}
-                                <span class="ml-1 text-xs text-base-content/60">
-                                    {{ getGroupMembers(group).length }} 人
-                                </span>
-                            </h3>
-
-                            <div class="dropdown dropdown-end">
-                                <div
-                                    tabindex="0"
-                                    role="button"
-                                    class="btn btn-ghost btn-sm btn-circle"
-                                >
-                                    <LucideIcon name="MoreVertical" class="w-4 h-4" />
-                                </div>
-                                <ul
-                                    tabindex="0"
-                                    class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
-                                >
-                                    <li>
-                                        <a @click="editGroupName(group.id)">
-                                            <LucideIcon name="Edit" class="w-4 h-4" />
-                                            編輯組名
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a @click="addGroupScore(group.id, 1)" class="text-success">
-                                            <LucideIcon name="Plus" class="w-4 h-4" />
-                                            加 1 分
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a @click="addGroupScore(group.id, -1)" class="text-error">
-                                            <LucideIcon name="Minus" class="w-4 h-4" />
-                                            扣 1 分
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a @click="deleteGroup(group.id)" class="text-error">
-                                            <LucideIcon name="Trash2" class="w-4 h-4" />
-                                            刪除組別
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- 組別總分 -->
-                        <div
-                            v-if="!isGroupEditMode"
-                            class="flex flex-col items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-300 rounded-xl p-4 mb-4 gap-3"
-                        >
-                            <span class="text-xs text-base-content/60">總分</span>
-                            <span
-                                :class="[
-                                    'font-extrabold text-xl md:text-2xl lg:text-3xl text-primary px-2 py-1',
-                                    groupScoreAnimation[group.id],
-                                ]"
-                            >
-                                {{ group.totalScore }}
-                            </span>
-                            <div
-                                v-if="classInfo.groupingActive"
-                                class="flex items-center justify-center gap-3 w-full"
-                            >
-                                <button
-                                    @click="addGroupScore(group.id, 1)"
-                                    :disabled="
-                                        !classInfo.groupingActive ||
-                                        getGroupMembers(group).every((m) => !m.isPresent)
-                                    "
-                                    :title="
-                                        getGroupMembers(group).every((m) => !m.isPresent)
-                                            ? '本組全員缺席，無法加分'
-                                            : ''
-                                    "
-                                    :class="[
-                                        'btn btn-md font-bold text-base px-6 py-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-green-500 hover:to-emerald-600',
-                                        !classInfo.groupingActive ||
-                                        getGroupMembers(group).every((m) => !m.isPresent)
-                                            ? 'opacity-50 cursor-not-allowed hover:scale-100'
-                                            : '',
-                                    ]"
-                                >
-                                    +1
-                                </button>
-                                <button
-                                    @click="addGroupScore(group.id, -1)"
-                                    :disabled="
-                                        !classInfo.groupingActive ||
-                                        getGroupMembers(group).every((m) => !m.isPresent)
-                                    "
-                                    :title="
-                                        getGroupMembers(group).every((m) => !m.isPresent)
-                                            ? '本組全員缺席，無法扣分'
-                                            : ''
-                                    "
-                                    :class="[
-                                        'btn btn-md font-bold text-base px-6 py-1 rounded-full bg-gradient-to-r from-rose-400 to-red-500 text-white border-none shadow transition-transform hover:scale-105 hover:from-rose-500 hover:to-red-600',
-                                        !classInfo.groupingActive ||
-                                        getGroupMembers(group).every((m) => !m.isPresent)
-                                            ? 'opacity-50 cursor-not-allowed hover:scale-100'
-                                            : '',
-                                    ]"
-                                >
-                                    -1
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 組員列表 -->
-                        <div
-                            v-if="!areGroupsCollapsed"
-                            :class="[
-                                'flex-1 min-h-32 rounded-xl border border-dashed border-base-300 bg-base-100/60 p-2 flex flex-col gap-2 relative',
-                                dropIndicator.groupId === group.id &&
-                                dropIndicator.index === getGroupMembers(group).length
-                                    ? 'ring-2 ring-primary/60 ring-offset-2'
-                                    : '',
-                            ]"
-                            @drop="handleGroupDrop(group.id)"
-                            @dragover.prevent="handleGroupDragOver(group.id, $event)"
-                            @dragenter.prevent="handleGroupDragOver(group.id, $event)"
-                        >
-                            <div v-if="canModifyGroups" class="flex justify-end">
-                                <button
-                                    type="button"
-                                    class="btn btn-ghost btn-xs"
-                                    :disabled="selectedStudentIds.length === 0"
-                                    @click="quickAssignToGroup(group.id)"
-                                >
-                                    快速指派
-                                </button>
-                            </div>
-                            <div
-                                :class="[
-                                    'flex-1',
-                                    isGroupEditMode
-                                        ? 'grid grid-cols-1 md:grid-cols-2 gap-2'
-                                        : 'flex flex-col gap-2',
-                                ]"
-                            >
-                                <div
-                                    v-for="(member, index) in getGroupMembers(group)"
-                                    :key="member.id"
-                                    :class="[
-                                        'rounded transition-all',
-                                        canModifyGroups
-                                            ? 'cursor-move border border-base-200 bg-base-100'
-                                            : member.isPresent
-                                              ? 'bg-base-200'
-                                              : 'bg-gray-200 text-gray-400 opacity-60',
-                                        dropIndicator.groupId === group.id &&
-                                        dropIndicator.index === index
-                                            ? 'ring-2 ring-primary ring-offset-2'
-                                            : '',
-                                        !canModifyGroups && member.isPresent
-                                            ? 'hover:bg-base-300'
-                                            : '',
-                                    ]"
-                                    :draggable="canModifyGroups"
-                                    @dragstart="handleDragStart(member.id, group.id, $event)"
-                                    @dragend="handleDragEnd"
-                                    @dragover.prevent="
-                                        handleMemberDragOver(group.id, index, $event)
-                                    "
-                                    @drop.stop="handleMemberDrop(group.id, index)"
-                                >
-                                    <template v-if="isGroupEditMode">
-                                        <div class="px-3 py-2 flex flex-col gap-1">
-                                            <div class="text-xs text-base-content/70">
-                                                座號 {{ member.id }}
-                                            </div>
-                                            <div class="font-medium text-sm">{{ member.name }}</div>
+                    <!-- 各組 -->
+                    <div
+                        v-for="group in localGroups"
+                        :key="group.id"
+                        class="card bg-base-100 shadow-sm"
+                    >
+                        <div class="card-body p-3">
+                            <!-- Card Header -->
+                            <template v-if="!classInfo.groupingActive">
+                                <div class="flex justify-between items-center gap-3">
+                                    <h3 class="flex items-center gap-2 text-base font-semibold truncate">
+                                        <div class="w-4 h-4 rounded-full shrink-0" :style="{ backgroundColor: group.color }"></div>
+                                        <span class="truncate">{{ group.name }}</span>
+                                    </h3>
+                                    <div class="dropdown dropdown-end">
+                                        <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle">
+                                            <LucideIcon name="MoreVertical" class="w-4 h-4" />
                                         </div>
-                                    </template>
-                                    <template v-else>
-                                        <div class="p-2 flex justify-between items-center">
-                                            <div>
-                                                <div class="font-medium text-sm flex items-center">
-                                                    {{ member.name }}
-                                                    <span
-                                                        v-if="!member.isPresent"
-                                                        class="ml-2 px-2 py-0.5 rounded bg-gray-300 text-xs text-gray-600"
-                                                        >今日缺席</span
-                                                    >
-                                                </div>
+                                        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow">
+                                            <li>
+                                                <a @click="editGroupName(group.id)">
+                                                    <LucideIcon name="Edit" class="w-4 h-4" />
+                                                    編輯組名
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a @click="deleteGroup(group.id)" class="text-error">
+                                                    <LucideIcon name="Trash2" class="w-4 h-4" />
+                                                    刪除組別
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <div class="flex flex-col gap-2">
+                                    <!-- Top: Name & Score -->
+                                    <div class="flex justify-between items-start">
+                                        <h3 class="flex items-center gap-2 text-base font-semibold">
+                                            <div class="w-3 h-3 rounded-full shrink-0 mt-1" :style="{ backgroundColor: group.color }"></div>
+                                            <span>{{ group.name }}</span>
+                                        </h3>
+                                        <span v-if="groupingSettings.showGroupTotalScores" :class="['font-bold text-xl text-primary', groupScoreAnimation[group.id]]">
+                                            {{ group.totalScore }}
+                                        </span>
+                                    </div>
+                                    <!-- Bottom: Buttons -->
+                                    <div class="flex items-center gap-2">
+                                        <button @click="addGroupScore(group.id, 1)" :disabled="getGroupMembers(group).every((m) => !m.isPresent)" class="btn btn-md flex-1 font-bold text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600">
+                                            +1
+                                        </button>
+                                        <button @click="addGroupScore(group.id, -1)" :disabled="getGroupMembers(group).every((m) => !m.isPresent)" class="btn btn-md flex-1 font-bold text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-rose-400 to-red-500 hover:from-rose-500 hover:to-red-600">
+                                            -1
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- 組員列表 -->
+                            <div
+                                v-if="!areGroupsCollapsed"
+                                :class="[
+                                    'flex-1 min-h-32 rounded-xl border border-dashed border-base-300 bg-base-100/60 p-2 flex flex-col gap-2 relative mt-2',
+                                    dropIndicator.groupId === group.id &&
+                                    dropIndicator.index === getGroupMembers(group).length
+                                        ? 'ring-2 ring-primary/60 ring-offset-2'
+                                        : '',
+                                ]"
+                                @drop="handleGroupDrop(group.id)"
+                                @dragover.prevent="handleGroupDragOver(group.id, $event)"
+                                @dragenter.prevent="handleGroupDragOver(group.id, $event)"
+                            >
+                                <div v-if="canModifyGroups" class="flex justify-end">
+                                    <button
+                                        type="button"
+                                        class="btn btn-ghost btn-xs"
+                                        :disabled="selectedStudentIds.length === 0"
+                                        @click="quickAssignToGroup(group.id)"
+                                    >
+                                        快速指派
+                                    </button>
+                                </div>
+                                <div
+                                    :class="[
+                                        'flex-1',
+                                        isGroupEditMode
+                                            ? 'grid grid-cols-1 md:grid-cols-2 gap-2'
+                                            : 'flex flex-col gap-2',
+                                    ]"
+                                >
+                                    <div
+                                        v-for="(member, index) in getGroupMembers(group)"
+                                        :key="member.id"
+                                        :class="[
+                                            'rounded transition-all',
+                                            canModifyGroups
+                                                ? 'cursor-move border border-base-200 bg-base-100'
+                                                : member.isPresent
+                                                  ? 'bg-base-200'
+                                                  : 'bg-gray-200 text-gray-400 opacity-60',
+                                            dropIndicator.groupId === group.id &&
+                                            dropIndicator.index === index
+                                                ? 'ring-2 ring-primary ring-offset-2'
+                                                : '',
+                                            !canModifyGroups && member.isPresent
+                                                ? 'hover:bg-base-300'
+                                                : '',
+                                        ]"
+                                        :draggable="canModifyGroups"
+                                        @dragstart="handleDragStart(member.id, group.id, $event)"
+                                        @dragend="handleDragEnd"
+                                        @dragover.prevent="
+                                            handleMemberDragOver(group.id, index, $event)
+                                        "
+                                        @drop.stop="handleMemberDrop(group.id, index)"
+                                    >
+                                        <template v-if="isGroupEditMode">
+                                            <div class="px-3 py-2 flex flex-col gap-1">
                                                 <div class="text-xs text-base-content/70">
-                                                    {{ member.id }}
+                                                    座號 {{ member.id }}
+                                                </div>
+                                                <div class="font-medium text-sm">
+                                                    {{ member.name }}
                                                 </div>
                                             </div>
-                                            <div
-                                                class="text-xs font-semibold text-primary flex items-center gap-1"
-                                            >
-                                                <template v-if="props.classInfo.groupingActive">
-                                                    <span class="opacity-60">{{
-                                                        baseScoresForClass[member.id] ?? ''
-                                                    }}</span>
-                                                    <span class="opacity-60">分</span>
-                                                    <LucideIcon
-                                                        name="ArrowRight"
-                                                        class="w-3 h-3 text-success"
-                                                    />
-                                                    <span
-                                                        :class="[
-                                                            'text-success font-bold',
-                                                            studentScoreAnimation[member.id],
-                                                        ]"
-                                                        >{{
-                                                            (baseScoresForClass[member.id] ?? 0) +
-                                                            (sessionScoresForClass[member.id] ?? 0)
-                                                        }}</span
+                                        </template>
+                                        <template v-else>
+                                            <div class="p-2 flex flex-col gap-2">
+                                                <div class="flex justify-between items-center">
+                                                    <div
+                                                        class="font-medium text-sm flex items-center"
                                                     >
-                                                    <span class="text-success">分</span>
-
-                                                    <div class="ml-2 flex gap-1">
-                                                        <button
-                                                            @click="
-                                                                addIndividualScore(member.id, 1)
-                                                            "
-                                                            class="btn btn-xs btn-circle btn-outline btn-success"
-                                                            title="個人加分"
+                                                        {{ member.name }}
+                                                        <span
+                                                            v-if="!member.isPresent"
+                                                            class="ml-2 px-2 py-0.5 rounded bg-gray-300 text-xs text-gray-600"
+                                                            >今日缺席</span
                                                         >
-                                                            +
-                                                        </button>
-                                                        <button
-                                                            @click="
-                                                                addIndividualScore(member.id, -1)
-                                                            "
-                                                            class="btn btn-xs btn-circle btn-outline btn-error"
-                                                            title="個人扣分"
-                                                        >
-                                                            -
-                                                        </button>
                                                     </div>
-                                                </template>
-                                                <template v-else>
-                                                    {{ member.totalScore }}分
-                                                </template>
+                                                    <div class="text-xs text-base-content/70">
+                                                        座號 {{ member.id }}
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-end items-center gap-2">
+                                                    <template v-if="props.classInfo.groupingActive">
+                                                        <div
+                                                            v-if="
+                                                                groupingSettings.showStudentIndividualScores
+                                                            "
+                                                            class="flex items-center gap-1 text-xs"
+                                                        >
+                                                            <span class="opacity-60">{{
+                                                                baseScoresForClass[member.id] ?? ''
+                                                            }}</span>
+                                                            <span class="opacity-60">分</span>
+                                                            <LucideIcon
+                                                                name="ArrowRight"
+                                                                class="w-3 h-3 text-success"
+                                                            />
+                                                            <span
+                                                                :class="[
+                                                                    'text-success font-bold',
+                                                                    studentScoreAnimation[
+                                                                        member.id
+                                                                    ],
+                                                                ]"
+                                                                >{{
+                                                                    (baseScoresForClass[
+                                                                        member.id
+                                                                    ] ?? 0) +
+                                                                    (sessionScoresForClass[
+                                                                        member.id
+                                                                    ] ?? 0)
+                                                                }}</span
+                                                            >
+                                                            <span class="text-success">分</span>
+                                                        </div>
+
+                                                        <div
+                                                            v-if="
+                                                                groupingSettings.allowIndividualScoring
+                                                            "
+                                                            class="flex gap-1"
+                                                        >
+                                                            <button
+                                                                @click="
+                                                                    addIndividualScore(member.id, 1)
+                                                                "
+                                                                class="btn btn-xs btn-circle btn-outline btn-success"
+                                                                title="個人加分"
+                                                            >
+                                                                +
+                                                            </button>
+                                                            <button
+                                                                @click="
+                                                                    addIndividualScore(
+                                                                        member.id,
+                                                                        -1,
+                                                                    )
+                                                                "
+                                                                class="btn btn-xs btn-circle btn-outline btn-error"
+                                                                title="個人扣分"
+                                                            >
+                                                                -
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                    <template v-else>
+                                                        {{ member.totalScore }}分
+                                                    </template>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </template>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <div
+                                    v-if="getGroupMembers(group).length === 0"
+                                    class="flex flex-1 items-center justify-center text-center text-base-content/50 text-sm"
+                                >
+                                    {{ canModifyGroups ? '拖曳學生或點快速指派' : '目前沒有組員' }}
                                 </div>
                             </div>
-
-                            <div
-                                v-if="getGroupMembers(group).length === 0"
-                                class="flex flex-1 items-center justify-center text-center text-base-content/50 text-sm"
-                            >
-                                {{ canModifyGroups ? '拖曳學生或點快速指派' : '目前沒有組員' }}
-                            </div>
+                            <p v-else class="text-xs text-base-content/60 italic text-center mt-2">
+                                點擊「展開組員」查看
+                            </p>
                         </div>
-                        <p v-else class="text-xs text-base-content/60 italic text-center">
-                            組員已收合，點擊「展開組員」查看
-                        </p>
                     </div>
                 </div>
             </main>
@@ -567,7 +607,7 @@
 
         <!-- 積分儀表板模態 -->
         <dialog ref="scoreboardModal" class="modal">
-            <div class="modal-box w-11/12 max-w-4xl">
+            <div class="modal-box w-11/12 max-w-4xl py-6 sm:py-8 max-h-[90vh] overflow-y-auto my-4 sm:my-6">
                 <h3 class="text-lg font-bold mb-4 flex items-center">
                     <LucideIcon name="Trophy" class="w-5 h-5 mr-2" />
                     小組積分儀表板
@@ -652,6 +692,7 @@ import { storeToRefs } from 'pinia'
 import type { ClassInfo, Group } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
 import { useClassesStore } from '~/stores/classes'
+import { useUIStore } from '~/stores/ui'
 
 interface Props {
     classInfo: ClassInfo
@@ -659,9 +700,11 @@ interface Props {
 
 const props = defineProps<Props>()
 const classesStore = useClassesStore()
+const uiStore = useUIStore()
 const { exportToExcel } = useExcelExport()
 
 // --- Use Store as the Single Source of Truth ---
+const { groupingSettings } = storeToRefs(uiStore)
 const {
     groupingBaseScores,
     groupingSessionScores,
@@ -685,7 +728,6 @@ const groupCountInput = ref(String(groupCount.value))
 const isSyncingFromLocal = ref(false)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
-// const activityName = ref('') // Replaced by computed property linked to store
 const isEndingFlow = ref(false)
 const areGroupsCollapsed = ref(false)
 const groupScoreAnimation = ref<Record<string, string | null>>({})
@@ -743,6 +785,15 @@ const canModifyGroups = computed(() => isGroupEditMode.value && !props.classInfo
 
 const sortedGroups = computed(() => {
     return [...localGroups.value].sort((a, b) => b.totalScore - a.totalScore)
+})
+
+const leaderboardGroups = computed(() => {
+    const sorted = sortedGroups.value
+    const count = groupingSettings.value.leaderboardDisplayCount
+    if (count === 'all') {
+        return sorted
+    }
+    return sorted.slice(0, count)
 })
 
 const hasStudentsInGroups = computed(() => {
@@ -1402,4 +1453,18 @@ watch(
 
 <style scoped>
 @import '@/assets/score-animate.css';
+
+.leaderboard-move,
+.leaderboard-enter-active,
+.leaderboard-leave-active {
+    transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+.leaderboard-enter-from,
+.leaderboard-leave-to {
+    opacity: 0;
+    transform: scaleY(0.01) translate(30px, 0);
+}
+.leaderboard-leave-active {
+    position: absolute;
+}
 </style>

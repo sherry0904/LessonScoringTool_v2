@@ -49,6 +49,14 @@ export const useUIStore = defineStore('ui', () => {
     const windowWidth = ref(0)
     const showSecurityNotice = ref(true)
 
+    // --- Grouping Settings ---
+    const groupingSettings = ref({
+        leaderboardDisplayCount: 'all' as 'all' | 3 | 5, // 顯示全部或前幾名
+        showGroupTotalScores: true, // 是否顯示各組總積分
+        showStudentIndividualScores: true, // 是否顯示各學生積分
+        allowIndividualScoring: true, // 是否可對組內學生加減分
+    })
+
     // --- Tool States ---
     // Timer
     const isTimerVisible = ref(false)
@@ -99,6 +107,7 @@ export const useUIStore = defineStore('ui', () => {
             { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
             { id: 'homework', label: '作業管理', icon: 'BookMarked', color: 'accent' },
             { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
+            { id: 'grouping-management', label: '分組管理', icon: 'Settings2', color: 'success' },
             { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         ]
     })
@@ -389,6 +398,9 @@ export const useUIStore = defineStore('ui', () => {
         isTablet,
         windowWidth,
         showSecurityNotice,
+
+        // Grouping Settings
+        groupingSettings,
 
         // Timer State
         isTimerVisible,

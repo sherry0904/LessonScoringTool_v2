@@ -300,6 +300,7 @@ const tabRoute = (id: string) => {
         homework: '/homework',
         students: '/students',
         groups: '/groups',
+        'grouping-management': '/grouping-management',
         settings: '/settings',
     }
     return map[id] || '/'
