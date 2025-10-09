@@ -382,15 +382,30 @@
                             <!-- Card Header -->
                             <template v-if="!classInfo.groupingActive">
                                 <div class="flex justify-between items-center gap-3">
-                                    <h3 class="flex items-center gap-2 text-base font-semibold truncate">
-                                        <div class="w-4 h-4 rounded-full shrink-0" :style="{ backgroundColor: group.color }"></div>
+                                    <h3
+                                        class="flex items-center gap-2 text-base font-semibold truncate"
+                                    >
+                                        <div
+                                            class="w-4 h-4 rounded-full shrink-0"
+                                            :style="{ backgroundColor: group.color }"
+                                        ></div>
                                         <span class="truncate">{{ group.name }}</span>
+                                        <span class="badge badge-ghost badge-sm">{{
+                                            getGroupMembers(group).length
+                                        }}</span>
                                     </h3>
                                     <div class="dropdown dropdown-end">
-                                        <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle">
+                                        <div
+                                            tabindex="0"
+                                            role="button"
+                                            class="btn btn-ghost btn-xs btn-circle"
+                                        >
                                             <LucideIcon name="MoreVertical" class="w-4 h-4" />
                                         </div>
-                                        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow">
+                                        <ul
+                                            tabindex="0"
+                                            class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
+                                        >
                                             <li>
                                                 <a @click="editGroupName(group.id)">
                                                     <LucideIcon name="Edit" class="w-4 h-4" />
@@ -398,7 +413,10 @@
                                                 </a>
                                             </li>
                                             <li>
-                                                <a @click="deleteGroup(group.id)" class="text-error">
+                                                <a
+                                                    @click="deleteGroup(group.id)"
+                                                    class="text-error"
+                                                >
                                                     <LucideIcon name="Trash2" class="w-4 h-4" />
                                                     刪除組別
                                                 </a>
@@ -412,19 +430,40 @@
                                     <!-- Top: Name & Score -->
                                     <div class="flex justify-between items-start">
                                         <h3 class="flex items-center gap-2 text-base font-semibold">
-                                            <div class="w-3 h-3 rounded-full shrink-0 mt-1" :style="{ backgroundColor: group.color }"></div>
+                                            <div
+                                                class="w-3 h-3 rounded-full shrink-0 mt-1"
+                                                :style="{ backgroundColor: group.color }"
+                                            ></div>
                                             <span>{{ group.name }}</span>
                                         </h3>
-                                        <span v-if="groupingSettings.showGroupTotalScores" :class="['font-bold text-xl text-primary', groupScoreAnimation[group.id]]">
+                                        <span
+                                            v-if="groupingSettings.showGroupTotalScores"
+                                            :class="[
+                                                'font-bold text-xl text-primary',
+                                                groupScoreAnimation[group.id],
+                                            ]"
+                                        >
                                             {{ group.totalScore }}
                                         </span>
                                     </div>
                                     <!-- Bottom: Buttons -->
                                     <div class="flex items-center gap-2">
-                                        <button @click="addGroupScore(group.id, 1)" :disabled="getGroupMembers(group).every((m) => !m.isPresent)" class="btn btn-md flex-1 font-bold text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600">
+                                        <button
+                                            @click="addGroupScore(group.id, 1)"
+                                            :disabled="
+                                                getGroupMembers(group).every((m) => !m.isPresent)
+                                            "
+                                            class="btn btn-md flex-1 font-bold text-base px-4 py-1 rounded-full text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100"
+                                        >
                                             +1
                                         </button>
-                                        <button @click="addGroupScore(group.id, -1)" :disabled="getGroupMembers(group).every((m) => !m.isPresent)" class="btn btn-md flex-1 font-bold text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-rose-400 to-red-500 hover:from-rose-500 hover:to-red-600">
+                                        <button
+                                            @click="addGroupScore(group.id, -1)"
+                                            :disabled="
+                                                getGroupMembers(group).every((m) => !m.isPresent)
+                                            "
+                                            class="btn btn-md flex-1 font-bold text-base px-4 py-1 rounded-full text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-rose-400 to-red-500 hover:from-rose-500 hover:to-red-600 disabled:opacity-50 disabled:hover:scale-100"
+                                        >
                                             -1
                                         </button>
                                     </div>
@@ -607,7 +646,9 @@
 
         <!-- 積分儀表板模態 -->
         <dialog ref="scoreboardModal" class="modal">
-            <div class="modal-box w-11/12 max-w-4xl py-6 sm:py-8 max-h-[90vh] overflow-y-auto my-4 sm:my-6">
+            <div
+                class="modal-box w-11/12 max-w-4xl py-6 sm:py-8 max-h-[90vh] overflow-y-auto my-4 sm:my-6"
+            >
                 <h3 class="text-lg font-bold mb-4 flex items-center">
                     <LucideIcon name="Trophy" class="w-5 h-5 mr-2" />
                     小組積分儀表板
@@ -639,7 +680,7 @@
                         <div class="flex-1">
                             <div class="font-semibold">{{ group.name }}</div>
                             <div class="text-sm text-base-content/70">
-                                {{ getGroupMembers(group).length }} 人
+                                {{ getGroupMembers(group).length }}
                             </div>
                         </div>
                         <div v-if="groupingSettings.showGroupTotalScores" class="text-right">
@@ -1301,6 +1342,14 @@ const startGrouping = () => {
         alert('請先將學生分組，才能開始分組活動！')
         return
     }
+
+    const emptyGroups = localGroups.value.filter((group) => getGroupMembers(group).length === 0)
+    if (emptyGroups.length > 0) {
+        const groupNames = emptyGroups.map((group) => group.name || '未命名組').join('、 ')
+        const proceed = confirm(`以下組別目前沒有成員：${groupNames}。\n仍要開始分組活動嗎？`)
+        if (!proceed) return
+    }
+
     classesStore.startClassGrouping(props.classInfo.id)
     uiStore.setGroupingViewCollapsed(true) // Set to collapsed when starting
 }
