@@ -1,19 +1,9 @@
 <template>
     <div class="p-4 sm:p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h1
-                class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
-            >
-                全域作業管理
-            </h1>
-            <button class="btn btn-primary" @click="openHomeworkModal()">
-                <LucideIcon name="Plus" class="w-4 h-4" />
-                新增作業
-            </button>
-        </div>
-        <p class="mb-6 text-base-content/70">
-            這裡是管理所有班級作業範本的地方。您可以在此建立、編輯、封存作業。
-        </p>
+        <PageHeader
+            title="作業管理"
+            description="這裡是管理所有班級作業範本的地方。您可以在此建立、編輯、封存作業。"
+        />
 
         <!-- 搜尋與篩選 -->
         <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
@@ -25,11 +15,21 @@
                     placeholder="搜尋作業名稱或備註..."
                 />
             </div>
-            <div class="form-control">
-                <label class="label cursor-pointer">
-                    <span class="label-text mr-2">顯示已封存作業</span>
-                    <input type="checkbox" v-model="showArchived" class="toggle toggle-primary" />
-                </label>
+            <div class="flex items-center gap-2">
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        <span class="label-text mr-2">顯示已封存作業</span>
+                        <input
+                            type="checkbox"
+                            v-model="showArchived"
+                            class="toggle toggle-primary"
+                        />
+                    </label>
+                </div>
+                <button class="btn btn-primary" @click="openHomeworkModal()">
+                    <LucideIcon name="Plus" class="w-4 h-4" />
+                    新增作業
+                </button>
             </div>
         </div>
 
@@ -408,13 +408,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick, watch } from 'vue'
-import { useHomeworkStore } from '~/stores/homework'
-import { useClassesStore } from '~/stores/classes'
-import type { GlobalHomework } from '~/types/homework'
+import PageHeader from '~/components/PageHeader.vue'
 
 // SEO and other page settings
 useHead({
-    title: '全域作業管理',
+    title: '作業管理',
 })
 
 const homeworkStore = useHomeworkStore()

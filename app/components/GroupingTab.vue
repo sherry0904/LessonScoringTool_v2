@@ -704,7 +704,7 @@ const uiStore = useUIStore()
 const { exportToExcel } = useExcelExport()
 
 // --- Use Store as the Single Source of Truth ---
-const { groupingSettings } = storeToRefs(uiStore)
+const { groupingSettings, groupingViewCollapsed: areGroupsCollapsed } = storeToRefs(uiStore)
 const {
     groupingBaseScores,
     groupingSessionScores,
@@ -729,7 +729,7 @@ const isSyncingFromLocal = ref(false)
 const localGroups = ref<Group[]>([])
 const isUngroupedCollapsed = ref(false)
 const isEndingFlow = ref(false)
-const areGroupsCollapsed = ref(false)
+// const areGroupsCollapsed = ref(false) // Now managed by uiStore
 const groupScoreAnimation = ref<Record<string, string | null>>({})
 const studentScoreAnimation = ref<Record<string, string | null>>({})
 const groupsContainer = ref<HTMLElement | null>(null)
@@ -803,12 +803,12 @@ const hasStudentsInGroups = computed(() => {
 // --- Methods ---
 
 const expandAllGroups = () => {
-    areGroupsCollapsed.value = false
+    uiStore.setGroupingViewCollapsed(false)
 }
 
 const collapseAllGroups = () => {
     if (localGroups.value.length === 0) return
-    areGroupsCollapsed.value = true
+    uiStore.setGroupingViewCollapsed(true)
 }
 
 const getGroupMembers = (group: Group) => {
@@ -842,7 +842,7 @@ const syncGroupsFromProps = (groups: Group[] | null | undefined) => {
     }))
 
     if (localGroups.value.length === 0) {
-        areGroupsCollapsed.value = false
+        uiStore.setGroupingViewCollapsed(false)
     }
 
     const groupIds = new Set(localGroups.value.map((group) => group.id))
@@ -1230,7 +1230,7 @@ const startGroupEditing = () => {
 
     isGroupEditMode.value = true
     isGroupLocked.value = false
-    areGroupsCollapsed.value = false
+    uiStore.setGroupingViewCollapsed(false)
     clearStudentSelection()
 }
 
@@ -1302,7 +1302,7 @@ const startGrouping = () => {
         return
     }
     classesStore.startClassGrouping(props.classInfo.id)
-    areGroupsCollapsed.value = true // Set to collapsed when starting
+    uiStore.setGroupingViewCollapsed(true) // Set to collapsed when starting
 }
 
 const endGrouping = () => {
@@ -1318,7 +1318,7 @@ const resetGroupScores = () => {
         persistGroups() // Persist the reset group scores
         classesStore.endClassGrouping(props.classInfo.id) // End the grouping session
         closeScoreboardModal() // Close the modal
-        areGroupsCollapsed.value = false // Set to expanded when ending
+        uiStore.setGroupingViewCollapsed(false) // Set to expanded when ending
     }
 }
 

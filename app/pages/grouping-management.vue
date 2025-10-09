@@ -1,10 +1,10 @@
 <template>
     <div class="p-4 sm:p-6 md:p-8">
         <div class="max-w-4xl mx-auto">
-            <h1 class="text-2xl font-bold mb-6 flex items-center">
-                <LucideIcon name="Settings2" class="w-6 h-6 mr-3" />
-                分組活動管理
-            </h1>
+            <PageHeader 
+                title="分組活動管理" 
+                description="設定分組活動進行時，儀表板的顯示方式與互動權限。"
+            />
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- 顯示設定 -->
@@ -128,6 +128,7 @@
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '~/stores/ui'
 import { watch } from 'vue'
+import PageHeader from '~/components/PageHeader.vue';
 
 definePageMeta({
     layout: 'class-dashboard',

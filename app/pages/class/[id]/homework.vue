@@ -7,7 +7,7 @@
                 <!-- 移除新增作業按鈕 -->
             </div>
             <p class="text-base-content/70">
-                此處顯示的作業來自「全域作業管理」。您可以在此為班級設定專屬的開始與繳交日期。
+                此處顯示的作業來自「作業管理」。您可以在此為班級設定專屬的開始與繳交日期。
             </p>
 
             <!-- 作業列表 -->
@@ -15,7 +15,11 @@
                 <div class="glass-card p-4 rounded-xl">
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         <div class="flex flex-col gap-2 md:flex-row md:items-center">
-                            <label for="homework-search" class="text-sm font-semibold whitespace-nowrap">搜尋作業</label>
+                            <label
+                                for="homework-search"
+                                class="text-sm font-semibold whitespace-nowrap"
+                                >搜尋作業</label
+                            >
                             <label class="input input-bordered flex items-center gap-2 md:flex-1">
                                 <LucideIcon name="Search" class="w-4 h-4 opacity-70" />
                                 <input
@@ -29,7 +33,10 @@
                         </div>
 
                         <div class="flex flex-col gap-2 md:flex-row md:items-center">
-                            <label for="homework-status-filter" class="text-sm font-semibold whitespace-nowrap">
+                            <label
+                                for="homework-status-filter"
+                                class="text-sm font-semibold whitespace-nowrap"
+                            >
                                 篩選狀態
                             </label>
                             <select
@@ -37,20 +44,34 @@
                                 v-model="selectedStatus"
                                 class="select select-bordered md:flex-1"
                             >
-                                <option v-for="option in statusFilterOptions" :key="option.value" :value="option.value">
+                                <option
+                                    v-for="option in statusFilterOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
                                     {{ option.label }}
                                 </option>
                             </select>
                         </div>
 
-                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:col-span-2 lg:col-span-1">
-                            <label for="homework-sort" class="text-sm font-semibold whitespace-nowrap">排序方式</label>
+                        <div
+                            class="flex flex-col gap-2 md:flex-row md:items-center md:col-span-2 lg:col-span-1"
+                        >
+                            <label
+                                for="homework-sort"
+                                class="text-sm font-semibold whitespace-nowrap"
+                                >排序方式</label
+                            >
                             <select
                                 id="homework-sort"
                                 v-model="sortOption"
                                 class="select select-bordered md:flex-1"
                             >
-                                <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+                                <option
+                                    v-for="option in sortOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
                                     {{ option.label }}
                                 </option>
                             </select>
@@ -73,14 +94,19 @@
                             <tr v-for="hw in paginatedHomeworks" :key="hw.id">
                                 <td class="font-semibold">{{ hw.name }}</td>
                                 <td>
-                                    <span class="badge" :class="getHomeworkStatus(hw.id).badgeClass">
+                                    <span
+                                        class="badge"
+                                        :class="getHomeworkStatus(hw.id).badgeClass"
+                                    >
                                         {{ getHomeworkStatus(hw.id).text }}
                                     </span>
                                 </td>
                                 <td>
                                     <input
                                         type="date"
-                                        :value="getHomeworkSettings(hw.id)?.releaseDate?.split('T')[0]"
+                                        :value="
+                                            getHomeworkSettings(hw.id)?.releaseDate?.split('T')[0]
+                                        "
                                         @change="updateDate(hw.id, 'releaseDate', $event)"
                                         class="input input-bordered input-sm w-40 bg-transparent"
                                     />
@@ -104,7 +130,10 @@
                             </tr>
                         </tbody>
                     </table>
-                    <div v-if="processedHomeworks.length === 0" class="py-10 text-center text-base-content/70">
+                    <div
+                        v-if="processedHomeworks.length === 0"
+                        class="py-10 text-center text-base-content/70"
+                    >
                         <p>沒有符合條件的作業。</p>
                     </div>
                 </div>
@@ -121,7 +150,9 @@
                         <button
                             class="btn btn-sm join-item"
                             :disabled="classHomeworkCurrentPage === 1"
-                            @click="classHomeworkCurrentPage = Math.max(1, classHomeworkCurrentPage - 1)"
+                            @click="
+                                classHomeworkCurrentPage = Math.max(1, classHomeworkCurrentPage - 1)
+                            "
                         >
                             «
                         </button>
@@ -137,7 +168,12 @@
                         <button
                             class="btn btn-sm join-item"
                             :disabled="classHomeworkCurrentPage === classHomeworkTotalPages"
-                            @click="classHomeworkCurrentPage = Math.min(classHomeworkTotalPages, classHomeworkCurrentPage + 1)"
+                            @click="
+                                classHomeworkCurrentPage = Math.min(
+                                    classHomeworkTotalPages,
+                                    classHomeworkCurrentPage + 1,
+                                )
+                            "
                         >
                             »
                         </button>
@@ -219,12 +255,11 @@ const processedHomeworks = computed(() => {
     const filtered = visibleHomeworks.value.filter((hw) => {
         const matchesSearch = term ? hw.name.toLowerCase().includes(term) : true
         const statusLabel = getHomeworkStatus(hw.id).text
-        const matchesStatus =
-            selectedStatus.value === 'all' || statusLabel === selectedStatus.value
+        const matchesStatus = selectedStatus.value === 'all' || statusLabel === selectedStatus.value
         return matchesSearch && matchesStatus
     })
 
-    const sorter = (a: typeof filtered[number], b: typeof filtered[number]) => {
+    const sorter = (a: (typeof filtered)[number], b: (typeof filtered)[number]) => {
         switch (sortOption.value) {
             case 'releaseDateAsc': {
                 const aDate = normalizeDate(a.id, 'releaseDate') ?? Number.POSITIVE_INFINITY

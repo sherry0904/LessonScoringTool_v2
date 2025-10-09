@@ -1,13 +1,9 @@
 <template>
     <div class="p-6 max-w-5xl mx-auto space-y-10">
-        <div>
-            <h1
-                class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
-            >
-                系統設定
-            </h1>
-            <p class="text-base-content/70 mt-2">調整偏好、外觀與資料</p>
-        </div>
+        <PageHeader 
+            title="系統設定" 
+            description="調整偏好、外觀與資料"
+        />
 
         <!-- 外觀 / 偏好 -->
         <div class="grid gap-6 md:grid-cols-2">
@@ -96,6 +92,8 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '~/components/PageHeader.vue';
+
 const ui = useUIStore()
 const classesStore = useClassesStore()
 

@@ -1,15 +1,11 @@
 <template>
     <div class="p-6 max-w-7xl mx-auto space-y-8">
         <!-- 標題區 -->
+        <PageHeader 
+            title="學生管理" 
+            description="跨班級檢視與管理所有學生"
+        />
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-                <h1
-                    class="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
-                >
-                    學生管理
-                </h1>
-                <p class="text-base-content/70 mt-2">跨班級檢視與管理所有學生</p>
-            </div>
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div class="relative">
                     <input
@@ -95,6 +91,7 @@
 <script setup lang="ts">
 import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
+import PageHeader from '~/components/PageHeader.vue';
 
 const classesStore = useClassesStore()
 const ui = useUIStore()

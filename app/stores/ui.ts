@@ -48,6 +48,7 @@ export const useUIStore = defineStore('ui', () => {
     const isTablet = ref(false)
     const windowWidth = ref(0)
     const showSecurityNotice = ref(true)
+    const groupingViewCollapsed = ref(false)
 
     // --- Grouping Settings ---
     const groupingSettings = ref({
@@ -131,6 +132,10 @@ export const useUIStore = defineStore('ui', () => {
 
     const setSearchQuery = (query: string) => {
         searchQuery.value = query
+    }
+
+    const setGroupingViewCollapsed = (collapsed: boolean) => {
+        groupingViewCollapsed.value = collapsed
     }
 
     const persistGroupingSettings = () => {
@@ -418,6 +423,7 @@ export const useUIStore = defineStore('ui', () => {
         isTablet,
         windowWidth,
         showSecurityNotice,
+        groupingViewCollapsed, // new state
 
         // Grouping Settings
         groupingSettings,
@@ -448,6 +454,7 @@ export const useUIStore = defineStore('ui', () => {
         toggleSidebar,
         setSidebarOpen,
         setSearchQuery,
+        setGroupingViewCollapsed, // new action
         persistGroupingSettings,
         clearStudentSelection,
         toggleTheme,
