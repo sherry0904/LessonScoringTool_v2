@@ -51,7 +51,7 @@ export const useUIStore = defineStore('ui', () => {
 
     // --- Grouping Settings ---
     const groupingSettings = ref({
-        leaderboardDisplayCount: 'all' as 'all' | 3 | 5, // 顯示全部或前幾名
+        leaderboardDisplayCount: 'all' as 'all' | number, // 顯示全部或前幾名
         showGroupTotalScores: true, // 是否顯示各組總積分
         showStudentIndividualScores: true, // 是否顯示各學生積分
         allowIndividualScoring: true, // 是否可對組內學生加減分
@@ -131,6 +131,15 @@ export const useUIStore = defineStore('ui', () => {
 
     const setSearchQuery = (query: string) => {
         searchQuery.value = query
+    }
+
+    const persistGroupingSettings = () => {
+        if (process.client) {
+            localStorage.setItem(
+                'groupingSettings',
+                JSON.stringify(groupingSettings.value),
+            )
+        }
     }
 
     // Preferences methods
@@ -352,6 +361,17 @@ export const useUIStore = defineStore('ui', () => {
                 }
             }
 
+            // Load grouping settings
+            const savedGroupingSettings = localStorage.getItem('groupingSettings')
+            if (savedGroupingSettings) {
+                try {
+                    const parsedSettings = JSON.parse(savedGroupingSettings)
+                    groupingSettings.value = { ...groupingSettings.value, ...parsedSettings }
+                } catch (error) {
+                    console.warn('Failed to parse grouping settings:', error)
+                }
+            }
+
             // Apply initial theme
             applyThemeToDOM(userPreferences.value.theme)
 
@@ -428,6 +448,7 @@ export const useUIStore = defineStore('ui', () => {
         toggleSidebar,
         setSidebarOpen,
         setSearchQuery,
+        persistGroupingSettings,
         clearStudentSelection,
         toggleTheme,
         updatePreferences,

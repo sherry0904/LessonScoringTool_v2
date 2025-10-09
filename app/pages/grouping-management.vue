@@ -38,17 +38,58 @@
                         </div>
 
                         <div class="form-control w-full">
-                            <label class="label mb-2">
+                            <label class="label">
                                 <span class="label-text font-medium">排行榜顯示範圍</span>
                             </label>
-                            <select
-                                v-model="settings.leaderboardDisplayCount"
-                                class="select select-bordered"
-                            >
-                                <option value="all">顯示所有組別</option>
-                                <option :value="3">只顯示前 3 名</option>
-                                <option :value="5">只顯示前 5 名</option>
-                            </select>
+                            <div class="flex items-center gap-4">
+                                <div class="form-control">
+                                    <label class="label cursor-pointer gap-2">
+                                        <input
+                                            type="radio"
+                                            name="radio-leaderboard"
+                                            class="radio radio-primary"
+                                            :checked="settings.leaderboardDisplayCount === 'all'"
+                                            @change="settings.leaderboardDisplayCount = 'all'"
+                                        />
+                                        <span class="label-text">顯示所有組別</span>
+                                    </label>
+                                </div>
+                                <div class="form-control">
+                                    <label class="label cursor-pointer gap-2">
+                                        <input
+                                            type="radio"
+                                            name="radio-leaderboard"
+                                            class="radio radio-primary"
+                                            :checked="typeof settings.leaderboardDisplayCount === 'number'"
+                                            @change="settings.leaderboardDisplayCount = 3"
+                                        />
+                                        <span class="label-text">只顯示前</span>
+                                    </label>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    class="input input-bordered w-24"
+                                    :disabled="settings.leaderboardDisplayCount === 'all'"
+                                    :value="
+                                        typeof settings.leaderboardDisplayCount === 'number'
+                                            ? settings.leaderboardDisplayCount
+                                            : 1
+                                    "
+                                    @input="
+                                        (event) => {
+                                            const value = parseInt(
+                                                (event.target as HTMLInputElement).value,
+                                                10,
+                                            )
+                                            if (!isNaN(value) && value > 0) {
+                                                settings.leaderboardDisplayCount = value
+                                            }
+                                        }
+                                    "
+                                />
+                                <span class="label-text">名</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -86,6 +127,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '~/stores/ui'
+import { watch } from 'vue'
 
 definePageMeta({
     layout: 'class-dashboard',
@@ -94,6 +136,14 @@ definePageMeta({
 
 const uiStore = useUIStore()
 const { groupingSettings: settings } = storeToRefs(uiStore)
+
+watch(
+    settings,
+    () => {
+        uiStore.persistGroupingSettings()
+    },
+    { deep: true },
+)
 </script>
 
 <style scoped>

@@ -360,6 +360,8 @@ watchEffect(() => {
         ui.setCurrentTab('students')
     } else if (path.startsWith('/groups')) {
         ui.setCurrentTab('groups')
+    } else if (path.startsWith('/grouping-management')) {
+        ui.setCurrentTab('grouping-management')
     } else if (path.startsWith('/settings')) {
         ui.setCurrentTab('settings')
     } else {

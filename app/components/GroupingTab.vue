@@ -616,7 +616,7 @@
                 <div class="space-y-4">
                     <!-- 排行榜 -->
                     <div
-                        v-for="(group, index) in sortedGroups"
+                        v-for="(group, index) in leaderboardGroups"
                         :key="group.id"
                         :class="[
                             'flex items-center gap-4 p-4 rounded-lg',
@@ -642,7 +642,7 @@
                                 {{ getGroupMembers(group).length }} 人
                             </div>
                         </div>
-                        <div class="text-right">
+                        <div v-if="groupingSettings.showGroupTotalScores" class="text-right">
                             <div class="text-2xl font-bold text-primary">
                                 {{ group.totalScore }}
                             </div>
