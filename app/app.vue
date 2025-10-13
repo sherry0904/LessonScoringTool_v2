@@ -44,6 +44,32 @@
             </div>
         </div>
 
+        <!-- 資料安全提醒 -->
+        <div
+            v-if="ui.showSecurityNotice"
+            class="fixed inset-0 z-50 bg-base-100/95 backdrop-blur-sm flex items-center justify-center p-6"
+        >
+            <div class="max-w-xl w-full bg-base-200 border border-warning/40 rounded-2xl shadow-xl p-6 space-y-4">
+                <div class="flex items-start gap-3">
+                    <LucideIcon name="AlertCircle" class="w-8 h-8 text-warning shrink-0" />
+                    <div>
+                        <h2 class="text-xl font-semibold text-base-content">資料儲存安全提醒</h2>
+                        <p class="text-base-content/80 mt-2 leading-relaxed">
+                            本工具會將班級、學生與評分資料保存在目前瀏覽器的本機儲存空間。請勿在共用或公共電腦使用，並且在匯出檔案後妥善保管，以避免學生個資外洩。
+                        </p>
+                        <p class="text-sm text-base-content/60 mt-3">
+                            若要移除資料，可前往「設定 &gt; 資料管理」清除本機內容。
+                        </p>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button class="btn btn-warning" @click="ui.acknowledgeSecurityNotice()">
+                        我了解，開始使用
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 主要應用程式佈局 -->
         <div class="flex h-screen">
             <!-- 側邊欄 -->
@@ -274,6 +300,7 @@ const tabRoute = (id: string) => {
         homework: '/homework',
         students: '/students',
         groups: '/groups',
+        'grouping-management': '/grouping-management',
         settings: '/settings',
     }
     return map[id] || '/'
@@ -333,6 +360,8 @@ watchEffect(() => {
         ui.setCurrentTab('students')
     } else if (path.startsWith('/groups')) {
         ui.setCurrentTab('groups')
+    } else if (path.startsWith('/grouping-management')) {
+        ui.setCurrentTab('grouping-management')
     } else if (path.startsWith('/settings')) {
         ui.setCurrentTab('settings')
     } else {

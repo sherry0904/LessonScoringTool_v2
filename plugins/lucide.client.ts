@@ -62,6 +62,11 @@ import {
     Palette,
     BookX,
     Minus,
+    SquarePen,
+    Save,
+    Lock,
+    Pencil,
+    PlusCircle,
 } from 'lucide-vue-next'
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -128,4 +133,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('LucidePalette', Palette)
     nuxtApp.vueApp.component('LucideBookX', BookX)
     nuxtApp.vueApp.component('LucideMinus', Minus)
+    nuxtApp.vueApp.component('LucideSquarePen', SquarePen)
+    nuxtApp.vueApp.component('LucideSave', Save)
+    nuxtApp.vueApp.component('LucideLock', Lock)
+    nuxtApp.vueApp.component('LucidePencil', Pencil)
+    nuxtApp.vueApp.component('LucidePlusCircle', PlusCircle)
 })

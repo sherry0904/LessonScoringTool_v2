@@ -79,6 +79,11 @@ import {
     Palette,
     BookX,
     Minus,
+    SquarePen,
+    Save,
+    Lock,
+    Pencil,
+    PlusCircle,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -162,6 +167,11 @@ const iconMap = {
     Palette: Palette,
     BookX: BookX,
     Minus: Minus,
+    SquarePen: SquarePen,
+    Save: Save,
+    Lock: Lock,
+    Pencil: Pencil,
+    PlusCircle: PlusCircle,
 }
 
 const iconComponent = computed(() => {

@@ -9,6 +9,8 @@ import type {
     Student,
 } from '~/types/class'
 
+const SECURITY_NOTICE_KEY = 'security-notice-ack'
+
 // Helper function to apply theme to the DOM
 const applyThemeToDOM = (theme: 'light' | 'dark' | 'auto') => {
     if (process.client) {
@@ -45,6 +47,16 @@ export const useUIStore = defineStore('ui', () => {
     const isMobile = ref(false)
     const isTablet = ref(false)
     const windowWidth = ref(0)
+    const showSecurityNotice = ref(true)
+    const groupingViewCollapsed = ref(false)
+
+    // --- Grouping Settings ---
+    const groupingSettings = ref({
+        leaderboardDisplayCount: 'all' as 'all' | number, // 顯示全部或前幾名
+        showGroupTotalScores: true, // 是否顯示各組總積分
+        showStudentIndividualScores: true, // 是否顯示各學生積分
+        allowIndividualScoring: true, // 是否可對組內學生加減分
+    })
 
     // --- Tool States ---
     // Timer
@@ -96,6 +108,7 @@ export const useUIStore = defineStore('ui', () => {
             { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
             { id: 'homework', label: '作業管理', icon: 'BookMarked', color: 'accent' },
             { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
+            { id: 'grouping-management', label: '分組管理', icon: 'Settings2', color: 'success' },
             { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
         ]
     })
@@ -119,6 +132,19 @@ export const useUIStore = defineStore('ui', () => {
 
     const setSearchQuery = (query: string) => {
         searchQuery.value = query
+    }
+
+    const setGroupingViewCollapsed = (collapsed: boolean) => {
+        groupingViewCollapsed.value = collapsed
+    }
+
+    const persistGroupingSettings = () => {
+        if (process.client) {
+            localStorage.setItem(
+                'groupingSettings',
+                JSON.stringify(groupingSettings.value),
+            )
+        }
     }
 
     // Preferences methods
@@ -340,8 +366,25 @@ export const useUIStore = defineStore('ui', () => {
                 }
             }
 
+            // Load grouping settings
+            const savedGroupingSettings = localStorage.getItem('groupingSettings')
+            if (savedGroupingSettings) {
+                try {
+                    const parsedSettings = JSON.parse(savedGroupingSettings)
+                    groupingSettings.value = { ...groupingSettings.value, ...parsedSettings }
+                } catch (error) {
+                    console.warn('Failed to parse grouping settings:', error)
+                }
+            }
+
             // Apply initial theme
             applyThemeToDOM(userPreferences.value.theme)
+
+            // Load security notice acknowledgement status
+            const securityNoticeFlag = localStorage.getItem(SECURITY_NOTICE_KEY)
+            if (securityNoticeFlag === 'true') {
+                showSecurityNotice.value = false
+            }
 
             // Init responsive listeners
             updateScreenSize()
@@ -355,6 +398,13 @@ export const useUIStore = defineStore('ui', () => {
             window.removeEventListener('resize', updateScreenSize)
             window.removeEventListener('keydown', handleKeyboard)
             if (timerInterval.value) clearInterval(timerInterval.value)
+        }
+    }
+
+    const acknowledgeSecurityNotice = () => {
+        showSecurityNotice.value = false
+        if (process.client) {
+            localStorage.setItem(SECURITY_NOTICE_KEY, 'true')
         }
     }
 
@@ -372,6 +422,11 @@ export const useUIStore = defineStore('ui', () => {
         isMobile,
         isTablet,
         windowWidth,
+        showSecurityNotice,
+        groupingViewCollapsed, // new state
+
+        // Grouping Settings
+        groupingSettings,
 
         // Timer State
         isTimerVisible,
@@ -399,6 +454,8 @@ export const useUIStore = defineStore('ui', () => {
         toggleSidebar,
         setSidebarOpen,
         setSearchQuery,
+        setGroupingViewCollapsed, // new action
+        persistGroupingSettings,
         clearStudentSelection,
         toggleTheme,
         updatePreferences,
@@ -442,5 +499,6 @@ export const useUIStore = defineStore('ui', () => {
         // Lifecycle
         initialize,
         cleanup,
+        acknowledgeSecurityNotice,
     }
 })
