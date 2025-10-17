@@ -72,6 +72,7 @@ export const useUIStore = defineStore('ui', () => {
     const isPicking = ref(false)
     const pickerDrawnStudents = ref<Student[]>([])
     const pickerPosition = ref<{ x: number; y: number } | null>(null)
+    const pickerSource = ref<string>('class') // 'class' or a group ID
 
     // Computed
     const isDarkMode = computed(() => {
@@ -301,20 +302,18 @@ export const useUIStore = defineStore('ui', () => {
     }
 
     // --- Picker Actions ---
-    // 清空已抽過名單
     const clearDrawnStudents = () => {
         pickerDrawnStudents.value = []
     }
-    // 移除已抽過學生
     const returnStudentToPool = (studentId: string) => {
         const idx = pickerDrawnStudents.value.findIndex((s) => s.id === studentId)
         if (idx !== -1) pickerDrawnStudents.value.splice(idx, 1)
     }
     const openPicker = () => {
-        console.log('Attempting to open picker...');
         isPickerVisible.value = true
         pickerWinner.value = null
         isPicking.value = false
+        pickerSource.value = 'class' // Always reset to whole class on open
     }
 
     const closePicker = () => {
@@ -330,7 +329,6 @@ export const useUIStore = defineStore('ui', () => {
             const winner = students[Math.floor(Math.random() * students.length)]
             pickerWinner.value = winner
             isPicking.value = false
-            // 加入已抽過名單，避免重複
             if (winner && !pickerDrawnStudents.value.find((s) => s.id === winner.id)) {
                 pickerDrawnStudents.value.push(winner)
             }
@@ -342,6 +340,10 @@ export const useUIStore = defineStore('ui', () => {
         if (process.client) {
             localStorage.setItem('pickerPosition', JSON.stringify(position))
         }
+    }
+
+    const setPickerSource = (source: string) => {
+        pickerSource.value = source
     }
 
     // Responsive methods
@@ -368,7 +370,6 @@ export const useUIStore = defineStore('ui', () => {
             if (savedPreferences) {
                 try {
                     const parsedPrefs = JSON.parse(savedPreferences)
-                    // Merge with defaults to avoid missing properties on update
                     userPreferences.value = { ...userPreferences.value, ...parsedPrefs }
                 } catch (error) {
                     console.warn('Failed to parse user preferences:', error)
@@ -442,7 +443,7 @@ export const useUIStore = defineStore('ui', () => {
         isTablet,
         windowWidth,
         showSecurityNotice,
-        groupingViewCollapsed, // new state
+        groupingViewCollapsed,
 
         // Grouping Settings
         groupingSettings,
@@ -459,6 +460,7 @@ export const useUIStore = defineStore('ui', () => {
         isPicking,
         pickerDrawnStudents,
         pickerPosition,
+        pickerSource,
         clearDrawnStudents,
 
         // Computed
@@ -474,7 +476,7 @@ export const useUIStore = defineStore('ui', () => {
         toggleSidebar,
         setSidebarOpen,
         setSearchQuery,
-        setGroupingViewCollapsed, // new action
+        setGroupingViewCollapsed,
         persistGroupingSettings,
         clearStudentSelection,
         toggleTheme,
@@ -516,6 +518,7 @@ export const useUIStore = defineStore('ui', () => {
         startPicking,
         returnStudentToPool,
         setPickerPosition,
+        setPickerSource,
 
         // Lifecycle
         initialize,

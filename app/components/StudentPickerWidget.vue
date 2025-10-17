@@ -18,7 +18,20 @@
         </div>
 
         <div class="p-4 overflow-y-auto custom-scrollbar">
-            <div v-if="students.length > 0">
+            <!-- New: Source Selector -->
+            <div v-if="classGroups.length > 0" class="mb-4">
+                <label for="picker-source" class="text-sm font-medium text-base-content/80"
+                    >抽籤範圍</label
+                >
+                <select id="picker-source" v-model="pickerSource" class="select select-bordered select-sm w-full mt-1">
+                    <option value="class">全班學生</option>
+                    <option v-for="group in classGroups" :key="group.id" :value="group.id">
+                        {{ group.name }}
+                    </option>
+                </select>
+            </div>
+
+            <div v-if="sourceStudents.length > 0">
                 <!-- Winner Display -->
                 <div
                     v-if="ui.pickerWinner && !ui.isPicking"
@@ -53,7 +66,7 @@
 
                 <!-- All Picked Message -->
                 <div v-else class="text-center py-10">
-                    <p class="text-base-content/60">所有學生都已經抽過了！</p>
+                    <p class="text-base-content/60">此範圍內所有學生都已經抽過了！</p>
                     <p class="text-sm text-base-content/40 mt-2">
                         可以點擊下方「清除」按鈕來重置名單。
                     </p>
@@ -61,17 +74,17 @@
 
                 <!-- Drawn Students List -->
                 <div v-if="(ui.pickerDrawnStudents?.length ?? 0) > 0" class="mt-6">
-                    <div class="divider text-sm">已抽過名單</div>
+                    <div class="divider text-sm">已抽過名單 ({{ ui.pickerDrawnStudents.length }}人)</div>
                     <div
-                        class="bg-base-100 flex flex-wrap gap-2 justify-start items-start min-h-[32px] p-2 rounded-lg"
+                        class="bg-base-100 flex flex-wrap gap-2 justify-start items-start min-h-[32px] p-2 rounded-lg max-h-32 overflow-y-auto custom-scrollbar"
                     >
                         <button
                             v-for="student in ui.pickerDrawnStudents ?? []"
                             :key="student.id"
                             @click="ui.returnStudentToPool(student.id)"
-                            class="flex items-center px-2 py-0.5 rounded-full bg-base-300 text-base-content font-medium shadow-sm transition hover:bg-base-400 text-xs cursor-pointer border-none outline-none"
+                            class="flex items-center px-2 py-0.5 rounded-full bg-base-300 text-base-content font-medium shadow-sm transition hover:bg-error hover:text-error-content text-xs cursor-pointer border-none outline-none"
                             style="margin-bottom: 2px"
-                            title="點擊移除"
+                            title="點擊將此學生放回抽籤池"
                         >
                             <span>{{ student.name }}</span>
                             <LucideIcon name="X" class="w-3 h-3 ml-1" />
@@ -110,16 +123,31 @@
 import { useUIStore } from '~/stores/ui'
 import { useClassesStore } from '~/stores/classes'
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
-import type { Student } from '~/types/class'
+import type { Student, Group } from '~/types/class'
 
 const ui = useUIStore()
 const classesStore = useClassesStore()
 
-const students = computed<Student[]>(() => classesStore.currentClass?.students || [])
+// --- Data Sources ---
+const classGroups = computed<Group[]>(() => classesStore.currentClass?.groups || [])
+
+const pickerSource = computed<string>({
+    get: () => ui.pickerSource,
+    set: (value) => ui.setPickerSource(value),
+})
+
+const sourceStudents = computed<Student[]>(() => {
+    const source = pickerSource.value
+    if (source === 'class' || !classesStore.currentClass) {
+        return classesStore.currentClass?.students || []
+    }
+    const selectedGroup = classGroups.value.find((g) => g.id === source)
+    return selectedGroup?.members || []
+})
 
 const availableStudents = computed<Student[]>(() => {
     const drawnIds = new Set((ui.pickerDrawnStudents || []).map((s) => s.id))
-    return students.value.filter((s) => !drawnIds.has(s.id))
+    return sourceStudents.value.filter((s) => !drawnIds.has(s.id))
 })
 
 // --- Draggable Widget Logic ---
@@ -136,7 +164,6 @@ function onDragStart(event: MouseEvent) {
     if (!widgetEl.value) return
     isDragging.value = true
 
-    // The position is relative to the viewport, so we can use clientX/Y directly
     dragOffset.value = {
         x: event.clientX - position.value.x,
         y: event.clientY - position.value.y,
@@ -144,7 +171,7 @@ function onDragStart(event: MouseEvent) {
 
     window.addEventListener('mousemove', onDragMove)
     window.addEventListener('mouseup', onDragEnd)
-    document.body.style.userSelect = 'none' // Prevent text selection while dragging
+    document.body.style.userSelect = 'none'
 }
 
 function onDragMove(event: MouseEvent) {
@@ -161,26 +188,22 @@ function onDragEnd() {
     isDragging.value = false
     window.removeEventListener('mousemove', onDragMove)
     window.removeEventListener('mouseup', onDragEnd)
-    document.body.style.userSelect = '' // Re-enable text selection
+    document.body.style.userSelect = ''
 
-    // Save position to store/localStorage
     ui.setPickerPosition(position.value)
 }
 
 onMounted(async () => {
-    // Wait for the DOM to be updated before measuring the element
     await nextTick()
 
     const savedPosition = ui.pickerPosition
     if (savedPosition) {
         position.value = savedPosition
     } else if (widgetEl.value) {
-        // Default to a safe position, e.g., centered or bottom-right
         const x = window.innerWidth - widgetEl.value.offsetWidth - 60
         const y = window.innerHeight - widgetEl.value.offsetHeight - 60
-        position.value = { x: Math.max(x, 10), y: Math.max(y, 10) } // Ensure it's not off-screen
+        position.value = { x: Math.max(x, 10), y: Math.max(y, 10) }
     } else {
-        // Fallback position if element isn't ready
         position.value = { x: 100, y: 100 }
     }
 })
@@ -190,7 +213,7 @@ onUnmounted(() => {
     window.removeEventListener('mouseup', onDragEnd)
 })
 
-// --- Picker Logic (mostly unchanged) ---
+// --- Picker Animation Logic ---
 
 function fisherYatesShuffle(array: string[]): string[] {
     const arr = array.slice()
