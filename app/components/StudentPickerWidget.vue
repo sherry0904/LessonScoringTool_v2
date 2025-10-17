@@ -1,16 +1,23 @@
 <template>
-    <div class="modal modal-open">
-        <div class="modal-box w-11/12 max-w-md">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-bold flex items-center gap-2">
-                    <LucideIcon name="Dices" />
-                    隨機抽籤
-                </h3>
-                <button class="btn btn-sm btn-ghost btn-circle" @click="ui.closePicker()">
-                    <LucideIcon name="X" />
-                </button>
-            </div>
+    <div
+        ref="widgetEl"
+        :style="widgetStyle"
+        class="fixed top-0 left-0 z-40 w-11/12 max-w-md bg-base-200 rounded-lg shadow-xl border border-base-300 flex flex-col overflow-hidden"
+    >
+        <div
+            @mousedown="onDragStart"
+            class="flex items-center justify-between p-4 bg-base-300/50 cursor-move"
+        >
+            <h3 class="text-lg font-bold flex items-center gap-2">
+                <LucideIcon name="Dices" />
+                隨機抽籤
+            </h3>
+            <button class="btn btn-sm btn-ghost btn-circle" @click="ui.closePicker()">
+                <LucideIcon name="X" />
+            </button>
+        </div>
 
+        <div class="p-4 overflow-y-auto custom-scrollbar">
             <div v-if="students.length > 0">
                 <!-- Winner Display -->
                 <div
@@ -30,7 +37,7 @@
                     class="h-48 my-8 flex items-center justify-center overflow-hidden relative"
                 >
                     <div
-                        class="absolute inset-0 bg-gradient-to-b from-base-100 via-transparent to-base-100 z-10"
+                        class="absolute inset-0 bg-gradient-to-b from-base-200 via-transparent to-base-200 z-10"
                     ></div>
                     <div
                         class="animate-picker-scroll text-4xl font-semibold text-center text-base-content/50"
@@ -56,7 +63,7 @@
                 <div v-if="(ui.pickerDrawnStudents?.length ?? 0) > 0" class="mt-6">
                     <div class="divider text-sm">已抽過名單</div>
                     <div
-                        class="bg-white flex flex-wrap gap-2 justify-start items-start min-h-[32px] p-2 rounded-lg"
+                        class="bg-base-100 flex flex-wrap gap-2 justify-start items-start min-h-[32px] p-2 rounded-lg"
                     >
                         <button
                             v-for="student in ui.pickerDrawnStudents ?? []"
@@ -73,7 +80,7 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="modal-action mt-6 flex gap-2">
+                <div class="mt-6 flex gap-2">
                     <button
                         class="btn btn-ghost flex-1"
                         @click="ui.clearDrawnStudents()"
@@ -96,16 +103,13 @@
                 <p class="text-base-content/60">目前班級沒有學生可供抽籤。</p>
             </div>
         </div>
-        <form method="dialog" class="modal-backdrop">
-            <button @click="ui.closePicker()">close</button>
-        </form>
     </div>
 </template>
 
 <script setup lang="ts">
 import { useUIStore } from '~/stores/ui'
 import { useClassesStore } from '~/stores/classes'
-import { computed, onMounted, watchEffect } from 'vue' // Import onMounted and watchEffect
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import type { Student } from '~/types/class'
 
 const ui = useUIStore()
@@ -115,9 +119,78 @@ const students = computed<Student[]>(() => classesStore.currentClass?.students |
 
 const availableStudents = computed<Student[]>(() => {
     const drawnIds = new Set((ui.pickerDrawnStudents || []).map((s) => s.id))
-    const filteredStudents = students.value.filter((s) => !drawnIds.has(s.id))
-    return filteredStudents
+    return students.value.filter((s) => !drawnIds.has(s.id))
 })
+
+// --- Draggable Widget Logic ---
+const widgetEl = ref<HTMLElement | null>(null)
+const position = ref({ x: 0, y: 0 })
+const isDragging = ref(false)
+const dragOffset = ref({ x: 0, y: 0 })
+
+const widgetStyle = computed(() => ({
+    transform: `translate(${position.value.x}px, ${position.value.y}px)`,
+}))
+
+function onDragStart(event: MouseEvent) {
+    if (!widgetEl.value) return
+    isDragging.value = true
+
+    // The position is relative to the viewport, so we can use clientX/Y directly
+    dragOffset.value = {
+        x: event.clientX - position.value.x,
+        y: event.clientY - position.value.y,
+    }
+
+    window.addEventListener('mousemove', onDragMove)
+    window.addEventListener('mouseup', onDragEnd)
+    document.body.style.userSelect = 'none' // Prevent text selection while dragging
+}
+
+function onDragMove(event: MouseEvent) {
+    if (!isDragging.value) return
+    event.preventDefault()
+
+    position.value = {
+        x: event.clientX - dragOffset.value.x,
+        y: event.clientY - dragOffset.value.y,
+    }
+}
+
+function onDragEnd() {
+    isDragging.value = false
+    window.removeEventListener('mousemove', onDragMove)
+    window.removeEventListener('mouseup', onDragEnd)
+    document.body.style.userSelect = '' // Re-enable text selection
+
+    // Save position to store/localStorage
+    ui.setPickerPosition(position.value)
+}
+
+onMounted(async () => {
+    // Wait for the DOM to be updated before measuring the element
+    await nextTick()
+
+    const savedPosition = ui.pickerPosition
+    if (savedPosition) {
+        position.value = savedPosition
+    } else if (widgetEl.value) {
+        // Default to a safe position, e.g., centered or bottom-right
+        const x = window.innerWidth - widgetEl.value.offsetWidth - 60
+        const y = window.innerHeight - widgetEl.value.offsetHeight - 60
+        position.value = { x: Math.max(x, 10), y: Math.max(y, 10) } // Ensure it's not off-screen
+    } else {
+        // Fallback position if element isn't ready
+        position.value = { x: 100, y: 100 }
+    }
+})
+
+onUnmounted(() => {
+    window.removeEventListener('mousemove', onDragMove)
+    window.removeEventListener('mouseup', onDragEnd)
+})
+
+// --- Picker Logic (mostly unchanged) ---
 
 function fisherYatesShuffle(array: string[]): string[] {
     const arr = array.slice()
@@ -131,18 +204,15 @@ function fisherYatesShuffle(array: string[]): string[] {
 const shuffledNames = computed(() => {
     if (availableStudents.value.length === 0) return []
 
-    // Create a long list for a better scrolling effect
     let list: string[] = []
     for (let i = 0; i < 5; i++) {
         list = list.concat(fisherYatesShuffle(availableStudents.value.map((s) => s.name)))
     }
 
-    // Ensure the winner is at a predictable position near the end for the animation
     if (ui.pickerWinner) {
         const winnerName = ui.pickerWinner.name
         const lastWinnerIndex = list.lastIndexOf(winnerName)
         if (lastWinnerIndex !== -1) {
-            // Swap winner to be the second to last element
             const secondToLastIndex = list.length - 2
             ;[list[lastWinnerIndex], list[secondToLastIndex]] = [
                 list[secondToLastIndex],
@@ -152,27 +222,13 @@ const shuffledNames = computed(() => {
     }
     return list
 })
-
-onMounted(() => {
-    watchEffect(() => {
-        // console.log(
-        //     'StudentPickerModal watchEffect: ui.pickerDrawnStudents',
-        //     ui.pickerDrawnStudents,
-        // )
-        // console.log(
-        //     'StudentPickerModal watchEffect: availableStudents.value',
-        //     availableStudents.value,
-        // )
-    })
-})
 </script>
 
 <style scoped>
 .animate-picker-scroll {
-    /* We use a linear animation to avoid the "near miss" feeling of a slowdown */
     animation: scroll 1.5s linear infinite;
-    padding-top: 5rem; /* Offset to start off-screen */
-    padding-bottom: 5rem; /* Offset to end off-screen */
+    padding-top: 5rem;
+    padding-bottom: 5rem;
 }
 
 @keyframes scroll {

@@ -71,6 +71,7 @@ export const useUIStore = defineStore('ui', () => {
     const pickerWinner = ref<Student | null>(null)
     const isPicking = ref(false)
     const pickerDrawnStudents = ref<Student[]>([])
+    const pickerPosition = ref<{ x: number; y: number } | null>(null)
 
     // Computed
     const isDarkMode = computed(() => {
@@ -310,6 +311,7 @@ export const useUIStore = defineStore('ui', () => {
         if (idx !== -1) pickerDrawnStudents.value.splice(idx, 1)
     }
     const openPicker = () => {
+        console.log('Attempting to open picker...');
         isPickerVisible.value = true
         pickerWinner.value = null
         isPicking.value = false
@@ -333,6 +335,13 @@ export const useUIStore = defineStore('ui', () => {
                 pickerDrawnStudents.value.push(winner)
             }
         }, 1500) // 1.5秒動畫
+    }
+
+    const setPickerPosition = (position: { x: number; y: number }) => {
+        pickerPosition.value = position
+        if (process.client) {
+            localStorage.setItem('pickerPosition', JSON.stringify(position))
+        }
     }
 
     // Responsive methods
@@ -374,6 +383,16 @@ export const useUIStore = defineStore('ui', () => {
                     groupingSettings.value = { ...groupingSettings.value, ...parsedSettings }
                 } catch (error) {
                     console.warn('Failed to parse grouping settings:', error)
+                }
+            }
+
+            // Load picker position
+            const savedPickerPosition = localStorage.getItem('pickerPosition')
+            if (savedPickerPosition) {
+                try {
+                    pickerPosition.value = JSON.parse(savedPickerPosition)
+                } catch (error) {
+                    console.warn('Failed to parse picker position:', error)
                 }
             }
 
@@ -439,6 +458,7 @@ export const useUIStore = defineStore('ui', () => {
         pickerWinner,
         isPicking,
         pickerDrawnStudents,
+        pickerPosition,
         clearDrawnStudents,
 
         // Computed
@@ -495,6 +515,7 @@ export const useUIStore = defineStore('ui', () => {
         closePicker,
         startPicking,
         returnStudentToPool,
+        setPickerPosition,
 
         // Lifecycle
         initialize,
