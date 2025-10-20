@@ -271,6 +271,40 @@ export const useUIStore = defineStore('ui', () => {
         if (timerInterval.value) clearInterval(timerInterval.value)
     }
 
+    const playTimerAlarm = async () => {
+        try {
+            if (!userPreferences.value.enableSounds) return
+
+            const alarm = new Audio('/alarm.mp3')
+            alarm.volume = 0.5 // 設定音量為 50%
+
+            const playPromise = alarm.play()
+
+            if (playPromise !== undefined) {
+                await playPromise
+                    .then(() => {
+                        console.log('Alarm played successfully')
+                    })
+                    .catch((error) => {
+                        console.warn('Audio playback error:', error.name, error.message)
+
+                        // 區分不同的錯誤類型
+                        if (error.name === 'NotAllowedError') {
+                            // 瀏覽器自動播放政策限制
+                            console.log('Autoplay policy restriction detected')
+                            // 不顯示警告，因為這是正常的瀏覽器行為
+                        } else if (error.name === 'NotSupportedError') {
+                            showWarning('瀏覽器不支援此音效格式')
+                        } else {
+                            showWarning('無法播放音效')
+                        }
+                    })
+            }
+        } catch (error) {
+            console.error('Failed to initialize audio:', error)
+        }
+    }
+
     const startTimer = () => {
         if (isTimerRunning.value || timerSecondsRemaining.value <= 0) return
         isTimerRunning.value = true
@@ -279,20 +313,11 @@ export const useUIStore = defineStore('ui', () => {
             if (timerSecondsRemaining.value <= 0) {
                 if (timerInterval.value) clearInterval(timerInterval.value)
                 isTimerRunning.value = false
-                
+
                 showInfo('時間到！')
 
-                // Play sound if enabled
-                if (userPreferences.value.enableSounds) {
-                    const alarm = new Audio('/alarm.mp3')
-                    const playPromise = alarm.play()
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.error('Audio playback failed:', error)
-                            showWarning('音效播放失敗，可能已被瀏覽器阻擋')
-                        })
-                    }
-                }
+                // 播放音效
+                playTimerAlarm()
             }
         }, 1000)
     }
