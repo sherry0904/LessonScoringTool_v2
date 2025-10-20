@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { ClassInfo, Student, Homework, Group, StudentScore } from '~/types/class'
 import { useExcelExport } from '~/composables/useExcelExport'
 import { useHomeworkStore } from '~/stores/homework'
+import { useUIStore } from '~/stores/ui'
 
 const BACKUP_SCHEMA_VERSION = '2.1.0'
 
@@ -113,6 +114,12 @@ export const useClassesStore = defineStore('classes', () => {
             // 如果傳入的 classId 無效，也清除當前的選擇
             currentClassId.value = null
         }
+
+        // 當班級變更時，重設抽籤工具的狀態
+        const uiStore = useUIStore()
+        uiStore.clearDrawnStudents()
+        uiStore.setPickerSource('class')
+
         saveToStorage()
     }
 
