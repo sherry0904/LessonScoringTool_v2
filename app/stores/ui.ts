@@ -275,30 +275,51 @@ export const useUIStore = defineStore('ui', () => {
         try {
             if (!userPreferences.value.enableSounds) return
 
-            const alarm = new Audio('/alarm.mp3')
-            alarm.volume = 0.5 // 設定音量為 50%
+            // 取得 baseURL 用於部署環境
+            const config = useRuntimeConfig()
+            const baseURL = config.app.baseURL || '/'
 
-            const playPromise = alarm.play()
+            // 嘗試多種音效格式
+            const audioFormats = [
+                { src: `${baseURL}alarm.mp3`, type: 'audio/mpeg' },
+                { src: `${baseURL}alarm.wav`, type: 'audio/wav' },
+                { src: `${baseURL}alarm.ogg`, type: 'audio/ogg' },
+            ]
 
-            if (playPromise !== undefined) {
-                await playPromise
-                    .then(() => {
-                        console.log('Alarm played successfully')
-                    })
-                    .catch((error) => {
-                        console.warn('Audio playback error:', error.name, error.message)
+            let played = false
+            let lastError = null
 
-                        // 區分不同的錯誤類型
-                        if (error.name === 'NotAllowedError') {
-                            // 瀏覽器自動播放政策限制
-                            console.log('Autoplay policy restriction detected')
-                            // 不顯示警告，因為這是正常的瀏覽器行為
-                        } else if (error.name === 'NotSupportedError') {
-                            showWarning('瀏覽器不支援此音效格式')
-                        } else {
-                            showWarning('無法播放音效')
-                        }
-                    })
+            for (const format of audioFormats) {
+                try {
+                    const alarm = new Audio()
+                    alarm.volume = 0.5 // 設定音量為 50%
+                    alarm.src = format.src
+
+                    const playPromise = alarm.play()
+
+                    if (playPromise !== undefined) {
+                        await playPromise
+                        console.log(`✓ Alarm played successfully with ${format.src}`)
+                        played = true
+                        break
+                    }
+                } catch (error) {
+                    console.warn(`✗ Failed to play ${format.src}:`, error)
+                    lastError = error
+                    continue
+                }
+            }
+
+            if (!played && lastError) {
+                console.error('All audio formats failed:', lastError)
+                if (lastError.name === 'NotAllowedError') {
+                    // 瀏覽器自動播放政策限制，不顯示警告
+                    console.log('Autoplay policy restriction detected')
+                } else if (lastError.name === 'NotSupportedError') {
+                    showWarning('瀏覽器不支援此音效格式，請檢查音檔是否存在')
+                } else {
+                    showWarning('無法播放音效')
+                }
             }
         } catch (error) {
             console.error('Failed to initialize audio:', error)
