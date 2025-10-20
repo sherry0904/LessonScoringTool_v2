@@ -71,6 +71,8 @@ export const useUIStore = defineStore('ui', () => {
     const pickerWinner = ref<Student | null>(null)
     const isPicking = ref(false)
     const pickerDrawnStudents = ref<Student[]>([])
+    const pickerPosition = ref<{ x: number; y: number } | null>(null)
+    const pickerSource = ref<string>('class') // 'class' or a group ID
 
     // Computed
     const isDarkMode = computed(() => {
@@ -300,15 +302,15 @@ export const useUIStore = defineStore('ui', () => {
     }
 
     // --- Picker Actions ---
-    // 清空已抽過名單
     const clearDrawnStudents = () => {
         pickerDrawnStudents.value = []
     }
-    // 移除已抽過學生
+
     const returnStudentToPool = (studentId: string) => {
         const idx = pickerDrawnStudents.value.findIndex((s) => s.id === studentId)
         if (idx !== -1) pickerDrawnStudents.value.splice(idx, 1)
     }
+
     const openPicker = () => {
         isPickerVisible.value = true
         pickerWinner.value = null
@@ -328,11 +330,28 @@ export const useUIStore = defineStore('ui', () => {
             const winner = students[Math.floor(Math.random() * students.length)]
             pickerWinner.value = winner
             isPicking.value = false
-            // 加入已抽過名單，避免重複
             if (winner && !pickerDrawnStudents.value.find((s) => s.id === winner.id)) {
                 pickerDrawnStudents.value.push(winner)
             }
         }, 1500) // 1.5秒動畫
+    }
+
+    const setPickerPosition = (position: { x: number; y: number }) => {
+        pickerPosition.value = position
+        if (process.client) {
+            localStorage.setItem('pickerPosition', JSON.stringify(position))
+        }
+    }
+
+    const setPickerSource = (source: string) => {
+        pickerSource.value = source
+    }
+
+    const resetPickerState = () => {
+        pickerWinner.value = null
+        pickerDrawnStudents.value = []
+        pickerSource.value = 'class'
+        isPicking.value = false
     }
 
     // Responsive methods
@@ -359,7 +378,6 @@ export const useUIStore = defineStore('ui', () => {
             if (savedPreferences) {
                 try {
                     const parsedPrefs = JSON.parse(savedPreferences)
-                    // Merge with defaults to avoid missing properties on update
                     userPreferences.value = { ...userPreferences.value, ...parsedPrefs }
                 } catch (error) {
                     console.warn('Failed to parse user preferences:', error)
@@ -374,6 +392,16 @@ export const useUIStore = defineStore('ui', () => {
                     groupingSettings.value = { ...groupingSettings.value, ...parsedSettings }
                 } catch (error) {
                     console.warn('Failed to parse grouping settings:', error)
+                }
+            }
+
+            // Load picker position
+            const savedPickerPosition = localStorage.getItem('pickerPosition')
+            if (savedPickerPosition) {
+                try {
+                    pickerPosition.value = JSON.parse(savedPickerPosition)
+                } catch (error) {
+                    console.warn('Failed to parse picker position:', error)
                 }
             }
 
@@ -423,7 +451,7 @@ export const useUIStore = defineStore('ui', () => {
         isTablet,
         windowWidth,
         showSecurityNotice,
-        groupingViewCollapsed, // new state
+        groupingViewCollapsed,
 
         // Grouping Settings
         groupingSettings,
@@ -439,6 +467,8 @@ export const useUIStore = defineStore('ui', () => {
         pickerWinner,
         isPicking,
         pickerDrawnStudents,
+        pickerPosition,
+        pickerSource,
         clearDrawnStudents,
 
         // Computed
@@ -454,7 +484,7 @@ export const useUIStore = defineStore('ui', () => {
         toggleSidebar,
         setSidebarOpen,
         setSearchQuery,
-        setGroupingViewCollapsed, // new action
+        setGroupingViewCollapsed,
         persistGroupingSettings,
         clearStudentSelection,
         toggleTheme,
@@ -495,6 +525,9 @@ export const useUIStore = defineStore('ui', () => {
         closePicker,
         startPicking,
         returnStudentToPool,
+        setPickerPosition,
+        setPickerSource,
+        resetPickerState,
 
         // Lifecycle
         initialize,

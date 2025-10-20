@@ -276,7 +276,7 @@
 
         <!-- 全域工具組件 -->
         <TimerWidget v-if="ui.isTimerVisible" />
-        <StudentPickerModal v-if="ui.isPickerVisible" />
+        <StudentPickerWidget v-if="ui.isPickerVisible" />
     </div>
 </template>
 
@@ -284,7 +284,7 @@
 import { useUIStore } from '~/stores/ui'
 import { useClassesStore } from '~/stores/classes'
 import TimerWidget from '~/components/TimerWidget.vue'
-import StudentPickerModal from '~/components/StudentPickerModal.vue'
+import StudentPickerWidget from '~/components/StudentPickerWidget.vue'
 import MobileBlocker from '~/components/MobileBlocker.vue'
 import { watchEffect } from 'vue' // Import watchEffect
 
