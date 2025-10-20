@@ -38,7 +38,7 @@ export const useUIStore = defineStore('ui', () => {
         theme: 'auto',
         language: 'zh-TW',
         enableAnimations: true,
-        enableSounds: false,
+        enableSounds: true, // Changed from false to true
         autoSave: true,
         showTutorials: true,
         defaultView: 'grid',
@@ -142,10 +142,7 @@ export const useUIStore = defineStore('ui', () => {
 
     const persistGroupingSettings = () => {
         if (process.client) {
-            localStorage.setItem(
-                'groupingSettings',
-                JSON.stringify(groupingSettings.value),
-            )
+            localStorage.setItem('groupingSettings', JSON.stringify(groupingSettings.value))
         }
     }
 
@@ -172,7 +169,7 @@ export const useUIStore = defineStore('ui', () => {
             theme: 'auto',
             language: 'zh-TW',
             enableAnimations: true,
-            enableSounds: false,
+            enableSounds: true, // Changed from false to true
             autoSave: true,
             showTutorials: true,
             defaultView: 'grid',
@@ -282,10 +279,20 @@ export const useUIStore = defineStore('ui', () => {
             if (timerSecondsRemaining.value <= 0) {
                 if (timerInterval.value) clearInterval(timerInterval.value)
                 isTimerRunning.value = false
-                // Optional: Play sound or show notification
-                const alarm = new Audio('/old/assets/alarm.mp3')
-                alarm.play()
+                
                 showInfo('時間到！')
+
+                // Play sound if enabled
+                if (userPreferences.value.enableSounds) {
+                    const alarm = new Audio('/alarm.mp3')
+                    const playPromise = alarm.play()
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.error('Audio playback failed:', error)
+                            showWarning('音效播放失敗，可能已被瀏覽器阻擋')
+                        })
+                    }
+                }
             }
         }, 1000)
     }
