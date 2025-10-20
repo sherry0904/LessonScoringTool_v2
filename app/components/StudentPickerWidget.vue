@@ -2,17 +2,17 @@
     <div
         ref="widgetEl"
         :style="widgetStyle"
-        class="fixed top-0 left-0 z-40 w-11/12 max-w-md bg-base-200 rounded-lg shadow-xl border border-base-300 flex flex-col overflow-hidden"
+        class="fixed z-40 w-11/12 max-w-md bg-base-200 rounded-lg shadow-xl border border-base-300 flex flex-col overflow-hidden"
     >
         <div
-            @mousedown="onDragStart"
-            class="flex items-center justify-between p-4 bg-base-300/50 cursor-move"
+            @mousedown.self="onDragStart"
+            class="flex items-center justify-between p-4 bg-base-300/50 cursor-move select-none"
         >
-            <h3 class="text-lg font-bold flex items-center gap-2">
+            <h3 class="text-lg font-bold flex items-center gap-2 pointer-events-none">
                 <LucideIcon name="Dices" />
                 隨機抽籤
             </h3>
-            <button class="btn btn-sm btn-ghost btn-circle" @click="ui.closePicker()">
+            <button class="btn btn-sm btn-ghost btn-circle pointer-events-auto" @click="ui.closePicker()">
                 <LucideIcon name="X" />
             </button>
         </div>
@@ -23,7 +23,12 @@
                 <label for="picker-source" class="text-sm font-medium text-base-content/80"
                     >抽籤範圍</label
                 >
-                <select id="picker-source" v-model="pickerSource" class="select select-bordered select-sm w-full mt-1">
+                <select 
+                    id="picker-source" 
+                    v-model="pickerSource" 
+                    class="select select-bordered select-sm w-full mt-1"
+                    @mousedown.stop
+                >
                     <option value="class">全班學生</option>
                     <option v-for="group in classGroups" :key="group.id" :value="group.id">
                         {{ group.name }}
@@ -157,11 +162,24 @@ const isDragging = ref(false)
 const dragOffset = ref({ x: 0, y: 0 })
 
 const widgetStyle = computed(() => ({
-    transform: `translate(${position.value.x}px, ${position.value.y}px)`,
+    left: `${position.value.x}px`,
+    top: `${position.value.y}px`,
 }))
 
 function onDragStart(event: MouseEvent) {
     if (!widgetEl.value) return
+
+    // 檢查點擊目標是否為互動元素
+    const target = event.target as HTMLElement
+    if (
+        target.tagName === 'SELECT' ||
+        target.tagName === 'BUTTON' ||
+        target.closest('select') ||
+        target.closest('button')
+    ) {
+        return
+    }
+
     isDragging.value = true
 
     dragOffset.value = {
