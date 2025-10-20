@@ -305,15 +305,16 @@ export const useUIStore = defineStore('ui', () => {
     const clearDrawnStudents = () => {
         pickerDrawnStudents.value = []
     }
+
     const returnStudentToPool = (studentId: string) => {
         const idx = pickerDrawnStudents.value.findIndex((s) => s.id === studentId)
         if (idx !== -1) pickerDrawnStudents.value.splice(idx, 1)
     }
+
     const openPicker = () => {
         isPickerVisible.value = true
         pickerWinner.value = null
         isPicking.value = false
-        pickerSource.value = 'class' // Always reset to whole class on open
     }
 
     const closePicker = () => {
@@ -344,6 +345,13 @@ export const useUIStore = defineStore('ui', () => {
 
     const setPickerSource = (source: string) => {
         pickerSource.value = source
+    }
+
+    const resetPickerState = () => {
+        pickerWinner.value = null
+        pickerDrawnStudents.value = []
+        pickerSource.value = 'class'
+        isPicking.value = false
     }
 
     // Responsive methods
@@ -519,6 +527,7 @@ export const useUIStore = defineStore('ui', () => {
         returnStudentToPool,
         setPickerPosition,
         setPickerSource,
+        resetPickerState,
 
         // Lifecycle
         initialize,

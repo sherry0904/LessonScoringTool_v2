@@ -117,8 +117,7 @@ export const useClassesStore = defineStore('classes', () => {
 
         // 當班級變更時，重設抽籤工具的狀態
         const uiStore = useUIStore()
-        uiStore.clearDrawnStudents()
-        uiStore.setPickerSource('class')
+        uiStore.resetPickerState()
 
         saveToStorage()
     }
