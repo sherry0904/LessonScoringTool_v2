@@ -41,12 +41,12 @@
                             <span class="label-text">啟用動畫</span>
                         </label>
                     </div> -->
-                    <!-- <div class="form-control">
+                    <div class="form-control">
                         <label class="cursor-pointer label justify-start gap-3">
                             <input type="checkbox" class="toggle" v-model="prefs.enableSounds" />
-                            <span class="label-text">操作音效</span>
+                            <span class="label-text">啟用計時器音效</span>
                         </label>
-                    </div> -->
+                    </div>
                 </div>
             </div>
 
