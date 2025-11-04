@@ -1,384 +1,110 @@
 <template>
     <div class="space-y-6">
-        <!-- 分組控制面板 -->
-        <div class="card bg-base-100 shadow-sm">
-            <div class="card-body p-4">
-                <!-- INACTIVE STATE: Setup Panel -->
-                <template v-if="!classInfo.groupingActive">
-                    <div class="flex flex-col gap-3">
-                        <div v-if="isGroupEditMode" class="flex flex-wrap items-center gap-2">
-                            <span class="badge badge-info gap-2">
-                                <LucideIcon name="Pencil" class="w-3 h-3" />編輯模式中
-                            </span>
-                            <div class="form-control mr-2">
-                                <label class="label py-1 mr-1">
-                                    <span class="label-text">組數</span>
-                                </label>
-                                <input
-                                    v-model="groupCountInput"
-                                    type="number"
-                                    min="2"
-                                    max="10"
-                                    class="input input-bordered w-20"
-                                    @blur="commitGroupCount"
-                                    @keyup.enter="commitGroupCount"
-                                />
-                            </div>
-                            <button @click="buildGroupsForCount" class="btn btn-outline">
-                                <LucideIcon name="PlusCircle" class="w-4 h-4 mr-2" />建立組別
-                            </button>
-                            <button @click="randomAssignGroups" class="btn btn-primary">
-                                <LucideIcon name="Shuffle" class="w-4 h-4 mr-2" />一鍵隨機分組
-                            </button>
-                            <button @click="resetAllGroups" class="btn btn-ghost">
-                                <LucideIcon name="Undo2" class="w-4 h-4 mr-2" />一鍵還原
-                            </button>
-                            <div class="ml-auto flex gap-2">
-                                <button
-                                    @click="saveGroupEdits"
-                                    class="btn btn-success"
-                                    :disabled="localGroups.length === 0"
-                                >
-                                    <LucideIcon name="Save" class="w-4 h-4 mr-2" />儲存組別編輯
-                                </button>
-                                <button @click="cancelGroupEdits" class="btn btn-ghost">
-                                    取消
-                                </button>
-                            </div>
-                        </div>
-
-                        <div v-else class="flex flex-wrap items-center gap-3">
-                            <div class="flex items-center gap-2 text-sm text-base-content/70">
-                                <span
-                                    class="badge badge-outline gap-1"
-                                    title="如需調整請點擊「編輯組別」"
-                                >
-                                    <LucideIcon name="Lock" class="w-4 h-4" />鎖定
-                                </span>
-                                <span>活動名稱 (選填)</span>
-                                <input
-                                    v-model="activityName"
-                                    type="text"
-                                    placeholder="例如：第二次分組討論"
-                                    class="input input-bordered w-60"
-                                />
-                            </div>
-
-                            <div class="ml-auto flex items-center gap-2">
-                                <button
-                                    @click="expandAllGroups"
-                                    class="btn btn-sm btn-outline gap-1"
-                                    :disabled="localGroups.length === 0"
-                                    title="展開所有組員"
-                                >
-                                    <LucideIcon name="ChevronDown" class="w-4 h-4" />展開
-                                </button>
-                                <button
-                                    @click="collapseAllGroups"
-                                    class="btn btn-sm btn-outline gap-1"
-                                    :disabled="localGroups.length === 0"
-                                    title="收合所有組員"
-                                >
-                                    <LucideIcon name="ChevronUp" class="w-4 h-4" />收合
-                                </button>
-                                <button @click="startGroupEditing" class="btn btn-outline">
-                                    <LucideIcon name="SquarePen" class="w-4 h-4 mr-2" />編輯組別
-                                </button>
-                                <button
-                                    @click="startGrouping"
-                                    class="btn btn-success gap-2"
-                                    :disabled="localGroups.length === 0 || !hasStudentsInGroups"
-                                >
-                                    <LucideIcon name="Play" class="w-4 h-4" />開始分組活動
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- ACTIVE STATE: Compact Control Bar -->
-                <template v-else>
-                    <div class="flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
-                        <div class="flex items-center gap-3 flex-wrap">
-                            <span class="flex items-center gap-2 text-info font-semibold">
-                                <LucideIcon name="CircleDot" class="w-5 h-5 animate-pulse" />
-                                <span>分組進行中</span>
-                            </span>
-                            <input
-                                v-model="activityName"
-                                type="text"
-                                placeholder="請輸入活動名稱..."
-                                class="input input-sm input-bordered w-52"
-                            />
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button
-                                @click="expandAllGroups"
-                                class="btn btn-sm btn-outline gap-1"
-                                :disabled="localGroups.length === 0"
-                                title="展開所有組員"
-                            >
-                                <LucideIcon name="ChevronDown" class="w-4 h-4" />
-                                展開組員
-                            </button>
-                            <button
-                                @click="collapseAllGroups"
-                                class="btn btn-sm btn-outline gap-1"
-                                :disabled="localGroups.length === 0"
-                                title="收合所有組員"
-                            >
-                                <LucideIcon name="ChevronUp" class="w-4 h-4" />
-                                收合組員
-                            </button>
-                            <button
-                                @click="exportActivityReport"
-                                class="btn btn-sm btn-info gap-1"
-                                :disabled="!activityName.trim()"
-                                title="匯出活動報告"
-                            >
-                                <LucideIcon name="Download" class="w-4 h-4" />
-                                匯出
-                            </button>
-                            <button
-                                @click="showGroupScoreboard"
-                                class="btn btn-sm btn-warning gap-1"
-                                title="顯示積分儀表板"
-                            >
-                                <LucideIcon name="Trophy" class="w-4 h-4" />
-                                儀表板
-                            </button>
-                            <button @click="endGrouping" class="btn btn-sm btn-error gap-1">
-                                <LucideIcon name="Square" class="w-4 h-4" />
-                                結束分組
-                            </button>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
+        <InvincibleCelebration
+            :visible="invincibleCelebrationState.visible"
+            :group-name="invincibleCelebrationState.groupName"
+            :duration="invincibleCelebrationState.duration"
+            :points-per-click="invincibleCelebrationState.pointsPerClick"
+            @close="hideInvincibleCelebration"
+        />
+        <GroupingControlPanel
+            :grouping-active="classInfo.groupingActive"
+            :is-group-edit-mode="isGroupEditMode"
+            :group-count-input="groupCountInput"
+            :group-count-min="GROUP_CONFIG.minGroups"
+            :group-count-max="GROUP_CONFIG.maxGroups"
+            :local-groups-length="localGroups.length"
+            :activity-name="activityName"
+            :has-students-in-groups="hasStudentsInGroups"
+            :reward-enabled="rewardInfoSummary.enabled"
+            :groups-collapsed="areGroupsCollapsed"
+            @update:groupCountInput="(val: string) => (groupCountInput = val)"
+            @commitGroupCount="commitGroupCount"
+            @buildGroupsForCount="buildGroupsForCount"
+            @randomAssignGroups="randomAssignGroups"
+            @resetAllGroups="resetAllGroups"
+            @openRewardInfoModal="openRewardInfoModal"
+            @saveGroupEdits="saveGroupEdits"
+            @cancelGroupEdits="cancelGroupEdits"
+            @update:activityName="(val: string) => (activityName = val)"
+            @expandAllGroups="expandAllGroups"
+            @collapseAllGroups="collapseAllGroups"
+            @toggleGroupsCollapsed="
+                () => uiStore.setGroupingViewCollapsed(!areGroupsCollapsed, props.classInfo.id)
+            "
+            @startGroupEditing="startGroupEditing"
+            @startGrouping="startGrouping"
+            @exportActivityReport="exportActivityReport"
+            @showGroupScoreboard="showGroupScoreboard"
+            @endGrouping="endGrouping"
+        />
 
         <!-- 分組容器 -->
         <div class="flex gap-6 h-[calc(100vh-220px)]">
-            <!-- Left Panel: Ungrouped Students or Leaderboard -->
-            <aside
-                :class="[
-                    'transition-all duration-300 flex-shrink-0',
-                    isUngroupedCollapsed ? 'w-20' : 'w-80',
-                ]"
-            >
-                <div class="card bg-base-100 shadow-sm h-full flex flex-col">
-                    <div class="card-body flex flex-col h-full p-4">
-                        <!-- UNGROUPED STUDENTS (Before activity starts) -->
-                        <template v-if="!classInfo.groupingActive">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3
-                                    v-if="!isUngroupedCollapsed"
-                                    class="card-title text-base flex items-center whitespace-nowrap"
-                                >
-                                    <LucideIcon name="Users" class="w-5 h-5 mr-2" />
-                                    未分組學生
-                                    <span class="badge badge-neutral ml-2"
-                                        >{{ ungroupedStudentsCount }} 人</span
-                                    >
-                                </h3>
-                                <button
-                                    @click="isUngroupedCollapsed = !isUngroupedCollapsed"
-                                    class="btn btn-ghost btn-sm btn-circle ml-auto"
-                                    :title="isUngroupedCollapsed ? '展開' : '收合'"
-                                >
-                                    <LucideIcon
-                                        :name="
-                                            isUngroupedCollapsed ? 'ChevronsRight' : 'ChevronsLeft'
-                                        "
-                                        class="w-4 h-4"
-                                    />
-                                </button>
-                            </div>
-
-                            <div
-                                v-if="!isUngroupedCollapsed"
-                                class="flex-1 overflow-y-auto space-y-3 p-1"
-                                @drop="handleUnassignedDrop"
-                                @dragover.prevent
-                                @dragenter.prevent
-                            >
-                                <div class="sticky top-0 bg-base-100 pb-2 z-10">
-                                    <label
-                                        class="input input-bordered input-sm flex items-center gap-2"
-                                    >
-                                        <LucideIcon
-                                            name="Search"
-                                            class="w-4 h-4 text-base-content/60"
-                                        />
-                                        <input
-                                            v-model="ungroupedSearch"
-                                            type="text"
-                                            class="grow"
-                                            placeholder="搜尋姓名或座號"
-                                        />
-                                        <button
-                                            v-if="ungroupedSearch"
-                                            type="button"
-                                            class="btn btn-xs btn-ghost"
-                                            @click="ungroupedSearch = ''"
-                                        >
-                                            清除
-                                        </button>
-                                    </label>
-                                    <div
-                                        class="mt-3 flex items-center justify-between text-xs text-base-content/70"
-                                    >
-                                        <span>已選 {{ selectedStudentIds.length }} 人</span>
-                                        <button
-                                            type="button"
-                                            class="btn btn-ghost btn-xs"
-                                            :disabled="selectedStudentIds.length === 0"
-                                            @click="clearStudentSelection"
-                                        >
-                                            清除選取
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div
-                                    v-for="student in filteredUngroupedStudents"
-                                    :key="student.id"
-                                    :class="[
-                                        'p-3 bg-base-200 rounded-lg cursor-move hover:bg-base-300 transition-colors',
-                                        'flex justify-between items-center gap-3',
-                                        selectedStudentIds.includes(student.id) && canModifyGroups
-                                            ? 'ring-2 ring-primary ring-offset-2'
-                                            : '',
-                                        'mt-2',
-                                    ]"
-                                    :draggable="canModifyGroups"
-                                    @dragstart="handleDragStart(student.id, 'unassigned', $event)"
-                                    @dragend="handleDragEnd"
-                                >
-                                    <div class="flex items-start gap-3 flex-1">
-                                        <input
-                                            v-if="canModifyGroups"
-                                            type="checkbox"
-                                            class="checkbox checkbox-sm mt-1"
-                                            :checked="selectedStudentIds.includes(student.id)"
-                                            @click.stop="toggleStudentSelection(student.id)"
-                                        />
-                                        <div class="font-medium">{{ student.name }}</div>
-                                        <div class="text-sm text-base-content/70">
-                                            座號 {{ student.id }}
-                                        </div>
-                                    </div>
-                                    <div class="text-sm font-semibold text-primary">
-                                        {{ student.totalScore }}分
-                                    </div>
-                                </div>
-
-                                <div
-                                    v-if="filteredUngroupedStudents.length === 0"
-                                    class="text-center text-base-content/50 py-8"
-                                >
-                                    所有學生都已分組
-                                </div>
-                            </div>
-                            <div
-                                v-if="isUngroupedCollapsed"
-                                class="flex justify-center items-center h-full"
-                            >
-                                <LucideIcon name="Users" class="w-8 h-8 text-base-content/30" />
-                            </div>
-                        </template>
-                        <!-- LEADERBOARD (During activity) -->
-                        <template v-else>
-                            <div class="flex items-center justify-between mb-4">
-                                <h3
-                                    v-if="!isUngroupedCollapsed"
-                                    class="card-title text-base flex items-center whitespace-nowrap"
-                                >
-                                    <LucideIcon name="Trophy" class="w-5 h-5 mr-2" />
-                                    即時積分榜
-                                </h3>
-                                <button
-                                    @click="isUngroupedCollapsed = !isUngroupedCollapsed"
-                                    class="btn btn-ghost btn-sm btn-circle ml-auto"
-                                    :title="isUngroupedCollapsed ? '展開' : '收合'"
-                                >
-                                    <LucideIcon
-                                        :name="
-                                            isUngroupedCollapsed ? 'ChevronsRight' : 'ChevronsLeft'
-                                        "
-                                        class="w-4 h-4"
-                                    />
-                                </button>
-                            </div>
-                            <div v-if="!isUngroupedCollapsed" class="flex-1 overflow-y-auto">
-                                <TransitionGroup name="leaderboard" tag="div" class="space-y-2">
-                                    <div
-                                        v-for="(group, index) in leaderboardGroups"
-                                        :key="group.id"
-                                        :class="[
-                                            'p-3 rounded-lg flex items-center gap-3 transition-all',
-                                            index === 0
-                                                ? 'bg-amber-100 border-2 border-amber-400'
-                                                : 'bg-base-200',
-                                        ]"
-                                    >
-                                        <div
-                                            class="text-lg font-bold w-6 text-center"
-                                            :class="{
-                                                'text-amber-500': index === 0,
-                                                'text-slate-400': index > 2,
-                                            }"
-                                        >
-                                            {{ index + 1 }}
-                                        </div>
-                                        <div
-                                            class="w-4 h-4 rounded-full shrink-0"
-                                            :style="{ backgroundColor: group.color }"
-                                        ></div>
-                                        <div class="font-semibold text-sm truncate flex-1">
-                                            {{ group.name }}
-                                        </div>
-                                        <div
-                                            v-if="groupingSettings.showGroupTotalScores"
-                                            class="text-lg font-bold text-primary"
-                                        >
-                                            {{ group.totalScore }}
-                                        </div>
-                                    </div>
-                                </TransitionGroup>
-                            </div>
-                            <div
-                                v-if="isUngroupedCollapsed"
-                                class="flex justify-center items-center h-full"
-                            >
-                                <LucideIcon name="Trophy" class="w-8 h-8 text-base-content/30" />
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </aside>
+            <GroupingSidebar
+                :collapsed="isUngroupedCollapsed"
+                :grouping-active="classInfo.groupingActive"
+                :ungrouped-search="ungroupedSearch"
+                :ungrouped-count="ungroupedStudentsCount"
+                :filtered-ungrouped-students="filteredUngroupedStudents"
+                :selected-student-ids="selectedStudentIds"
+                :can-modify-groups="canModifyGroups"
+                :leaderboard-groups="leaderboardGroups"
+                :show-group-total-scores="groupingSettings.showGroupTotalScores"
+                @toggle-collapse="(val: boolean) => (isUngroupedCollapsed = val)"
+                @update:ungroupedSearch="(val: string) => (ungroupedSearch = val)"
+                @clear-selection="clearStudentSelection"
+                @toggle-student-selection="toggleStudentSelection"
+                @drag-start="
+                    (studentId: string, zone: string, event: DragEvent) =>
+                        handleDragStart(studentId, zone, event)
+                "
+                @drag-end="handleDragEnd"
+                @unassigned-drop="handleUnassignedDrop"
+            />
 
             <!-- Right Panel: Groups -->
             <main
                 ref="groupsContainer"
-                class="flex-1 content-start overflow-y-auto"
+                class="flex-1 content-start"
                 @dragover.prevent="handleContainerDragOver"
             >
                 <div
                     :class="[
-                        'p-1 gap-4',
+                        'p-1',
                         classInfo.groupingActive
-                            ? 'grid grid-cols-4 content-start'
-                            : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4',
+                            ? groupingSettings.compactMode
+                                ? 'grid grid-cols-4 content-start gap-2'
+                                : 'grid grid-cols-4 content-start gap-3'
+                            : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4',
                     ]"
                 >
                     <!-- 各組 -->
                     <div
                         v-for="group in localGroups"
                         :key="group.id"
-                        class="card bg-base-100 shadow-sm"
+                        :class="[
+                            'card bg-base-100 shadow-sm transition-all duration-300 relative',
+                            group.isInvincible ? 'invincible-glow' : '',
+                            invincibleHighlight[group.id] ? 'invincible-activate-scale' : '',
+                        ]"
                     >
-                        <div class="card-body p-3">
+                        <div v-if="milestoneBubbles[group.id]" class="milestone-bubble">
+                            <span>{{ milestoneBubbles[group.id]!.message }}</span>
+                        </div>
+                        <div v-if="invincibleBurstActive[group.id]" class="invincible-burst-layer">
+                            <span class="burst-star">⭐</span>
+                            <span class="burst-star">⭐</span>
+                            <span class="burst-star">⭐</span>
+                            <span class="burst-star">⭐</span>
+                            <span class="burst-star">⭐</span>
+                            <span class="burst-star">⭐</span>
+                        </div>
+                        <div
+                            v-if="invincibleHighlight[group.id]"
+                            class="invincible-rings-layer"
+                        ></div>
+                        <div :class="['card-body', groupingSettings.compactMode ? 'p-2' : 'p-2.5']">
                             <!-- Card Header -->
                             <template v-if="!classInfo.groupingActive">
                                 <div class="flex justify-between items-center gap-3">
@@ -426,7 +152,12 @@
                                 </div>
                             </template>
                             <template v-else>
-                                <div class="flex flex-col gap-2">
+                                <div
+                                    :class="[
+                                        'flex flex-col',
+                                        groupingSettings.compactMode ? 'gap-1' : 'gap-1.5',
+                                    ]"
+                                >
                                     <!-- Top: Name & Score -->
                                     <div class="flex justify-between items-start">
                                         <h3 class="flex items-center gap-2 text-base font-semibold">
@@ -446,27 +177,30 @@
                                             {{ group.totalScore }}
                                         </span>
                                     </div>
-                                    <!-- Bottom: Buttons -->
-                                    <div class="flex items-center gap-2">
-                                        <button
-                                            @click="addGroupScore(group.id, 1)"
-                                            :disabled="
-                                                getGroupMembers(group).every((m) => !m.isPresent)
-                                            "
-                                            class="btn btn-md flex-1 font-bold text-base px-4 py-1 rounded-full text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100"
-                                        >
-                                            +1
-                                        </button>
-                                        <button
-                                            @click="addGroupScore(group.id, -1)"
-                                            :disabled="
-                                                getGroupMembers(group).every((m) => !m.isPresent)
-                                            "
-                                            class="btn btn-md flex-1 font-bold text-base px-4 py-1 rounded-full text-white border-none shadow transition-transform hover:scale-105 bg-gradient-to-r from-rose-400 to-red-500 hover:from-rose-500 hover:to-red-600 disabled:opacity-50 disabled:hover:scale-100"
-                                        >
-                                            -1
-                                        </button>
-                                    </div>
+
+                                    <!-- Primary Actions -->
+                                    <GroupActionButtons
+                                        :positive-label="getGroupPositiveLabel(group)"
+                                        negative-label="-1"
+                                        :disabled="isGroupActionDisabled(group)"
+                                        @add-positive="
+                                            addGroupScore(group.id, getScoreValue(group.id, 1))
+                                        "
+                                        @add-negative="addGroupScore(group.id, -1)"
+                                    />
+
+                                    <!-- Reward System UI -->
+                                    <GroupRewardStatus
+                                        v-if="activeRewardSettings?.enabled"
+                                        :group="group"
+                                        :formatted-timer="formatTime(timers[group.id])"
+                                        :total-stars="getTotalStarsForDisplay(group)"
+                                        :star-progress="getStarProgress(group)"
+                                        :invincible-progress="getInvincibleProgress(group.id)"
+                                        :queue-count="group.invincibleStarQueue || 0"
+                                        :star-gain-class="starGainAnimation[group.id] ?? null"
+                                        :countdown-critical="isCountdownCritical(group.id)"
+                                    />
                                 </div>
                             </template>
 
@@ -644,6 +378,60 @@
             </main>
         </div>
 
+        <!-- 獎勵機制說明 -->
+        <dialog ref="rewardInfoModal" class="modal">
+            <div class="modal-box max-w-md space-y-4">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <LucideIcon name="Sparkles" class="w-5 h-5 text-warning" />
+                    獎勵機制說明
+                </h3>
+                <div v-if="rewardInfoSummary.enabled" class="space-y-3 text-sm leading-relaxed">
+                    <p>
+                        每累積
+                        <span class="font-semibold">{{ rewardInfoSummary.pointsPerStar }}</span>
+                        分可獲得 <span class="font-semibold">1 顆星</span>。
+                    </p>
+                    <ul class="space-y-2">
+                        <li class="flex items-start gap-2">
+                            <LucideIcon name="Star" class="w-4 h-4 mt-0.5 text-yellow-400" />
+                            <span
+                                >集滿
+                                {{ rewardInfoSummary.starsToInvincible }}
+                                顆星即可啟動無敵星星模式。</span
+                            >
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <LucideIcon name="Timer" class="w-4 h-4 mt-0.5 text-info" />
+                            <span
+                                >無敵狀態將持續
+                                {{ rewardInfoSummary.invincibleDurationSeconds }} 秒。</span
+                            >
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <LucideIcon name="Target" class="w-4 h-4 mt-0.5 text-success" />
+                            <span
+                                >無敵期間每次加分 = +{{
+                                    rewardInfoSummary.invinciblePointsPerClick
+                                }}
+                                分。</span
+                            >
+                        </li>
+                    </ul>
+                    <p class="text-xs text-base-content/60">
+                        當任何小組啟動無敵星星模式，系統會跳出提醒，請把握黃金時段！
+                    </p>
+                </div>
+                <div v-else class="text-sm text-base-content/70">
+                    目前此班級尚未啟用獎勵機制，點擊右上角「獎勵設定」可進行調整。
+                </div>
+                <div class="modal-action">
+                    <form method="dialog">
+                        <button type="submit" class="btn btn-ghost">關閉</button>
+                    </form>
+                </div>
+            </div>
+        </dialog>
+
         <!-- 積分儀表板模態 -->
         <dialog ref="scoreboardModal" class="modal">
             <div
@@ -728,12 +516,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { ClassInfo, Group } from '~/types'
+import type { ClassInfo, Group, RewardSettings } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
 import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
+import { useRewardsStore } from '~/stores/rewards'
+import { GROUP_CONFIG, normalizeGroupCount } from '~/constants/grouping'
+import GroupRewardStatus from '~/components/grouping/GroupRewardStatus.vue'
+import GroupActionButtons from '~/components/grouping/GroupActionButtons.vue'
+import GroupingControlPanel from '~/components/grouping/GroupingControlPanel.vue'
+import GroupingSidebar from '~/components/grouping/GroupingSidebar.vue'
+import InvincibleCelebration from '~/components/grouping/InvincibleCelebration.vue'
 
 interface Props {
     classInfo: ClassInfo
@@ -742,10 +537,18 @@ interface Props {
 const props = defineProps<Props>()
 const classesStore = useClassesStore()
 const uiStore = useUIStore()
+const rewardsStore = useRewardsStore()
 const { exportToExcel } = useExcelExport()
 
+// Expose Math to template for use in v-for with Math.min
+const Math = globalThis.Math
+
 // --- Use Store as the Single Source of Truth ---
-const { groupingSettings, groupingViewCollapsed: areGroupsCollapsed } = storeToRefs(uiStore)
+const {
+    groupingSettings,
+    groupingViewCollapsed: areGroupsCollapsed,
+    userPreferences,
+} = storeToRefs(uiStore)
 const {
     groupingBaseScores,
     groupingSessionScores,
@@ -756,6 +559,7 @@ const {
 
 // Modal refs
 const scoreboardModal = ref<HTMLDialogElement>()
+const rewardInfoModal = ref<HTMLDialogElement>()
 
 // Component-local state
 const normalizeGroupCount = (value: number | string | null | undefined): number => {
@@ -786,8 +590,132 @@ const dragContext = ref<{ studentIds: string[]; sourceGroupId: string | null }>(
 })
 const isGroupEditMode = ref(false)
 const isGroupLocked = ref(true)
+let statusCheckInterval: NodeJS.Timeout | null = null
+const timers = ref<Record<string, number>>({})
 
 // --- Computed Properties for easier template access ---
+const activeRewardSettings = computed<RewardSettings | null>(() => {
+    if (props.classInfo.rewardSettingsMode === 'disabled') return null
+    if (props.classInfo.rewardSettingsMode === 'custom') return props.classInfo.customRewardSettings
+    if (props.classInfo.rewardSettingsMode === 'template') {
+        return (
+            rewardsStore.getTemplateById(props.classInfo.appliedRewardTemplateId)?.settings || null
+        )
+    }
+    return null
+})
+const rewardInfoSummary = computed(() => {
+    const settings = activeRewardSettings.value
+    if (!settings) {
+        return {
+            enabled: false,
+        }
+    }
+    return {
+        enabled: !!settings.enabled,
+        pointsPerStar: settings.pointsPerStar,
+        starsToInvincible: settings.starsToInvincible,
+        invincibleDurationSeconds: settings.invincibleDurationSeconds,
+        invinciblePointsPerClick: settings.invinciblePointsPerClick,
+    }
+})
+
+watch(
+    () => props.classInfo.id,
+    (classId) => {
+        if (!classId) return
+        uiStore.hydrateGroupingViewCollapsed(classId, props.classInfo.groupingActive ? true : false)
+    },
+    { immediate: true },
+)
+
+watch(
+    () => Boolean(activeRewardSettings.value?.enabled),
+    (isRewardEnabled) => {
+        if (groupingSettings.value.compactMode !== isRewardEnabled) {
+            groupingSettings.value.compactMode = isRewardEnabled
+            uiStore.persistGroupingSettings()
+        }
+    },
+    { immediate: true },
+)
+
+const runtimeConfig = useRuntimeConfig()
+
+const invincibleCelebrationState = ref({
+    visible: false,
+    groupName: '',
+    duration: 0,
+    pointsPerClick: 0,
+})
+
+let celebrationTimeout: ReturnType<typeof setTimeout> | null = null
+let celebrationAudio: HTMLAudioElement | null = null
+
+const hideInvincibleCelebration = () => {
+    invincibleCelebrationState.value.visible = false
+    if (celebrationTimeout) {
+        clearTimeout(celebrationTimeout)
+        celebrationTimeout = null
+    }
+}
+
+const playCelebrationAudio = () => {
+    if (!process.client) return
+    if (!userPreferences.value.enableSounds) return
+
+    const baseURL = runtimeConfig.app.baseURL || '/'
+    if (!celebrationAudio) {
+        celebrationAudio = new Audio(`${baseURL}super-star.mp3`)
+        celebrationAudio.volume = 0.65
+    }
+
+    celebrationAudio.currentTime = 0
+    celebrationAudio.play().catch((error) => {
+        console.warn('無法播放無敵星星音效：', error)
+    })
+}
+
+const triggerInvincibleCelebrationOverlay = (group: Group, settings: RewardSettings | null) => {
+    invincibleCelebrationState.value = {
+        visible: true,
+        groupName: group.name,
+        duration: Math.max(settings?.invincibleDurationSeconds ?? 0, 0),
+        pointsPerClick: Math.max(settings?.invinciblePointsPerClick ?? 1, 1),
+    }
+
+    if (celebrationTimeout) {
+        clearTimeout(celebrationTimeout)
+    }
+
+    playCelebrationAudio()
+
+    celebrationTimeout = setTimeout(() => {
+        hideInvincibleCelebration()
+    }, 2800)
+}
+
+const {
+    starGainAnimation,
+    invincibleBurstActive,
+    invincibleHighlight,
+    milestoneBubbles,
+    getTotalStarsForDisplay,
+    getStarProgress,
+    isCountdownCritical,
+    trackGroupUpdate,
+    prepareGroupData,
+    cleanupForRemovedGroups,
+    cleanupRewards,
+} = useGroupingRewards({
+    activeRewardSettings,
+    timers,
+    uiNotifier: {
+        showToast: uiStore.showToast,
+        triggerInvincibleCelebration: ({ group, settings }) =>
+            triggerInvincibleCelebrationOverlay(group, settings),
+    },
+})
 const activityName = computed({
     get: () => groupingActivityNames.value[props.classInfo.id] || '',
     set: (newName) => {
@@ -842,14 +770,50 @@ const hasStudentsInGroups = computed(() => {
 })
 
 // --- Methods ---
+const openRewardInfoModal = () => {
+    rewardInfoModal.value?.showModal()
+}
+
+const getInvincibleProgress = (groupId: string) => {
+    const duration = activeRewardSettings.value?.invincibleDurationSeconds
+    if (!duration || duration <= 0) return 1
+    const remainingFromTimer = timers.value[groupId]
+    if (typeof remainingFromTimer === 'number') {
+        return Math.max(0, Math.min(1, remainingFromTimer / duration))
+    }
+    const targetGroup = localGroups.value.find((group) => group.id === groupId)
+    if (targetGroup?.invincibleUntil) {
+        const remainingSeconds = Math.max(0, (targetGroup.invincibleUntil - Date.now()) / 1000)
+        return Math.max(0, Math.min(1, remainingSeconds / duration))
+    }
+    return 1
+}
+
+const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '00:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+}
+
+const getScoreValue = (groupId: string, direction: 1 | -1) => {
+    const group = localGroups.value.find((g) => g.id === groupId)
+    if (!group) return direction
+    if (direction < 0) return -1 // 減分總是 -1
+    // 加分：檢查無敵狀態和獎勵設定
+    if (group.isInvincible && activeRewardSettings.value?.enabled) {
+        return activeRewardSettings.value.invinciblePointsPerClick || 1
+    }
+    return 1
+}
 
 const expandAllGroups = () => {
-    uiStore.setGroupingViewCollapsed(false)
+    uiStore.setGroupingViewCollapsed(false, props.classInfo.id)
 }
 
 const collapseAllGroups = () => {
     if (localGroups.value.length === 0) return
-    uiStore.setGroupingViewCollapsed(true)
+    uiStore.setGroupingViewCollapsed(true, props.classInfo.id)
 }
 
 const getGroupMembers = (group: Group) => {
@@ -865,6 +829,19 @@ const getGroupMembersById = (groupId: string) => {
     return group ? getGroupMembers(group) : []
 }
 
+const isGroupActionDisabled = (group: Group) => {
+    return getGroupMembers(group).every((member) => !member.isPresent)
+}
+
+const getGroupPositiveLabel = (group: Group) => {
+    const settings = activeRewardSettings.value
+    let value = 1
+    if (group.isInvincible && settings?.enabled) {
+        value = settings.invinciblePointsPerClick || 1
+    }
+    return `+${value}`
+}
+
 const persistGroups = () => {
     const clonedGroups: Group[] = localGroups.value.map((group) => ({
         ...group,
@@ -876,14 +853,23 @@ const persistGroups = () => {
 
 const syncGroupsFromProps = (groups: Group[] | null | undefined) => {
     const sourceGroups = Array.isArray(groups) ? groups : []
+
+    const isInitialSync = localGroups.value.length === 0
+
+    sourceGroups.forEach((group) => {
+        prepareGroupData(group)
+        const previousGroup = localGroups.value.find((g) => g.id === group.id)
+        trackGroupUpdate(group, previousGroup, { skipMilestoneAnimation: isInitialSync })
+    })
+
     localGroups.value = sourceGroups.map((group) => ({
-        ...group,
+        ...prepareGroupData({ ...group }),
         members: group.members?.map((member) => ({ ...member })) || [],
         createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
     }))
 
     if (localGroups.value.length === 0) {
-        uiStore.setGroupingViewCollapsed(false)
+        uiStore.setGroupingViewCollapsed(false, props.classInfo.id)
     }
 
     const groupIds = new Set(localGroups.value.map((group) => group.id))
@@ -892,6 +878,7 @@ const syncGroupsFromProps = (groups: Group[] | null | undefined) => {
             delete groupScoreAnimation.value[id]
         }
     })
+    cleanupForRemovedGroups(groupIds)
 
     if (!isGroupEditMode.value) {
         isGroupLocked.value = true
@@ -918,39 +905,37 @@ const createGroup = (name: string, shouldPersist = true, id?: string) => {
         averageScore: 0, // This field is not used
         createdAt: new Date(),
         color: generateGroupColor(),
+        stars: 0,
+        isInvincible: false,
+        invincibleUntil: null,
+        invincibleStarQueue: 0,
+        totalCollectedStars: 0,
     }
-    localGroups.value.push(newGroup)
+    localGroups.value.push(prepareGroupData(newGroup))
     if (shouldPersist) {
         persistGroups()
     }
     return newGroup
 }
 
-const GROUP_COLORS = [
-    '#3b82f6',
-    '#ef4444',
-    '#10b981',
-    '#f59e0b',
-    '#8b5cf6',
-    '#ec4899',
-    '#06b6d4',
-    '#84cc16',
-]
-
 const generateGroupColor = (index?: number) => {
     const paletteIndex =
         typeof index === 'number'
-            ? index % GROUP_COLORS.length
-            : localGroups.value.length % GROUP_COLORS.length
-    return GROUP_COLORS[paletteIndex]
+            ? index % GROUP_CONFIG.defaultColors.length
+            : localGroups.value.length % GROUP_CONFIG.defaultColors.length
+    return GROUP_CONFIG.defaultColors[paletteIndex]
 }
 
 const getSafeGroupCount = () => normalizeGroupCount(groupCount.value)
 
 const randomAssignGroups = () => {
     const rawCount = Number(groupCountInput.value)
-    if (!Number.isFinite(rawCount) || rawCount < 2 || rawCount > 10) {
-        alert('組數必須介於 2 到 10 之間。')
+    if (
+        !Number.isFinite(rawCount) ||
+        rawCount < GROUP_CONFIG.minGroups ||
+        rawCount > GROUP_CONFIG.maxGroups
+    ) {
+        alert(`組數必須介於 ${GROUP_CONFIG.minGroups} 到 ${GROUP_CONFIG.maxGroups} 之間。`)
         return
     }
 
@@ -968,6 +953,11 @@ const randomAssignGroups = () => {
         totalScore: 0, // Reset score
         averageScore: 0, // Reset score
         createdAt: group.createdAt ? new Date(group.createdAt) : new Date(),
+        stars: 0,
+        invincibleStarQueue: 0,
+        isInvincible: false,
+        invincibleUntil: null,
+        totalCollectedStars: 0,
     }))
 
     const baseGroups = existingGroups.length
@@ -979,6 +969,11 @@ const randomAssignGroups = () => {
               totalScore: 0,
               averageScore: 0,
               createdAt: new Date(),
+              stars: 0,
+              invincibleStarQueue: 0,
+              isInvincible: false,
+              invincibleUntil: null,
+              totalCollectedStars: 0,
           }))
 
     const normalizedGroups: Group[] = baseGroups.map((group, index) => ({
@@ -1044,7 +1039,10 @@ const commitGroupCount = () => {
         return
     }
 
-    const normalized = Math.min(Math.max(Math.floor(raw), 2), 10)
+    const normalized = Math.min(
+        Math.max(Math.floor(raw), GROUP_CONFIG.minGroups),
+        GROUP_CONFIG.maxGroups,
+    )
 
     if (normalized !== groupCount.value) {
         groupCount.value = normalized
@@ -1351,7 +1349,7 @@ const startGrouping = () => {
     }
 
     classesStore.startClassGrouping(props.classInfo.id)
-    uiStore.setGroupingViewCollapsed(true) // Set to collapsed when starting
+    uiStore.setGroupingViewCollapsed(true, props.classInfo.id) // Set to collapsed when starting
 }
 
 const endGrouping = () => {
@@ -1367,7 +1365,7 @@ const resetGroupScores = () => {
         persistGroups() // Persist the reset group scores
         classesStore.endClassGrouping(props.classInfo.id) // End the grouping session
         closeScoreboardModal() // Close the modal
-        uiStore.setGroupingViewCollapsed(false) // Set to expanded when ending
+        uiStore.setGroupingViewCollapsed(false, props.classInfo.id) // Set to expanded when ending
     }
 }
 
@@ -1498,6 +1496,42 @@ watch(
     },
     { immediate: true },
 )
+
+onMounted(() => {
+    if (props.classInfo.groupingActive) {
+        // 檢查無敵狀態並更新計時器顯示
+        statusCheckInterval = setInterval(() => {
+            classesStore.checkInvincibleStatus()
+            // 更新計時器顯示 - 為每個無敵組別計算剩餘秒數
+            if (props.classInfo.groups) {
+                props.classInfo.groups.forEach((group) => {
+                    if (group.isInvincible && group.invincibleUntil) {
+                        const remainingMs = Math.max(0, group.invincibleUntil - Date.now())
+                        timers.value[group.id] = Math.floor(remainingMs / 1000)
+                    } else {
+                        delete timers.value[group.id]
+                    }
+                })
+            }
+        }, 1000) // 每 1000ms (1 秒) 更新一次計時器顯示，精確到秒級
+    }
+})
+
+onUnmounted(() => {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval)
+    }
+    if (celebrationTimeout) {
+        clearTimeout(celebrationTimeout)
+        celebrationTimeout = null
+    }
+    if (celebrationAudio) {
+        celebrationAudio.pause()
+        celebrationAudio = null
+    }
+    hideInvincibleCelebration()
+    cleanupRewards()
+})
 </script>
 
 <style scoped>
@@ -1515,5 +1549,11 @@ watch(
 }
 .leaderboard-leave-active {
     position: absolute;
+}
+
+.star-counter {
+    display: inline-flex;
+    min-width: 1.5rem;
+    align-items: center;
 }
 </style>

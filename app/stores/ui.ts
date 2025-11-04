@@ -10,6 +10,7 @@ import type {
 } from '~/types/class'
 
 const SECURITY_NOTICE_KEY = 'security-notice-ack'
+const GROUPING_COLLAPSE_KEY = 'groupingCollapseStates'
 
 // Helper function to apply theme to the DOM
 const applyThemeToDOM = (theme: 'light' | 'dark' | 'auto') => {
@@ -49,6 +50,7 @@ export const useUIStore = defineStore('ui', () => {
     const windowWidth = ref(0)
     const showSecurityNotice = ref(true)
     const groupingViewCollapsed = ref(false)
+    const groupingViewCollapsedStates = ref<Record<string, boolean>>({})
 
     // --- Grouping Settings ---
     const groupingSettings = ref({
@@ -56,6 +58,7 @@ export const useUIStore = defineStore('ui', () => {
         showGroupTotalScores: true, // 是否顯示各組總積分
         showStudentIndividualScores: true, // 是否顯示各學生積分
         allowIndividualScoring: true, // 是否可對組內學生加減分
+        compactMode: false, // 緊湊模式：進一步縮小卡片間距和內距
     })
 
     // --- Tool States ---
@@ -110,8 +113,24 @@ export const useUIStore = defineStore('ui', () => {
             { id: 'dashboard', label: '總覽', icon: 'School', color: 'primary' },
             { id: 'homework', label: '作業管理', icon: 'BookMarked', color: 'accent' },
             { id: 'students', label: '學生管理', icon: 'Users', color: 'info' },
-            { id: 'grouping-management', label: '分組管理', icon: 'Settings2', color: 'success' },
-            { id: 'settings', label: '設定', icon: 'Settings', color: 'warning' },
+            {
+                id: 'grouping-management',
+                label: '分組設定',
+                icon: 'Settings2',
+                description: '設定分組活動的顯示與互動方式',
+            },
+            {
+                id: 'rewards',
+                label: '獎勵機制',
+                icon: 'Gift',
+                description: '設定獎勵範本與班級套用規則',
+            },
+            {
+                id: 'settings',
+                label: '設定',
+                icon: 'Settings',
+                description: '匯出/匯入資料、清除快取與其他應用程式設定',
+            },
         ]
     })
 
@@ -136,8 +155,39 @@ export const useUIStore = defineStore('ui', () => {
         searchQuery.value = query
     }
 
-    const setGroupingViewCollapsed = (collapsed: boolean) => {
+    const persistGroupingCollapseStates = () => {
+        if (process.client) {
+            localStorage.setItem(
+                GROUPING_COLLAPSE_KEY,
+                JSON.stringify(groupingViewCollapsedStates.value),
+            )
+        }
+    }
+
+    const setGroupingViewCollapsed = (collapsed: boolean, classId?: string) => {
         groupingViewCollapsed.value = collapsed
+        if (classId) {
+            groupingViewCollapsedStates.value = {
+                ...groupingViewCollapsedStates.value,
+                [classId]: collapsed,
+            }
+            persistGroupingCollapseStates()
+        }
+    }
+
+    const hydrateGroupingViewCollapsed = (classId: string, defaultState = false) => {
+        const stored = groupingViewCollapsedStates.value[classId]
+        const nextState = typeof stored === 'boolean' ? stored : defaultState
+        groupingViewCollapsed.value = nextState
+        return nextState
+    }
+
+    const clearGroupingViewCollapsedState = (classId: string) => {
+        if (groupingViewCollapsedStates.value[classId] !== undefined) {
+            const { [classId]: _, ...rest } = groupingViewCollapsedStates.value
+            groupingViewCollapsedStates.value = rest
+            persistGroupingCollapseStates()
+        }
     }
 
     const persistGroupingSettings = () => {
@@ -448,6 +498,19 @@ export const useUIStore = defineStore('ui', () => {
                 }
             }
 
+            // Load grouping collapse states
+            const savedCollapseStates = localStorage.getItem(GROUPING_COLLAPSE_KEY)
+            if (savedCollapseStates) {
+                try {
+                    const parsedStates = JSON.parse(savedCollapseStates)
+                    if (parsedStates && typeof parsedStates === 'object') {
+                        groupingViewCollapsedStates.value = parsedStates
+                    }
+                } catch (error) {
+                    console.warn('Failed to parse grouping collapse states:', error)
+                }
+            }
+
             // Load picker position
             const savedPickerPosition = localStorage.getItem('pickerPosition')
             if (savedPickerPosition) {
@@ -508,6 +571,7 @@ export const useUIStore = defineStore('ui', () => {
 
         // Grouping Settings
         groupingSettings,
+        groupingViewCollapsedStates,
 
         // Timer State
         isTimerVisible,
@@ -538,6 +602,8 @@ export const useUIStore = defineStore('ui', () => {
         setSidebarOpen,
         setSearchQuery,
         setGroupingViewCollapsed,
+        hydrateGroupingViewCollapsed,
+        clearGroupingViewCollapsedState,
         persistGroupingSettings,
         clearStudentSelection,
         toggleTheme,
