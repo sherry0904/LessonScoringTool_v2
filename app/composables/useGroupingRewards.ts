@@ -187,6 +187,14 @@ export const useGroupingRewards = ({
         const currentStars = group.stars || 0
         const prevStars = previousGroupStars.value[group.id]
 
+        // 如果是初次跟蹤（prevStars 還未設定），但班級已有星星，則初始化里程提示狀態
+        if (typeof prevStars !== 'number' && currentStars > 0 && !options.skipMilestoneAnimation) {
+            const milestoneMessage = getStarMessage(group)
+            if (milestoneMessage) {
+                previousMilestoneMessages.value[group.id] = milestoneMessage
+            }
+        }
+
         // 處理星星增加的動畫與訊息泡泡
         if (typeof prevStars === 'number' && currentStars > prevStars) {
             triggerStarGainAnimation(group.id)

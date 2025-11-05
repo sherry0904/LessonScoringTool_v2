@@ -18,7 +18,12 @@
 
         <div v-if="invincibleHighlight" class="invincible-rings-layer"></div>
 
-        <div :class="['card-body flex flex-col gap-2 relative overflow-visible', compact ? 'p-2' : 'p-3']">
+        <div
+            :class="[
+                'card-body flex flex-col gap-2 relative overflow-visible',
+                compact ? 'p-2' : 'p-3',
+            ]"
+        >
             <div v-if="milestoneMessage" class="milestone-floating">
                 <span class="milestone-message">{{ milestoneMessage }}</span>
             </div>
@@ -38,6 +43,8 @@ defineProps<{
 </script>
 
 <style scoped>
+@import '@/assets/score-animate.css';
+
 .milestone-floating {
     position: absolute;
     top: -0.75rem;

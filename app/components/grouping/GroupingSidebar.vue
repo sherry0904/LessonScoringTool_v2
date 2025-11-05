@@ -1,10 +1,5 @@
 <template>
-    <aside
-        :class="[
-            'transition-all duration-300 flex-shrink-0',
-            collapsed ? 'w-20' : 'w-80',
-        ]"
-    >
+    <aside :class="['transition-all duration-300 flex-shrink-0', collapsed ? 'w-20' : 'w-80']">
         <div class="card bg-base-100 shadow-sm h-full flex flex-col">
             <div class="card-body flex flex-col h-full p-4">
                 <template v-if="!groupingActive">
@@ -44,7 +39,12 @@
                                     type="text"
                                     class="grow"
                                     placeholder="搜尋姓名或座號"
-                                    @input="$emit('update:ungroupedSearch', ($event.target as HTMLInputElement).value)"
+                                    @input="
+                                        $emit(
+                                            'update:ungroupedSearch',
+                                            ($event.target as HTMLInputElement).value,
+                                        )
+                                    "
                                 />
                                 <button
                                     v-if="ungroupedSearch"
@@ -55,7 +55,9 @@
                                     清除
                                 </button>
                             </label>
-                            <div class="mt-3 flex items-center justify-between text-xs text-base-content/70">
+                            <div
+                                class="mt-3 flex items-center justify-between text-xs text-base-content/70"
+                            >
                                 <span>已選 {{ selectedStudentIds.length }} 人</span>
                                 <button
                                     type="button"
@@ -92,14 +94,19 @@
                                     @click.stop="$emit('toggle-student-selection', student.id)"
                                 />
                                 <div class="font-medium">{{ student.name }}</div>
-                                <div class="text-sm text-base-content/70">座號 {{ student.id }}</div>
+                                <div class="text-sm text-base-content/70">
+                                    座號 {{ student.id }}
+                                </div>
                             </div>
                             <div class="text-sm font-semibold text-primary">
                                 {{ student.totalScore }}分
                             </div>
                         </div>
 
-                        <div v-if="filteredUngroupedStudents.length === 0" class="text-center text-base-content/50 py-8">
+                        <div
+                            v-if="filteredUngroupedStudents.length === 0"
+                            class="text-center text-base-content/50 py-8"
+                        >
                             所有學生都已分組
                         </div>
                     </div>
@@ -134,33 +141,48 @@
                                 v-for="(group, index) in leaderboardGroups"
                                 :key="group.id"
                                 :class="[
-                                    'p-3 rounded-lg flex items-center gap-3 transition-all',
+                                    'p-3 rounded-lg flex items-center justify-between gap-3 transition-all',
                                     index === 0
                                         ? 'bg-amber-100 border-2 border-amber-400'
                                         : 'bg-base-200',
                                 ]"
                             >
-                                <div
-                                    class="text-lg font-bold w-6 text-center"
-                                    :class="{
-                                        'text-amber-500': index === 0,
-                                        'text-slate-400': index > 2,
-                                    }"
-                                >
-                                    {{ index + 1 }}
+                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                    <div
+                                        class="text-lg font-bold w-6 text-center shrink-0"
+                                        :class="{
+                                            'text-amber-500': index === 0,
+                                            'text-slate-400': index > 2,
+                                        }"
+                                    >
+                                        {{ index + 1 }}
+                                    </div>
+                                    <div
+                                        class="w-4 h-4 rounded-full shrink-0"
+                                        :style="{ backgroundColor: group.color }"
+                                    ></div>
+                                    <div class="flex flex-col flex-1 min-w-0">
+                                        <div class="font-semibold text-sm truncate">
+                                            {{ group.name }}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div
-                                    class="w-4 h-4 rounded-full shrink-0"
-                                    :style="{ backgroundColor: group.color }"
-                                ></div>
-                                <div class="font-semibold text-sm truncate flex-1">
-                                    {{ group.name }}
-                                </div>
-                                <div
-                                    v-if="showGroupTotalScores"
-                                    class="text-lg font-bold text-primary"
-                                >
-                                    {{ group.totalScore }}
+
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <div
+                                        v-if="showGroupTotalScores && showRewardStars"
+                                        class="badge badge-sm gap-1 bg-amber-100 text-amber-600 border border-amber-200"
+                                    >
+                                        <LucideIcon name="Star" class="w-3.5 h-3.5" />
+                                        <span class="font-semibold text-xs">
+                                            {{ groupStarCounts[group.id] ?? 0 }}
+                                        </span>
+                                    </div>
+                                    <div v-if="showGroupTotalScores" class="text-right">
+                                        <div class="text-lg font-bold text-primary">
+                                            {{ group.totalScore }}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </TransitionGroup>
@@ -187,6 +209,8 @@ defineProps<{
     selectedStudentIds: string[]
     canModifyGroups: boolean
     leaderboardGroups: Group[]
+    groupStarCounts: Record<string, number>
+    showRewardStars: boolean
     showGroupTotalScores: boolean
 }>()
 

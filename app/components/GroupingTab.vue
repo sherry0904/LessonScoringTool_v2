@@ -50,6 +50,8 @@
                 :selected-student-ids="selectedStudentIds"
                 :can-modify-groups="canModifyGroups"
                 :leaderboard-groups="leaderboardGroups"
+                :group-star-counts="groupStarCounts"
+                :show-reward-stars="activeRewardSettings?.enabled ?? false"
                 :show-group-total-scores="groupingSettings.showGroupTotalScores"
                 @toggle-collapse="(val: boolean) => (isUngroupedCollapsed = val)"
                 @update:ungroupedSearch="(val: string) => (ungroupedSearch = val)"
@@ -92,16 +94,21 @@
                     >
                         <template v-if="!classInfo.groupingActive">
                             <div class="flex justify-between items-center gap-3">
-                                <h3 class="flex items-center gap-2 text-base font-semibold truncate">
-                                    <div
-                                        class="w-4 h-4 rounded-full shrink-0"
-                                        :style="{ backgroundColor: group.color }"
-                                    ></div>
-                                    <span class="truncate">{{ group.name }}</span>
-                                    <span class="badge badge-ghost badge-sm">{{
-                                        getGroupMembers(group).length
-                                    }}</span>
-                                </h3>
+                                <div class="flex items-center gap-3 truncate">
+                                    <h3 class="flex items-center gap-2 text-base font-semibold truncate">
+                                        <div
+                                            class="w-4 h-4 rounded-full shrink-0"
+                                            :style="{ backgroundColor: group.color }"
+                                        ></div>
+                                        <span class="truncate">{{ group.name }}</span>
+                                        <span class="badge badge-ghost badge-sm">{{
+                                            getGroupMembers(group).length
+                                        }}</span>
+                                    </h3>
+                                    <div :class="['flex items-center gap-1 text-primary font-semibold whitespace-nowrap', groupScoreAnimation[group.id]]">
+                                        <span>{{ group.totalScore }}</span>
+                                    </div>
+                                </div>
                                 <div class="dropdown dropdown-end">
                                     <div
                                         tabindex="0"
@@ -145,15 +152,9 @@
                                         ></div>
                                         <span>{{ group.name }}</span>
                                     </h3>
-                                    <span
-                                        v-if="groupingSettings.showGroupTotalScores"
-                                        :class="[
-                                            'font-bold text-xl text-primary',
-                                            groupScoreAnimation[group.id],
-                                        ]"
-                                    >
-                                        {{ group.totalScore }}
-                                    </span>
+                                    <div :class="['flex items-center gap-1 text-primary font-semibold text-lg', groupScoreAnimation[group.id]]">
+                                    <span>{{ group.totalScore }}</span>
+                                </div>
                                 </div>
 
                                 <GroupActionButtons
@@ -295,7 +296,7 @@
                         v-for="(group, index) in leaderboardGroups"
                         :key="group.id"
                         :class="[
-                            'flex items-center gap-4 p-4 rounded-lg',
+                            'flex items-center justify-between gap-4 p-4 rounded-lg',
                             index === 0
                                 ? 'bg-warning/20'
                                 : index === 1
@@ -305,22 +306,43 @@
                                     : 'bg-base-200',
                         ]"
                     >
-                        <div class="text-2xl font-bold w-8">
-                            {{ index + 1 }}
-                        </div>
-                        <div
-                            class="w-6 h-6 rounded-full"
-                            :style="{ backgroundColor: group.color }"
-                        ></div>
-                        <div class="flex-1">
-                            <div class="font-semibold">{{ group.name }}</div>
-                            <div class="text-sm text-base-content/70">
-                                {{ getGroupMembers(group).length }}
+                        <div class="flex items-center gap-4 min-w-0 flex-1">
+                            <div class="text-2xl font-bold w-8 shrink-0">
+                                {{ index + 1 }}
+                            </div>
+                            <div
+                                class="w-6 h-6 rounded-full shrink-0"
+                                :style="{ backgroundColor: group.color }"
+                            ></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold truncate">{{ group.name }}</div>
+                                <div class="text-sm text-base-content/70">
+                                    {{ getGroupMembers(group).length }} 位學生
+                                </div>
                             </div>
                         </div>
-                        <div v-if="groupingSettings.showGroupTotalScores" class="text-right">
-                            <div class="text-2xl font-bold text-primary">
-                                {{ group.totalScore }}
+                        <div
+                            v-if="groupingSettings.showGroupTotalScores"
+                            class="flex items-center gap-2 shrink-0"
+                        >
+                            <div
+                                v-if="rewardInfoSummary.enabled"
+                                class="badge badge-sm gap-1 bg-amber-100 text-amber-600 border border-amber-200"
+                            >
+                                <LucideIcon name="Star" class="w-4 h-4" />
+                                <span class="text-xs font-semibold">
+                                    {{ groupStarCounts[group.id] ?? 0 }}
+                                </span>
+                            </div>
+                            <div class="text-right">
+                                <div
+                                    :class="[
+                                        'text-2xl font-bold text-primary',
+                                        groupScoreAnimation[group.id],
+                                    ]"
+                                >
+                                    {{ group.totalScore }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -573,6 +595,14 @@ const activityName = computed({
 })
 const baseScoresForClass = computed(() => groupingBaseScores.value[props.classInfo.id] || {})
 const sessionScoresForClass = computed(() => groupingSessionScores.value[props.classInfo.id] || {})
+
+const groupStarCounts = computed(() => {
+    const map: Record<string, number> = {}
+    localGroups.value.forEach((group) => {
+        map[group.id] = getTotalStarsForDisplay(group)
+    })
+    return map
+})
 
 const baseUngroupedStudents = computed(() => {
     return props.classInfo.students.filter(
