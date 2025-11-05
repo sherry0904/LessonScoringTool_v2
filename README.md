@@ -38,6 +38,10 @@ yarn dev
 bun run dev
 ```
 
+## Project Notes
+
+- 舊版的獎勵與分組相關元件（例如 `ClassRewardConfigModal`, `ClassRewardsList`, `TemplateApplyWizard`, `ApplySettingsConfirmDialog`, `grouping/GroupCard`, `grouping/GroupMembersList` 等）已移除。請改用目前的 Rewards 與 Grouping 介面或新共用元件進行擴充，避免使用舊備份程式碼。
+
 ## Production
 
 Build the application for production:

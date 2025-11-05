@@ -80,300 +80,147 @@
                     ]"
                 >
                     <!-- 各組 -->
-                    <div
+                    <GroupCard
                         v-for="group in localGroups"
                         :key="group.id"
-                        :class="[
-                            'card bg-base-100 shadow-sm transition-all duration-300 relative',
-                            group.isInvincible ? 'invincible-glow' : '',
-                            invincibleHighlight[group.id] ? 'invincible-activate-scale' : '',
-                        ]"
+                        :compact="classInfo.groupingActive && groupingSettings.compactMode"
+                        :is-invincible="group.isInvincible"
+                        :invincible-burst="!!invincibleBurstActive[group.id]"
+                        :invincible-highlight="!!invincibleHighlight[group.id]"
+                        :milestone-message="milestoneBubbles[group.id]?.message ?? null"
+                        class="relative"
                     >
-                        <div v-if="milestoneBubbles[group.id]" class="milestone-bubble">
-                            <span>{{ milestoneBubbles[group.id]!.message }}</span>
-                        </div>
-                        <div v-if="invincibleBurstActive[group.id]" class="invincible-burst-layer">
-                            <span class="burst-star">⭐</span>
-                            <span class="burst-star">⭐</span>
-                            <span class="burst-star">⭐</span>
-                            <span class="burst-star">⭐</span>
-                            <span class="burst-star">⭐</span>
-                            <span class="burst-star">⭐</span>
-                        </div>
-                        <div
-                            v-if="invincibleHighlight[group.id]"
-                            class="invincible-rings-layer"
-                        ></div>
-                        <div :class="['card-body', groupingSettings.compactMode ? 'p-2' : 'p-2.5']">
-                            <!-- Card Header -->
-                            <template v-if="!classInfo.groupingActive">
-                                <div class="flex justify-between items-center gap-3">
-                                    <h3
-                                        class="flex items-center gap-2 text-base font-semibold truncate"
-                                    >
-                                        <div
-                                            class="w-4 h-4 rounded-full shrink-0"
-                                            :style="{ backgroundColor: group.color }"
-                                        ></div>
-                                        <span class="truncate">{{ group.name }}</span>
-                                        <span class="badge badge-ghost badge-sm">{{
-                                            getGroupMembers(group).length
-                                        }}</span>
-                                    </h3>
-                                    <div class="dropdown dropdown-end">
-                                        <div
-                                            tabindex="0"
-                                            role="button"
-                                            class="btn btn-ghost btn-xs btn-circle"
-                                        >
-                                            <LucideIcon name="MoreVertical" class="w-4 h-4" />
-                                        </div>
-                                        <ul
-                                            tabindex="0"
-                                            class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
-                                        >
-                                            <li>
-                                                <a @click="editGroupName(group.id)">
-                                                    <LucideIcon name="Edit" class="w-4 h-4" />
-                                                    編輯組名
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a
-                                                    @click="deleteGroup(group.id)"
-                                                    class="text-error"
-                                                >
-                                                    <LucideIcon name="Trash2" class="w-4 h-4" />
-                                                    刪除組別
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </template>
-                            <template v-else>
-                                <div
-                                    :class="[
-                                        'flex flex-col',
-                                        groupingSettings.compactMode ? 'gap-1' : 'gap-1.5',
-                                    ]"
-                                >
-                                    <!-- Top: Name & Score -->
-                                    <div class="flex justify-between items-start">
-                                        <h3 class="flex items-center gap-2 text-base font-semibold">
-                                            <div
-                                                class="w-3 h-3 rounded-full shrink-0 mt-1"
-                                                :style="{ backgroundColor: group.color }"
-                                            ></div>
-                                            <span>{{ group.name }}</span>
-                                        </h3>
-                                        <span
-                                            v-if="groupingSettings.showGroupTotalScores"
-                                            :class="[
-                                                'font-bold text-xl text-primary',
-                                                groupScoreAnimation[group.id],
-                                            ]"
-                                        >
-                                            {{ group.totalScore }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Primary Actions -->
-                                    <GroupActionButtons
-                                        :positive-label="getGroupPositiveLabel(group)"
-                                        negative-label="-1"
-                                        :disabled="isGroupActionDisabled(group)"
-                                        @add-positive="
-                                            addGroupScore(group.id, getScoreValue(group.id, 1))
-                                        "
-                                        @add-negative="addGroupScore(group.id, -1)"
-                                    />
-
-                                    <!-- Reward System UI -->
-                                    <GroupRewardStatus
-                                        v-if="activeRewardSettings?.enabled"
-                                        :group="group"
-                                        :formatted-timer="formatTime(timers[group.id])"
-                                        :total-stars="getTotalStarsForDisplay(group)"
-                                        :star-progress="getStarProgress(group)"
-                                        :invincible-progress="getInvincibleProgress(group.id)"
-                                        :queue-count="group.invincibleStarQueue || 0"
-                                        :star-gain-class="starGainAnimation[group.id] ?? null"
-                                        :countdown-critical="isCountdownCritical(group.id)"
-                                    />
-                                </div>
-                            </template>
-
-                            <!-- 組員列表 -->
-                            <div
-                                v-if="!areGroupsCollapsed"
-                                :class="[
-                                    'flex-1 min-h-32 rounded-xl border border-dashed border-base-300 bg-base-100/60 p-2 flex flex-col gap-2 relative mt-2',
-                                    dropIndicator.groupId === group.id &&
-                                    dropIndicator.index === getGroupMembers(group).length
-                                        ? 'ring-2 ring-primary/60 ring-offset-2'
-                                        : '',
-                                ]"
-                                @drop="handleGroupDrop(group.id)"
-                                @dragover.prevent="handleGroupDragOver(group.id, $event)"
-                                @dragenter.prevent="handleGroupDragOver(group.id, $event)"
-                            >
-                                <div v-if="canModifyGroups" class="flex justify-end">
-                                    <button
-                                        type="button"
-                                        class="btn btn-ghost btn-xs"
-                                        :disabled="selectedStudentIds.length === 0"
-                                        @click="quickAssignToGroup(group.id)"
-                                    >
-                                        快速指派
-                                    </button>
-                                </div>
-                                <div
-                                    :class="[
-                                        'flex-1',
-                                        isGroupEditMode
-                                            ? 'grid grid-cols-1 md:grid-cols-2 gap-2'
-                                            : 'flex flex-col gap-2',
-                                    ]"
-                                >
+                        <template v-if="!classInfo.groupingActive">
+                            <div class="flex justify-between items-center gap-3">
+                                <h3 class="flex items-center gap-2 text-base font-semibold truncate">
                                     <div
-                                        v-for="(member, index) in getGroupMembers(group)"
-                                        :key="member.id"
-                                        :class="[
-                                            'rounded transition-all',
-                                            canModifyGroups
-                                                ? 'cursor-move border border-base-200 bg-base-100'
-                                                : member.isPresent
-                                                  ? 'bg-base-200'
-                                                  : 'bg-gray-200 text-gray-400 opacity-60',
-                                            dropIndicator.groupId === group.id &&
-                                            dropIndicator.index === index
-                                                ? 'ring-2 ring-primary ring-offset-2'
-                                                : '',
-                                            !canModifyGroups && member.isPresent
-                                                ? 'hover:bg-base-300'
-                                                : '',
-                                        ]"
-                                        :draggable="canModifyGroups"
-                                        @dragstart="handleDragStart(member.id, group.id, $event)"
-                                        @dragend="handleDragEnd"
-                                        @dragover.prevent="
-                                            handleMemberDragOver(group.id, index, $event)
-                                        "
-                                        @drop.stop="handleMemberDrop(group.id, index)"
+                                        class="w-4 h-4 rounded-full shrink-0"
+                                        :style="{ backgroundColor: group.color }"
+                                    ></div>
+                                    <span class="truncate">{{ group.name }}</span>
+                                    <span class="badge badge-ghost badge-sm">{{
+                                        getGroupMembers(group).length
+                                    }}</span>
+                                </h3>
+                                <div class="dropdown dropdown-end">
+                                    <div
+                                        tabindex="0"
+                                        role="button"
+                                        class="btn btn-ghost btn-xs btn-circle"
                                     >
-                                        <template v-if="isGroupEditMode">
-                                            <div class="px-3 py-2 flex flex-col gap-1">
-                                                <div class="text-xs text-base-content/70">
-                                                    座號 {{ member.id }}
-                                                </div>
-                                                <div class="font-medium text-sm">
-                                                    {{ member.name }}
-                                                </div>
-                                            </div>
-                                        </template>
-                                        <template v-else>
-                                            <div class="p-2 flex flex-col gap-2">
-                                                <div class="flex justify-between items-center">
-                                                    <div
-                                                        class="font-medium text-sm flex items-center"
-                                                    >
-                                                        {{ member.name }}
-                                                        <span
-                                                            v-if="!member.isPresent"
-                                                            class="ml-2 px-2 py-0.5 rounded bg-gray-300 text-xs text-gray-600"
-                                                            >今日缺席</span
-                                                        >
-                                                    </div>
-                                                    <div class="text-xs text-base-content/70">
-                                                        座號 {{ member.id }}
-                                                    </div>
-                                                </div>
-                                                <div class="flex justify-end items-center gap-2">
-                                                    <template v-if="props.classInfo.groupingActive">
-                                                        <div
-                                                            v-if="
-                                                                groupingSettings.showStudentIndividualScores
-                                                            "
-                                                            class="flex items-center gap-1 text-xs"
-                                                        >
-                                                            <span class="opacity-60">{{
-                                                                baseScoresForClass[member.id] ?? ''
-                                                            }}</span>
-                                                            <span class="opacity-60">分</span>
-                                                            <LucideIcon
-                                                                name="ArrowRight"
-                                                                class="w-3 h-3 text-success"
-                                                            />
-                                                            <span
-                                                                :class="[
-                                                                    'text-success font-bold',
-                                                                    studentScoreAnimation[
-                                                                        member.id
-                                                                    ],
-                                                                ]"
-                                                                >{{
-                                                                    (baseScoresForClass[
-                                                                        member.id
-                                                                    ] ?? 0) +
-                                                                    (sessionScoresForClass[
-                                                                        member.id
-                                                                    ] ?? 0)
-                                                                }}</span
-                                                            >
-                                                            <span class="text-success">分</span>
-                                                        </div>
-
-                                                        <div
-                                                            v-if="
-                                                                groupingSettings.allowIndividualScoring
-                                                            "
-                                                            class="flex gap-1"
-                                                        >
-                                                            <button
-                                                                @click="
-                                                                    addIndividualScore(member.id, 1)
-                                                                "
-                                                                class="btn btn-xs btn-circle btn-outline btn-success"
-                                                                title="個人加分"
-                                                            >
-                                                                +
-                                                            </button>
-                                                            <button
-                                                                @click="
-                                                                    addIndividualScore(
-                                                                        member.id,
-                                                                        -1,
-                                                                    )
-                                                                "
-                                                                class="btn btn-xs btn-circle btn-outline btn-error"
-                                                                title="個人扣分"
-                                                            >
-                                                                -
-                                                            </button>
-                                                        </div>
-                                                    </template>
-                                                    <template v-else>
-                                                        {{ member.totalScore }}分
-                                                    </template>
-                                                </div>
-                                            </div>
-                                        </template>
+                                        <LucideIcon name="MoreVertical" class="w-4 h-4" />
                                     </div>
-                                </div>
-
-                                <div
-                                    v-if="getGroupMembers(group).length === 0"
-                                    class="flex flex-1 items-center justify-center text-center text-base-content/50 text-sm"
-                                >
-                                    {{ canModifyGroups ? '拖曳學生或點快速指派' : '目前沒有組員' }}
+                                    <ul
+                                        tabindex="0"
+                                        class="dropdown-content menu bg-base-100 rounded-box z-[1] w-48 p-2 shadow"
+                                    >
+                                        <li>
+                                            <a @click="editGroupName(group.id)">
+                                                <LucideIcon name="Edit" class="w-4 h-4" />
+                                                編輯組名
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a @click="deleteGroup(group.id)" class="text-error">
+                                                <LucideIcon name="Trash2" class="w-4 h-4" />
+                                                刪除組別
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
-                            <p v-else class="text-xs text-base-content/60 italic text-center mt-2">
-                                點擊「展開組員」查看
-                            </p>
+                        </template>
+                        <template v-else>
+                            <div
+                                :class="[
+                                    'flex flex-col',
+                                    groupingSettings.compactMode ? 'gap-1' : 'gap-1.5',
+                                ]"
+                            >
+                                <div class="flex justify-between items-start">
+                                    <h3 class="flex items-center gap-2 text-base font-semibold">
+                                        <div
+                                            class="w-3 h-3 rounded-full shrink-0 mt-1"
+                                            :style="{ backgroundColor: group.color }"
+                                        ></div>
+                                        <span>{{ group.name }}</span>
+                                    </h3>
+                                    <span
+                                        v-if="groupingSettings.showGroupTotalScores"
+                                        :class="[
+                                            'font-bold text-xl text-primary',
+                                            groupScoreAnimation[group.id],
+                                        ]"
+                                    >
+                                        {{ group.totalScore }}
+                                    </span>
+                                </div>
+
+                                <GroupActionButtons
+                                    :positive-label="getGroupPositiveLabel(group)"
+                                    negative-label="-1"
+                                    :disabled="isGroupActionDisabled(group)"
+                                    @add-positive="addGroupScore(group.id, getScoreValue(group.id, 1))"
+                                    @add-negative="addGroupScore(group.id, -1)"
+                                />
+
+                                <GroupRewardStatus
+                                    v-if="activeRewardSettings?.enabled"
+                                    :group="group"
+                                    :formatted-timer="formatTime(timers[group.id])"
+                                    :total-stars="getTotalStarsForDisplay(group)"
+                                    :star-progress="getStarProgress(group)"
+                                    :invincible-progress="getInvincibleProgress(group.id)"
+                                    :queue-count="group.invincibleStarQueue || 0"
+                                    :star-gain-class="starGainAnimation[group.id] ?? null"
+                                    :countdown-critical="isCountdownCritical(group.id)"
+                                />
+                            </div>
+                        </template>
+
+                        <div
+                            v-if="!areGroupsCollapsed"
+                            :class="[
+                                'flex-1 min-h-32 rounded-xl border border-dashed border-base-300 bg-base-100/60 p-2 flex flex-col gap-2 relative mt-2 overflow-visible',
+                                dropIndicator.groupId === group.id &&
+                                dropIndicator.index === getGroupMembers(group).length
+                                    ? 'ring-2 ring-primary/60 ring-offset-2'
+                                    : '',
+                            ]"
+                            @drop="handleGroupDrop(group.id)"
+                            @dragover.prevent="handleGroupDragOver(group.id, $event)"
+                            @dragenter.prevent="handleGroupDragOver(group.id, $event)"
+                        >
+                            <div v-if="canModifyGroups" class="flex justify-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-ghost btn-xs"
+                                    :disabled="selectedStudentIds.length === 0"
+                                    @click="quickAssignToGroup(group.id)"
+                                >
+                                    快速指派
+                                </button>
+                            </div>
+                            <GroupMembersList
+                                :group-id="group.id"
+                                :members="getGroupMembers(group)"
+                                :is-edit-mode="isGroupEditMode"
+                                :can-modify="canModifyGroups"
+                                :grouping-active="classInfo.groupingActive"
+                                :show-individual-scores="groupingSettings.showStudentIndividualScores"
+                                :allow-individual-scoring="groupingSettings.allowIndividualScoring"
+                                :base-scores="baseScoresForClass"
+                                :session-scores="sessionScoresForClass"
+                                :student-score-animation="studentScoreAnimation"
+                                :drop-indicator="dropIndicator"
+                                @drag-start="(studentId, originGroupId, event) => handleDragStart(studentId, originGroupId, event)"
+                                @drag-end="handleDragEnd"
+                                @member-drag-over="(gid, index, event) => handleMemberDragOver(gid, index, event)"
+                                @member-drop="(gid, index) => handleMemberDrop(gid, index)"
+                                @add-individual-score="addIndividualScore"
+                            />
                         </div>
-                    </div>
+                    </GroupCard>
                 </div>
             </main>
         </div>
@@ -528,6 +375,8 @@ import GroupRewardStatus from '~/components/grouping/GroupRewardStatus.vue'
 import GroupActionButtons from '~/components/grouping/GroupActionButtons.vue'
 import GroupingControlPanel from '~/components/grouping/GroupingControlPanel.vue'
 import GroupingSidebar from '~/components/grouping/GroupingSidebar.vue'
+import GroupCard from '~/components/grouping/GroupCard.vue'
+import GroupMembersList from '~/components/grouping/GroupMembersList.vue'
 import InvincibleCelebration from '~/components/grouping/InvincibleCelebration.vue'
 
 interface Props {
