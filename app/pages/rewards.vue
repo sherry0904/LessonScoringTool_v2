@@ -15,16 +15,23 @@
                 </button>
             </div>
 
-            <!-- 範本卡片（可拖曳） -->
-            <div class="p-4 space-y-2 overflow-y-auto flex-1">
+            <!-- 範本卡片（可拖曳排序） -->
+            <div class="p-4 space-y-2 overflow-y-auto flex-1" @dragover.prevent @dragenter.prevent>
                 <div
-                    v-for="template in rewardsStore.rewardTemplates"
+                    v-for="(template, index) in rewardsStore.rewardTemplates"
                     :key="template.id"
                     draggable="true"
-                    @dragstart="onDragTemplate($event, template)"
-                    @dragend="draggedTemplate = null"
-                    class="p-3 rounded-lg bg-base-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:scale-[1.02] flex flex-col"
-                    :class="{ 'ring-2 ring-primary': draggedTemplate?.id === template.id }"
+                    @dragstart="onDragTemplateStart($event, index)"
+                    @dragend="onDragTemplateEnd"
+                    @dragover.prevent="onDragTemplateOver($event, index)"
+                    @dragenter.prevent="onDragTemplateOver($event, index)"
+                    @dragleave="onDragTemplateLeave"
+                    @drop="onDropTemplate($event, index)"
+                    class="p-3 rounded-lg bg-base-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:scale-[1.02] flex flex-col relative"
+                    :class="{
+                        'opacity-50': draggedTemplateIndex === index,
+                        'ring-2 ring-primary ring-offset-2': dragOverTemplateIndex === index,
+                    }"
                 >
                     <!-- 標題列 -->
                     <div class="flex items-start justify-between gap-2 mb-2">
@@ -63,7 +70,7 @@
                                 </button>
                             </div>
                             <!-- Grip handle -->
-                            <div class="tooltip tooltip-left" data-tip="拖曳此範本套用到班級">
+                            <div class="tooltip tooltip-left" data-tip="拖曳排序範本">
                                 <div class="w-4 h-4 flex items-center justify-center opacity-40">
                                     <LucideIcon name="GripVertical" class="w-4 h-4" />
                                 </div>
@@ -71,7 +78,7 @@
                         </div>
                     </div>
                     <!-- 設定資訊 -->
-                    <div class="text-xs space-y-1 text-base-content/70">
+                    <div class="text-xs space-y-1 text-base-content !text-black">
                         <div>
                             💰 每星需求：<span class="font-semibold">{{
                                 template.settings.pointsPerStar
@@ -131,7 +138,7 @@
                     <!-- 批次操作列 -->
                     <div class="flex items-center gap-4">
                         <div v-if="selectedClassIds.length > 0" class="flex items-center gap-2">
-                            <span class="text-sm text-base-content/70 badge badge-lg">
+                            <span class="text-sm text-base-content badge badge-lg">
                                 已選 {{ selectedClassIds.length }} 個班級
                             </span>
                             <button
@@ -184,12 +191,7 @@
                                 <tr
                                     v-for="cls in classesStore.classes"
                                     :key="cls.id"
-                                    @drop="onDropTemplate($event, cls.id)"
-                                    @dragover.prevent
-                                    @dragenter="onDragEnter(cls.id)"
-                                    @dragleave="onDragLeave(cls.id)"
                                     class="hover:bg-base-200/50 transition-colors"
-                                    :class="{ 'bg-primary/10': dragOverClassId === cls.id }"
                                 >
                                     <td>
                                         <input
@@ -202,7 +204,7 @@
                                     <td>
                                         <div class="font-semibold">{{ cls.name }}</div>
                                         <div
-                                            class="text-xs text-base-content/60 flex items-center gap-1"
+                                            class="text-xs text-base-content flex items-center gap-1"
                                         >
                                             <LucideIcon name="Users" class="w-3 h-3" />
                                             {{ cls.students.length }} 人
@@ -234,7 +236,7 @@
                                     </td>
                                 </tr>
                                 <tr v-if="classesStore.classes.length === 0">
-                                    <td colspan="5" class="text-center text-base-content/50 py-12">
+                                    <td colspan="5" class="text-center text-base-content py-12">
                                         <div class="flex flex-col items-center gap-2">
                                             <LucideIcon
                                                 name="AlertCircle"
@@ -265,7 +267,7 @@
                     <div class="p-6 border-b flex items-center justify-between shrink-0">
                         <div>
                             <h2 class="text-2xl font-bold">{{ selectedClass?.name }}</h2>
-                            <p class="text-sm text-base-content/60 mt-1">獎勵機制設定</p>
+                            <p class="text-sm text-base-content mt-1">獎勵機制設定</p>
                         </div>
                         <button @click="closeDrawer" class="btn btn-ghost btn-sm btn-circle">
                             <LucideIcon name="X" class="w-5 h-5" />
@@ -294,11 +296,11 @@
                     批次套用範本
                 </h3>
 
-                <div class="form-control mb-4">
-                    <label class="label">
-                        <span class="label-text">選擇範本</span>
+                <div class="form-control mb-6">
+                    <label class="label pb-2">
+                        <span class="label-text font-semibold mr-2">選擇範本</span>
                     </label>
-                    <select v-model="batchTemplateId" class="select select-bordered">
+                    <select v-model="batchTemplateId" class="select select-bordered select-md">
                         <option value="">-- 請選擇範本 --</option>
                         <option
                             v-for="template in rewardsStore.rewardTemplates"
@@ -311,9 +313,9 @@
                     </select>
                 </div>
 
-                <div class="alert alert-info mb-4">
-                    <LucideIcon name="Info" class="w-5 h-5" />
-                    <span class="text-sm">
+                <div class="alert alert-info mb-6">
+                    <LucideIcon name="Info" class="w-5 h-5 flex-shrink-0" />
+                    <span class="text-sm leading-relaxed">
                         將套用至 {{ selectedClassIds.length }} 個班級，修改將立即生效。
                     </span>
                 </div>
@@ -388,9 +390,9 @@ const confirmDialogTitle = ref('')
 const confirmDialogMessage = ref('')
 const activeClassesInGrouping = ref<string[]>([])
 
-// 拖曳狀態
-const draggedTemplate = ref<RewardTemplate | null>(null)
-const dragOverClassId = ref<string | null>(null)
+// 範本排序拖放狀態
+const draggedTemplateIndex = ref<number | null>(null)
+const dragOverTemplateIndex = ref<number | null>(null)
 
 // 範本編輯
 const templateModalRef = ref<any>(null)
@@ -460,67 +462,57 @@ const handleConfirm = () => {
 // 確認對話取消按鈕處理
 const handleCancel = () => {
     pendingAction.value = null
-    draggedTemplate.value = null
 }
 
-// 拖曳功能
-const onDragTemplate = (event: DragEvent, template: RewardTemplate) => {
-    draggedTemplate.value = template
+// 範本排序拖放事件
+const onDragTemplateStart = (event: DragEvent, index: number) => {
+    draggedTemplateIndex.value = index
     if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'copy'
-        event.dataTransfer.setData('text/plain', template.id)
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('text/plain', String(index))
     }
 }
 
-const onDragEnter = (classId: string) => {
-    dragOverClassId.value = classId
+const onDragTemplateEnd = () => {
+    draggedTemplateIndex.value = null
+    dragOverTemplateIndex.value = null
 }
 
-const onDragLeave = (classId: string) => {
-    if (dragOverClassId.value === classId) {
-        dragOverClassId.value = null
-    }
-}
-
-const onDropTemplate = (event: DragEvent, classId: string) => {
+const onDragTemplateOver = (event: DragEvent, index: number) => {
+    if (draggedTemplateIndex.value === null) return
     event.preventDefault()
-    dragOverClassId.value = null
+    dragOverTemplateIndex.value = index
+}
 
-    if (draggedTemplate.value) {
-        const cls = classesStore.classes.find((c) => c.id === classId)
-        const templateName = draggedTemplate.value.name
-        const templateId = draggedTemplate.value.id
-        const className = cls?.name || '此班級'
-
-        // 檢查班級是否在活動進行中
-        if (isClassActive(classId)) {
-            showConfirmDialog(
-                '活動進行中',
-                `班級「${className}」目前有活動進行中。\n\n改變獎勵範本可能導致分數計算失準。\n\n確定要套用「${templateName}」嗎？`,
-                () => {
-                    const success = classesStore.applyTemplateToClass(
-                        classId,
-                        templateId,
-                    )
-                    if (success) {
-                        uiStore.showSuccess(`已套用「${templateName}」到班級「${className}」`)
-                    } else {
-                        uiStore.showError('套用範本失敗')
-                    }
-                    draggedTemplate.value = null
-                },
-            )
-        } else {
-            const success = classesStore.applyTemplateToClass(classId, templateId)
-            if (success) {
-                uiStore.showSuccess(`已套用「${templateName}」到班級「${className}」`)
-            } else {
-                uiStore.showError('套用範本失敗')
-            }
-        }
-
-        draggedTemplate.value = null
+const onDragTemplateLeave = (event: DragEvent) => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    if (
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom
+    ) {
+        dragOverTemplateIndex.value = null
     }
+}
+
+const onDropTemplate = (event: DragEvent, toIndex: number) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (draggedTemplateIndex.value === null || draggedTemplateIndex.value === toIndex) {
+        draggedTemplateIndex.value = null
+        dragOverTemplateIndex.value = null
+        return
+    }
+
+    const success = rewardsStore.moveTemplate(draggedTemplateIndex.value, toIndex)
+    if (success) {
+        uiStore.showSuccess('範本排序已更新')
+    }
+
+    draggedTemplateIndex.value = null
+    dragOverTemplateIndex.value = null
 }
 
 // 抽屜操作

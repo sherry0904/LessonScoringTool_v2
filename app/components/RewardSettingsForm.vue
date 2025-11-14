@@ -78,7 +78,7 @@
                                 <!-- 範本預覽 -->
                                 <div
                                     v-if="selectedTemplate"
-                                    class="mt-3 p-3 bg-base-200/50 rounded-lg text-xs space-y-1"
+                                    class="mt-3 p-3 bg-base-200/50 rounded-lg text-xs space-y-1 text-base-content text-black"
                                 >
                                     <div class="font-semibold mb-2">範本設定預覽：</div>
                                     <div class="grid grid-cols-2 gap-2">

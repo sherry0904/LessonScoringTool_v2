@@ -31,8 +31,8 @@
                 <!-- 範本名稱 -->
                 <div class="form-control">
                     <label class="label pb-2">
-                        <span class="label-text font-semibold text-base">範本名稱</span>
-                        <span class="label-text-alt text-xs text-base-content/60"
+                        <span class="label-text font-semibold text-base text-black">範本名稱</span>
+                        <span class="label-text-alt text-xs text-base-content text-black"
                             >用於識別這個範本</span
                         >
                     </label>
@@ -57,8 +57,8 @@
                     <!-- 得分門檻 -->
                     <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
-                            <span class="label-text text-sm">得分門檻</span>
-                            <span class="label-text-alt text-xs">多少分一顆星</span>
+                            <span class="label-text text-sm text-black">得分門檻</span>
+                            <span class="label-text-alt text-xs text-black">多少分一顆星</span>
                         </label>
                         <input
                             v-model.number="template.settings.pointsPerStar"
@@ -70,8 +70,8 @@
                     <!-- 星星門檻 -->
                     <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
-                            <span class="label-text text-sm">星星門檻</span>
-                            <span class="label-text-alt text-xs">幾顆星變無敵</span>
+                            <span class="label-text text-sm text-black">星星門檻</span>
+                            <span class="label-text-alt text-xs text-black">幾顆星變無敵</span>
                         </label>
                         <input
                             v-model.number="template.settings.starsToInvincible"
@@ -83,8 +83,8 @@
                     <!-- 無敵時間 -->
                     <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
-                            <span class="label-text text-sm">無敵持續時間</span>
-                            <span class="label-text-alt text-xs">分鐘 : 秒</span>
+                            <span class="label-text text-sm text-black">無敵持續時間</span>
+                            <span class="label-text-alt text-xs text-black">分鐘 : 秒</span>
                         </label>
                         <div class="flex gap-2 items-center">
                             <div class="flex-1">
@@ -114,8 +114,8 @@
                     <!-- 無敵加分值 -->
                     <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
-                            <span class="label-text text-sm">無敵加分值</span>
-                            <span class="label-text-alt text-xs">無敵時每次加幾分</span>
+                            <span class="label-text text-sm text-black">無敵加分值</span>
+                            <span class="label-text-alt text-xs text-black">無敵時每次加幾分</span>
                         </label>
                         <input
                             v-model.number.lazy="template.settings.invinciblePointsPerClick"

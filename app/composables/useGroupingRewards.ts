@@ -208,6 +208,16 @@ export const useGroupingRewards = ({
         // 處理星星增加的動畫與訊息泡泡
         if (typeof prevStars === 'number' && currentStars > prevStars) {
             triggerStarGainAnimation(group.id)
+            // 只有普通星星收集時播放音效（非無敵狀態）
+            if (!group.isInvincible) {
+                try {
+                    const audio = new Audio('/star.mp3')
+                    audio.volume = 0.7
+                    audio.play()
+                } catch (e) {
+                    // 忽略音效錯誤
+                }
+            }
             const milestoneMessage = getStarMessage(group)
             if (
                 milestoneMessage &&

@@ -265,6 +265,28 @@ export const useRewardsStore = defineStore('rewards', () => {
         saveToStorage()
     }
 
+    function moveTemplate(fromIndex: number, toIndex: number) {
+        // 驗證索引
+        if (fromIndex < 0 || fromIndex >= rewardTemplates.value.length) {
+            return false
+        }
+        if (toIndex < 0 || toIndex >= rewardTemplates.value.length) {
+            return false
+        }
+
+        // 如果索引相同，無需操作
+        if (fromIndex === toIndex) {
+            return false
+        }
+
+        // 執行移動
+        const [removed] = rewardTemplates.value.splice(fromIndex, 1)
+        rewardTemplates.value.splice(toIndex, 0, removed)
+
+        saveToStorage()
+        return true
+    }
+
     return {
         rewardTemplates,
         isLoaded,
@@ -276,6 +298,7 @@ export const useRewardsStore = defineStore('rewards', () => {
         setDefaultTemplate,
         getTemplateById,
         resetToDefault,
+        moveTemplate,
         // 匯出驗證函數供組件使用
         normalizeRewardSettings,
     }
