@@ -19,14 +19,22 @@
 
 <script setup lang="ts">
 interface Props {
-    title: string;
-    description?: string;
+    title: string
+    description?: string
 }
 
-defineProps<Props>();
+defineProps<Props>()
 
-const router = useRouter();
+const router = useRouter()
+const route = useRoute()
+
 const goBack = () => {
-    router.back();
-};
+    // 如果當前路由是 /rewards，返回到儀表板首頁
+    if (route.path === '/rewards') {
+        router.push('/')
+    } else {
+        // 其他情況使用瀏覽器返回
+        router.back()
+    }
+}
 </script>

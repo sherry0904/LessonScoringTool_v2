@@ -17,8 +17,8 @@ export const REWARD_MILESTONE_MESSAGE_MAX_LENGTH = 10
  */
 export const REWARD_DEFAULTS = {
     // 基本設置
-    pointsPerStar: 10, // 多少分數可獲得一顆星星
-    starsToInvincible: 3, // 多少顆星星可觸發無敵模式
+    pointsPerStar: 20, // 多少分數可獲得一顆星星
+    starsToInvincible: 5, // 多少顆星星可觸發無敵模式
     invincibleDurationSeconds: 600, // 無敵模式持續時間（秒）
     invinciblePointsPerClick: 2, // 無敵模式下每次加分的點數
     milestoneMessages: buildDefaultMilestoneMessages(3),
@@ -207,23 +207,22 @@ export function formatInvincibleTimer(milliseconds: number): string {
  * 依據星星門檻建立預設的里程碑訊息
  * @param starsToInvincible 要進入無敵模式的星星數
  */
-export function buildDefaultMilestoneMessages(
-    starsToInvincible: number,
-): RewardMilestoneMessage[] {
+export function buildDefaultMilestoneMessages(starsToInvincible: number): RewardMilestoneMessage[] {
     const safeThreshold = Math.max(1, Math.floor(starsToInvincible))
 
+    // 確保沒有里程碑被設在無敵門檻上 (safeThreshold)
     const candidates: Array<[number, string]> = [
-        [Math.max(1, Math.ceil(safeThreshold * 0.4)), '表現很不錯！'],
-        [Math.max(1, Math.ceil(safeThreshold * 0.7)), '拼了拼了！'],
-        [Math.max(1, safeThreshold - 1), '只差一步！'],
-        [safeThreshold, '衝刺無敵星星！'],
+        [Math.max(1, Math.ceil(safeThreshold * 0.35)), '表現很不錯！'], // ~35%
+        [Math.max(1, Math.ceil(safeThreshold * 0.6)), '拼了拼了！'], // ~60%
+        [Math.max(1, safeThreshold - 1), '只差一步！'], // threshold - 1
     ]
 
     const seen = new Set<number>()
     const result: RewardMilestoneMessage[] = []
 
     for (const [threshold, message] of candidates) {
-        if (threshold < 1 || threshold > safeThreshold) continue
+        // 過濾掉無效或超出範圍的里程碑（包括無敵門檻本身）
+        if (threshold < 1 || threshold >= safeThreshold) continue
         if (seen.has(threshold)) continue
         seen.add(threshold)
         result.push({

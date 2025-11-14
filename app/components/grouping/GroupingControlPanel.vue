@@ -38,13 +38,6 @@
                         </button>
                         <div class="ml-auto flex gap-2">
                             <button
-                                @click="$emit('openRewardInfoModal')"
-                                class="btn btn-info btn-sm gap-2"
-                                type="button"
-                            >
-                                <LucideIcon name="Sparkles" class="w-4 h-4" />獎勵說明
-                            </button>
-                            <button
                                 @click="$emit('saveGroupEdits')"
                                 class="btn btn-success"
                                 :disabled="localGroupsLength === 0"
@@ -57,20 +50,23 @@
                         </div>
                     </div>
 
-                    <div v-else class="flex flex-wrap items-center gap-3">
-                        <div class="flex items-center gap-2 text-sm text-base-content/70">
+                    <div
+                        v-else
+                        class="flex flex-col lg:flex-row items-start lg:items-center gap-2 lg:gap-3"
+                    >
+                        <div class="flex items-center gap-2 text-sm text-base-content/70 flex-wrap">
                             <span
-                                class="badge badge-outline gap-1"
+                                class="badge badge-outline gap-1 shrink-0"
                                 title="如需調整請點擊「編輯組別」"
                             >
                                 <LucideIcon name="Lock" class="w-4 h-4" />鎖定
                             </span>
-                            <span>活動名稱 (選填)</span>
+                            <span class="shrink-0">活動名稱 (選填)</span>
                             <input
                                 :value="activityName"
                                 type="text"
                                 placeholder="例如：第二次分組討論"
-                                class="input input-bordered w-60"
+                                class="input input-bordered input-sm lg:input-md w-full lg:w-60"
                                 @input="
                                     $emit(
                                         'update:activityName',
@@ -80,7 +76,9 @@
                             />
                         </div>
 
-                        <div class="ml-auto flex items-center gap-2">
+                        <div
+                            class="ml-0 lg:ml-auto flex items-center gap-2 w-full lg:w-auto flex-wrap lg:flex-nowrap justify-end"
+                        >
                             <button
                                 v-if="rewardEnabled"
                                 @click="$emit('openRewardInfoModal')"

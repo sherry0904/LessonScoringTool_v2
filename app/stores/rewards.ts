@@ -238,7 +238,9 @@ export const useRewardsStore = defineStore('rewards', () => {
                 rewardTemplates.value.push(createDefaultTemplate())
             }
             saveToStorage()
+            return true
         }
+        return false
     }
 
     function setDefaultTemplate(templateId: string) {
@@ -258,6 +260,11 @@ export const useRewardsStore = defineStore('rewards', () => {
         return rewardTemplates.value.find((t) => t.id === templateId) || null
     }
 
+    function resetToDefault() {
+        rewardTemplates.value = [createDefaultTemplate()]
+        saveToStorage()
+    }
+
     return {
         rewardTemplates,
         isLoaded,
@@ -268,6 +275,7 @@ export const useRewardsStore = defineStore('rewards', () => {
         deleteTemplate,
         setDefaultTemplate,
         getTemplateById,
+        resetToDefault,
         // 匯出驗證函數供組件使用
         normalizeRewardSettings,
     }

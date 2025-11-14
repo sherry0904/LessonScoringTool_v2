@@ -116,10 +116,7 @@ export const useClassesStore = defineStore('classes', () => {
     /**
      * 設定獎勵模式（簡化版 - 立即生效）
      */
-    const setRewardSettingsMode = (
-        classId: string,
-        mode: 'disabled' | 'template' | 'custom',
-    ): boolean => {
+    const setRewardSettingsMode = (classId: string, mode: 'disabled' | 'template'): boolean => {
         const classIndex = classes.value.findIndex((c) => c.id === classId)
         if (classIndex === -1) return false
 
@@ -134,9 +131,6 @@ export const useClassesStore = defineStore('classes', () => {
         } else if (mode === 'template') {
             classData.customRewardSettings = null
             // appliedRewardTemplateId 由後續呼叫 applyTemplateToClass 設定
-        } else if (mode === 'custom') {
-            classData.appliedRewardTemplateId = null
-            // customRewardSettings 由後續呼叫 setCustomRewardSettings 設定
         }
 
         classData.updatedAt = new Date()
@@ -176,35 +170,42 @@ export const useClassesStore = defineStore('classes', () => {
     }
 
     /**
-     * 設定班級的獎勵機制模式為自訂規則（簡化版 - 立即生效）
-     * @param classId 班級 ID
-     * @param settings 自訂設定
+     * 重設所有班級回到預設獎勵範本狀態
+     * 用於系統重設時
      */
-    const setCustomRewardSettings = (classId: string, settings: RewardSettings | null): boolean => {
-        const classIndex = classes.value.findIndex((c) => c.id === classId)
-        if (classIndex === -1) return false
+    const resetAllClassesToDefault = (): boolean => {
+        try {
+            const rewardsStore = useRewardsStore()
+            const defaultTemplate = rewardsStore.defaultTemplate
 
-        const rewardsStore = useRewardsStore()
-        const normalizedSettings = settings ? rewardsStore.normalizeRewardSettings(settings) : null
+            if (!defaultTemplate) {
+                console.error('無可用的預設範本')
+                return false
+            }
 
-        // 使用 splice 來觸發響應式更新
-        const classData = { ...classes.value[classIndex] }
-        classData.rewardSettingsMode = 'custom'
-        classData.customRewardSettings = normalizedSettings
-        classData.appliedRewardTemplateId = null
-        classData.updatedAt = new Date()
+            // 重設所有班級
+            classes.value.forEach((classData) => {
+                classData.rewardSettingsMode = 'template'
+                classData.appliedRewardTemplateId = defaultTemplate.id
+                classData.customRewardSettings = null
+                classData.updatedAt = new Date()
+            })
 
-        classes.value.splice(classIndex, 1, classData)
-
-        // 處理現有的星星數，檢查是否需要觸發無敵
-        if (normalizedSettings && normalizedSettings.enabled && classData.groupingActive) {
-            _processExistingStars(classData, normalizedSettings)
+            saveToStorage()
+            return true
+        } catch (error) {
+            console.error('重設班級獎勵設定失敗:', error)
+            return false
         }
-
-        saveToStorage()
-        return true
     }
 
+    /**
+     * 在獎勵設定變更時，重新計算分組中各組的星星數
+     * 用於當 pointsPerStar 改變時重新計算
+     * @param classId 班級 ID
+     * @param oldPointsPerStar 舊的 pointsPerStar
+     * @param newPointsPerStar 新的 pointsPerStar
+     */
     const deleteClass = (classId: string) => {
         const index = classes.value.findIndex((c) => c.id === classId)
         if (index > -1) {
@@ -237,9 +238,9 @@ export const useClassesStore = defineStore('classes', () => {
             groupingActive: false,
             createdAt: new Date(),
             updatedAt: new Date(),
-            // 初始化獎勵機制設定：新班級自動套用預設範本
-            rewardSettingsMode: 'template',
-            appliedRewardTemplateId: defaultTemplate?.id || null,
+            // 初始化獎勵機制設定：新班級預設不套用範本，由老師手動選擇
+            rewardSettingsMode: 'disabled',
+            appliedRewardTemplateId: null,
             customRewardSettings: null,
         }
         classes.value.push(newClass)
@@ -488,8 +489,6 @@ export const useClassesStore = defineStore('classes', () => {
 
         if (classData.rewardSettingsMode === 'template') {
             settings = rewardsStore.getTemplateById(classData.appliedRewardTemplateId)?.settings
-        } else if (classData.rewardSettingsMode === 'custom') {
-            settings = classData.customRewardSettings
         }
 
         let finalScore = score
@@ -575,7 +574,6 @@ export const useClassesStore = defineStore('classes', () => {
     const checkInvincibleStatus = () => {
         const now = Date.now()
         let changed = false
-        const uiStore = useUIStore()
 
         classes.value.forEach((cls) => {
             if (!cls.groupingActive || !cls.groups) return
@@ -584,22 +582,31 @@ export const useClassesStore = defineStore('classes', () => {
             let settings: RewardSettings | null | undefined = null
             if (cls.rewardSettingsMode === 'template') {
                 settings = rewardsStore.getTemplateById(cls.appliedRewardTemplateId)?.settings
-            } else if (cls.rewardSettingsMode === 'custom') {
-                settings = cls.customRewardSettings
             }
 
             if (!settings || !settings.enabled) return
 
             // 檢查無敵狀態
             cls.groups.forEach((group) => {
-                if (group.isInvincible && group.invincibleUntil && group.invincibleUntil <= now) {
-                    changed = true
-                    if (group.invincibleStarQueue > 0) {
-                        group.invincibleStarQueue--
-                        group.invincibleUntil = now + settings.invincibleDurationSeconds * 1000
-                    } else {
-                        group.isInvincible = false
-                        group.invincibleUntil = null
+                if (group.isInvincible && group.invincibleUntil) {
+                    // 檢查無敵時間是否已經過期
+                    if (group.invincibleUntil <= now) {
+                        changed = true
+                        if (group.invincibleStarQueue > 0) {
+                            // 激活佇列中的下一個無敵狀態
+                            group.invincibleStarQueue--
+                            // 設置新的無敵結束時間（確保未來時間）
+                            group.invincibleUntil = Math.max(
+                                now + 100, // 確保至少有 100ms 的緩衝
+                                now + settings.invincibleDurationSeconds * 1000,
+                            )
+                            // 保持 isInvincible = true，讓新的無敵期繼續
+                        } else {
+                            // 完全結束無敵狀態
+                            group.isInvincible = false
+                            group.invincibleUntil = null
+                            group.invincibleStarQueue = 0
+                        }
                     }
                 }
             })
@@ -832,6 +839,7 @@ export const useClassesStore = defineStore('classes', () => {
 
     const buildBackupPayload = () => {
         const homeworkStore = useHomeworkStore()
+        const rewardsStore = useRewardsStore()
         // 確保最新的作業資料已載入
         homeworkStore.fetchAllHomework?.()
 
@@ -846,6 +854,7 @@ export const useClassesStore = defineStore('classes', () => {
             groupingSessionGroupScores: groupingSessionGroupScores.value,
             groupingSessionIndividualScores: groupingSessionIndividualScores.value,
             homeworks: homeworkStore.homeworkList,
+            rewardTemplates: rewardsStore.rewardTemplates,
         }
     }
 
@@ -871,10 +880,16 @@ export const useClassesStore = defineStore('classes', () => {
         return incoming.map((cls) => {
             const resolveRewardMode = (): ClassInfo['rewardSettingsMode'] => {
                 const mode = cls.rewardSettingsMode
-                if (mode === 'disabled' || mode === 'custom' || mode === 'template') {
+                // 轉換任何 custom 模式為 disabled（向後相容性）
+                if (mode === 'custom') {
+                    return 'disabled'
+                }
+                if (mode === 'disabled' || mode === 'template') {
                     return mode
                 }
-                return defaultTemplateId ? 'template' : 'disabled'
+                // 如果舊版本班級沒有 rewardSettingsMode 屬性，預設為停用
+                // 讓老師主動選擇要套用哪個範本，而不是自動套用
+                return 'disabled'
             }
 
             const normalizeTemplateId = (templateId: unknown): string | null => {
@@ -884,7 +899,6 @@ export const useClassesStore = defineStore('classes', () => {
 
             const normalizedRewardMode = resolveRewardMode()
             let normalizedTemplateId = normalizeTemplateId(cls.appliedRewardTemplateId)
-            let normalizedCustomSettings: RewardSettings | null = null
 
             if (normalizedRewardMode === 'template') {
                 if (!normalizedTemplateId || !rewardsStore.getTemplateById(normalizedTemplateId)) {
@@ -894,22 +908,6 @@ export const useClassesStore = defineStore('classes', () => {
                     // 如果仍然找不到可用範本，降級為關閉模式
                     normalizedTemplateId = null
                 }
-            }
-
-            if (normalizedRewardMode === 'custom') {
-                if (cls.customRewardSettings && typeof cls.customRewardSettings === 'object') {
-                    normalizedCustomSettings = rewardsStore.normalizeRewardSettings(
-                        cls.customRewardSettings,
-                    )
-                } else {
-                    normalizedCustomSettings = rewardsStore.normalizeRewardSettings({})
-                }
-            }
-
-            if (!normalizedTemplateId && normalizedRewardMode === 'template') {
-                // 無有效範本時，回退為關閉模式
-                normalizedTemplateId = null
-                normalizedCustomSettings = null
             }
 
             const normalizedStudents = Array.isArray(cls.students)
@@ -1026,8 +1024,7 @@ export const useClassesStore = defineStore('classes', () => {
                         : normalizedRewardMode,
                 appliedRewardTemplateId:
                     normalizedRewardMode === 'template' ? normalizedTemplateId : null,
-                customRewardSettings:
-                    normalizedRewardMode === 'custom' ? normalizedCustomSettings : null,
+                customRewardSettings: null,
             }
 
             if (
@@ -1113,7 +1110,96 @@ export const useClassesStore = defineStore('classes', () => {
 
             const version = typeof data.version === 'string' ? data.version : '1.0.0'
 
-            const sanitizedClasses = sanitizeClassesPayload(data.classes)
+            // 恢復獎勵範本 - 先重置到預設狀態，再恢復舊範本
+            const rewardsStore = useRewardsStore()
+            rewardsStore.resetToDefault() // 清空舊範本
+
+            const templateIdMap = new Map<string, string>() // 舊 ID → 新 ID 的對應
+            const defaultTemplateId = rewardsStore.rewardTemplates[0].id // 新的預設範本 ID
+
+            // 比較範本設定是否與預設相同
+            const isDefaultSettings = (template: any): boolean => {
+                if (!template.settings) return true
+
+                const settings = template.settings
+                const defaults = rewardsStore.rewardTemplates[0].settings
+
+                // 比較基本設定
+                if (
+                    settings.pointsPerStar !== defaults.pointsPerStar ||
+                    settings.starsToInvincible !== defaults.starsToInvincible ||
+                    settings.invincibleDurationSeconds !== defaults.invincibleDurationSeconds ||
+                    settings.invinciblePointsPerClick !== defaults.invinciblePointsPerClick
+                ) {
+                    return false
+                }
+
+                // 比較 milestone 訊息
+                if (
+                    !Array.isArray(settings.milestoneMessages) ||
+                    !Array.isArray(defaults.milestoneMessages) ||
+                    settings.milestoneMessages.length !== defaults.milestoneMessages.length
+                ) {
+                    return false
+                }
+
+                return settings.milestoneMessages.every(
+                    (msg, index) =>
+                        msg.threshold === defaults.milestoneMessages[index]?.threshold &&
+                        msg.message === defaults.milestoneMessages[index]?.message,
+                )
+            }
+
+            if (Array.isArray(data.rewardTemplates) && data.rewardTemplates.length > 0) {
+                data.rewardTemplates.forEach((template: any) => {
+                    try {
+                        // 跳過未被編輯過的預設範本 - 根據設定內容判斷
+                        if (template.name === '預設獎勵規則' && isDefaultSettings(template)) {
+                            // 映射舊的預設範本 ID 到新的預設範本 ID
+                            templateIdMap.set(template.id, defaultTemplateId)
+                            return
+                        }
+
+                        const sanitized = rewardsStore.normalizeRewardSettings(
+                            template.settings || {},
+                        )
+                        // 使用 addTemplate 建立新範本，以避免 ID 不存在的錯誤
+                        const newTemplate = rewardsStore.addTemplate(
+                            template.name || '匯入的範本',
+                            sanitized,
+                        )
+                        templateIdMap.set(template.id, newTemplate.id)
+
+                        // 如果是預設範本，設為預設
+                        if (template.isDefault) {
+                            rewardsStore.setDefaultTemplate(newTemplate.id)
+                        }
+                    } catch (e) {
+                        console.warn(`無法恢復範本 ${template.id}:`, e)
+                        // 失敗時映射到預設範本
+                        templateIdMap.set(template.id, defaultTemplateId)
+                    }
+                })
+            }
+
+            // 在 sanitizeClassesPayload 之前，先更新班級中的範本 ID
+            const updateClassTemplateIds = (classes: any[]): any[] => {
+                return classes.map((cls) => {
+                    if (
+                        cls.appliedRewardTemplateId &&
+                        templateIdMap.has(cls.appliedRewardTemplateId)
+                    ) {
+                        return {
+                            ...cls,
+                            appliedRewardTemplateId: templateIdMap.get(cls.appliedRewardTemplateId),
+                        }
+                    }
+                    return cls
+                })
+            }
+
+            const classesWithUpdatedTemplateIds = updateClassTemplateIds(data.classes)
+            const sanitizedClasses = sanitizeClassesPayload(classesWithUpdatedTemplateIds)
             classes.value = sanitizedClasses
 
             groupingBaseScores.value = isPlainObject(data.groupingBaseScores)
@@ -1241,7 +1327,7 @@ export const useClassesStore = defineStore('classes', () => {
         applyTemplateToClass,
         setRewardSettingsMode,
         applyTemplateToMultipleClasses,
-        setCustomRewardSettings,
+        resetAllClassesToDefault,
         saveToStorage,
         loadFromStorage,
         exportAllClasses,

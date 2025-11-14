@@ -5,6 +5,27 @@
                 {{ isCreatingNew ? '建立新範本' : '編輯範本' }}
             </h2>
 
+            <!-- 警告：範本被分組班級使用中 -->
+            <div v-if="shouldShowTemplateWarning" class="alert alert-warning gap-3 mb-6">
+                <LucideIcon name="AlertTriangle" class="w-5 h-5 flex-shrink-0" />
+                <div class="flex-1">
+                    <div class="text-sm font-semibold leading-tight">
+                        ⚠️ 此範本正被 {{ activeGroupingClassesUsingTemplate.length }} 個班級使用中
+                    </div>
+                    <div class="text-xs text-warning/80 mt-1 leading-relaxed">
+                        <div>受影響班級：</div>
+                        <ul class="list-disc list-inside ml-1">
+                            <li v-for="cls in activeGroupingClassesUsingTemplate" :key="cls.id">
+                                {{ cls.name }}
+                            </li>
+                        </ul>
+                        <div class="mt-1.5">
+                            新的設定會立即應用到未來的得分，但已收集的星星不會被重新計算。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 基本資訊區塊 -->
             <div class="space-y-6">
                 <!-- 範本名稱 -->
@@ -27,14 +48,14 @@
                 <div class="divider my-2"></div>
 
                 <!-- 獎勵參數區塊 -->
-                <div class="bg-base-200/30 p-4 rounded-lg space-y-4">
-                    <div class="font-semibold text-sm text-base-content/80">
+                <div class="bg-base-200/30 px-4 py-4 rounded-lg space-y-4">
+                    <div class="font-semibold text-sm text-base-content/80 -mx-4 px-4">
                         <LucideIcon name="Settings2" class="w-4 h-4 inline mr-2" />
                         獎勵參數設定
                     </div>
 
                     <!-- 得分門檻 -->
-                    <div class="form-control">
+                    <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
                             <span class="label-text text-sm">得分門檻</span>
                             <span class="label-text-alt text-xs">多少分一顆星</span>
@@ -47,7 +68,7 @@
                     </div>
 
                     <!-- 星星門檻 -->
-                    <div class="form-control">
+                    <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
                             <span class="label-text text-sm">星星門檻</span>
                             <span class="label-text-alt text-xs">幾顆星變無敵</span>
@@ -60,7 +81,7 @@
                     </div>
 
                     <!-- 無敵時間 -->
-                    <div class="form-control">
+                    <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
                             <span class="label-text text-sm">無敵持續時間</span>
                             <span class="label-text-alt text-xs">分鐘 : 秒</span>
@@ -91,7 +112,7 @@
                     </div>
 
                     <!-- 無敵加分值 -->
-                    <div class="form-control">
+                    <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
                             <span class="label-text text-sm">無敵加分值</span>
                             <span class="label-text-alt text-xs">無敵時每次加幾分</span>
@@ -104,12 +125,15 @@
                     </div>
 
                     <!-- 里程碑訊息 -->
-                    <div class="border border-base-200 rounded-lg bg-base-100 p-4 space-y-4">
-                        <div class="flex items-center justify-between gap-3">
+                    <div class="border border-base-200 rounded-lg bg-base-100 px-4 py-4 space-y-4">
+                        <div class="flex items-center justify-between gap-3 -mx-4 px-4">
                             <div>
                                 <div class="font-semibold text-sm">星星里程碑提示</div>
                                 <p class="text-xs text-base-content/60 mt-1">
                                     自訂不同星星門檻達成時要顯示的提醒內容。
+                                    <span class="text-warning"
+                                        >里程碑不可設在無敵星星門檻，因為會被恭喜動畫遮擋。</span
+                                    >
                                 </p>
                             </div>
                             <button
@@ -118,7 +142,7 @@
                                 @click="addMilestone"
                                 :disabled="
                                     milestoneMessages.length >=
-                                    Math.max(1, template.settings.starsToInvincible)
+                                    Math.max(1, template.settings.starsToInvincible - 1)
                                 "
                             >
                                 <LucideIcon name="Plus" class="w-3.5 h-3.5" />
@@ -126,12 +150,12 @@
                             </button>
                         </div>
 
-                        <div v-if="milestoneValidationError" class="alert alert-warning">
+                        <div v-if="milestoneValidationError" class="alert alert-warning -mx-4 px-4">
                             <LucideIcon name="AlertCircle" class="w-4 h-4" />
                             <span class="text-xs">{{ milestoneValidationError }}</span>
                         </div>
 
-                        <div class="flex flex-col gap-3">
+                        <div class="flex flex-col gap-3 -mx-4 px-4">
                             <div
                                 v-for="(milestone, index) in milestoneMessages"
                                 :key="`template-milestone-${index}`"
@@ -151,7 +175,10 @@
                                                 class="input input-sm input-bordered w-20 text-center"
                                                 min="1"
                                                 :max="
-                                                    Math.max(1, template.settings.starsToInvincible)
+                                                    Math.max(
+                                                        1,
+                                                        template.settings.starsToInvincible - 1,
+                                                    )
                                                 "
                                                 @input="
                                                     handleMilestoneThresholdChange(
@@ -194,7 +221,6 @@
                                             type="button"
                                             class="btn btn-xs btn-outline btn-error gap-1"
                                             @click="removeMilestone(index)"
-                                            :disabled="milestoneMessages.length <= 1"
                                         >
                                             <LucideIcon name="Trash2" class="w-3.5 h-3.5" />
                                             移除
@@ -253,6 +279,7 @@
 import { ref, reactive, watch, computed } from 'vue'
 import type { RewardTemplate } from '~/types'
 import type { RewardSettings, RewardMilestoneMessage } from '~/types/class'
+import { useClassesStore } from '~/stores/classes'
 import LucideIcon from './LucideIcon.vue'
 import {
     buildDefaultMilestoneMessages,
@@ -295,6 +322,44 @@ const template = reactive<RewardTemplate>({
 
 const assignDefault = ref(false)
 
+// 取得 classesStore
+const classesStore = useClassesStore()
+
+// 計算屬性：檢查哪些班級正在使用該範本且處於分組狀態
+const activeGroupingClassesUsingTemplate = computed(() => {
+    if (isCreatingNew.value || !template.id) {
+        return []
+    }
+
+    // 遍歷所有班級，找出符合條件的班級
+    const matchingClasses: Array<{ id: string; name: string }> = []
+
+    classesStore.classes.forEach((classData) => {
+        // 檢查是否使用該範本且處於分組狀態
+        if (
+            classData.rewardSettingsMode === 'template' &&
+            classData.appliedRewardTemplateId === template.id &&
+            classData.groupingActive
+        ) {
+            matchingClasses.push({
+                id: classData.id,
+                name: classData.name,
+            })
+        }
+    })
+
+    console.log(
+        `🎯 RewardTemplateModal: templateId=${template.id}, isCreatingNew=${isCreatingNew.value}, matchingClasses=${matchingClasses.length}`,
+    )
+
+    return matchingClasses
+})
+
+// 計算屬性：是否應顯示警告
+const shouldShowTemplateWarning = computed(() => {
+    return activeGroupingClassesUsingTemplate.value.length > 0
+})
+
 // 分鐘和秒的計算（僅 UI 用）
 const durationMinutes = ref<number>(10)
 const durationSeconds = ref<number>(0)
@@ -302,9 +367,7 @@ const durationSeconds = ref<number>(0)
 // 監聽 props 變化，更新 template
 const ensureMilestones = (settings: RewardSettings): RewardSettings => {
     const threshold = Math.max(1, Math.floor(settings.starsToInvincible || 1))
-    const baseMessages = Array.isArray(settings.milestoneMessages)
-        ? settings.milestoneMessages
-        : buildDefaultMilestoneMessages(threshold)
+    const baseMessages = Array.isArray(settings.milestoneMessages) ? settings.milestoneMessages : []
 
     const sanitized = baseMessages
         .map((item) => {
@@ -329,13 +392,6 @@ const ensureMilestones = (settings: RewardSettings): RewardSettings => {
         }
     })
 
-    if (!tracker.has(threshold)) {
-        deduped.push({
-            threshold,
-            message: '衝刺無敵星星！'.slice(0, REWARD_MILESTONE_MESSAGE_MAX_LENGTH),
-        })
-    }
-
     settings.milestoneMessages = deduped
     return settings
 }
@@ -350,9 +406,6 @@ const milestoneMessages = computed({
 const milestoneValidationError = computed(() => {
     const threshold = Math.max(1, template.settings.starsToInvincible || 1)
     const messages = milestoneMessages.value
-    if (!messages.length) {
-        return '請至少建立一個里程碑訊息'
-    }
     for (const item of messages) {
         if (!item.message?.trim()) {
             return '里程碑訊息內容不能為空'
@@ -388,7 +441,6 @@ const addMilestone = () => {
 }
 
 const removeMilestone = (index: number) => {
-    if (milestoneMessages.value.length <= 1) return
     const cloned = [...milestoneMessages.value]
     cloned.splice(index, 1)
     milestoneMessages.value = cloned

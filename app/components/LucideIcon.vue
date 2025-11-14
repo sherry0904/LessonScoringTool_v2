@@ -97,6 +97,7 @@ import {
     BookX,
     Wand2,
     XCircle,
+    RefreshCw,
 } from 'lucide-vue-next'
 
 interface Props {
@@ -198,6 +199,7 @@ const iconMap = {
     BookX: BookX,
     Wand2: Wand2,
     XCircle: XCircle,
+    RefreshCw: RefreshCw,
 }
 
 const iconComponent = computed(() => {

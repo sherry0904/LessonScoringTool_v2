@@ -23,35 +23,78 @@
                     draggable="true"
                     @dragstart="onDragTemplate($event, template)"
                     @dragend="draggedTemplate = null"
-                    class="p-3 rounded-lg bg-base-200 cursor-move hover:shadow-md transition-all hover:scale-[1.02]"
+                    class="p-3 rounded-lg bg-base-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:scale-[1.02] flex flex-col"
                     :class="{ 'ring-2 ring-primary': draggedTemplate?.id === template.id }"
                 >
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold text-sm">{{ template.name }}</span>
-                        <div class="flex items-center gap-1">
-                            <span v-if="template.isDefault" class="badge badge-xs badge-primary"
-                                >預設</span
+                    <!-- 標題列 -->
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div class="flex-1">
+                            <span class="font-semibold text-sm">{{ template.name }}</span>
+                            <div class="flex items-center gap-1 mt-1">
+                                <span v-if="template.isDefault" class="badge badge-xs badge-primary"
+                                    >預設</span
+                                >
+                            </div>
+                        </div>
+                        <!-- 動作按鈕 -->
+                        <div class="flex gap-1 flex-shrink-0 items-center">
+                            <div class="tooltip tooltip-left" data-tip="編輯這個範本">
+                                <button
+                                    @click="editTemplate(template)"
+                                    class="btn btn-xs btn-ghost"
+                                >
+                                    <LucideIcon name="Edit2" class="w-3 h-3" />
+                                </button>
+                            </div>
+                            <div
+                                v-if="
+                                    !template.isDefault ||
+                                    rewardsStore.rewardTemplates.filter((t) => t.isDefault).length >
+                                        1
+                                "
+                                class="tooltip tooltip-left"
+                                :data-tip="template.isDefault ? '刪除此預設範本' : '刪除這個範本'"
                             >
-                            <LucideIcon name="GripVertical" class="w-4 h-4 opacity-40" />
+                                <button
+                                    @click="deleteTemplate(template.id)"
+                                    class="btn btn-xs btn-ghost text-error"
+                                >
+                                    <LucideIcon name="Trash2" class="w-3 h-3" />
+                                </button>
+                            </div>
+                            <!-- Grip handle -->
+                            <div class="tooltip tooltip-left" data-tip="拖曳此範本套用到班級">
+                                <div class="w-4 h-4 flex items-center justify-center opacity-40">
+                                    <LucideIcon name="GripVertical" class="w-4 h-4" />
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <!-- 設定資訊 -->
                     <div class="text-xs space-y-1 text-base-content/70">
-                        <div>⭐ {{ template.settings.starsToInvincible }}星→無敵</div>
-                        <div>💰 {{ template.settings.pointsPerStar }}分=1星</div>
-                        <div>⏱️ {{ template.settings.invincibleDurationSeconds }}秒</div>
-                    </div>
-                    <div class="mt-2 flex gap-1">
-                        <button @click="editTemplate(template)" class="btn btn-xs btn-ghost flex-1">
-                            <LucideIcon name="Edit2" class="w-3 h-3" />
-                            編輯
-                        </button>
-                        <button
-                            v-if="!template.isDefault"
-                            @click="deleteTemplate(template.id)"
-                            class="btn btn-xs btn-ghost text-error"
-                        >
-                            <LucideIcon name="Trash2" class="w-3 h-3" />
-                        </button>
+                        <div>
+                            💰 每星需求：<span class="font-semibold">{{
+                                template.settings.pointsPerStar
+                            }}</span>
+                            分
+                        </div>
+                        <div>
+                            ⭐ 達成無敵：<span class="font-semibold">{{
+                                template.settings.starsToInvincible
+                            }}</span>
+                            星
+                        </div>
+                        <div>
+                            ⏱️ 無敵時長：<span class="font-semibold">{{
+                                formatDuration(template.settings.invincibleDurationSeconds)
+                            }}</span>
+                        </div>
+                        <div>
+                            🎯 無敵加分：<span class="font-semibold">{{
+                                template.settings.invinciblePointsPerClick
+                            }}</span>
+                            分/次
+                        </div>
                     </div>
                 </div>
             </div>
@@ -66,6 +109,11 @@
 
         <!-- 右側：班級列表主區 -->
         <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- 頂部標題 -->
+            <div class="p-4 sm:p-6 border-b bg-base-100 shrink-0">
+                <PageHeader title="獎勵機制管理" description="管理班級的獎勵設定及範本套用。" />
+            </div>
+
             <!-- 頂部工具列 -->
             <div class="p-4 border-b bg-base-100 shrink-0">
                 <div class="flex items-center justify-between">
@@ -78,21 +126,34 @@
                             <LucideIcon name="LayoutGrid" class="w-4 h-4" />
                             範本庫
                         </button>
-
-                        <h1 class="text-2xl font-bold">獎勵機制管理</h1>
                     </div>
 
                     <!-- 批次操作列 -->
-                    <div v-if="selectedClassIds.length > 0" class="flex items-center gap-2">
-                        <span class="text-sm text-base-content/70 badge badge-lg">
-                            已選 {{ selectedClassIds.length }} 個班級
-                        </span>
-                        <button @click="showBatchModal = true" class="btn btn-primary btn-sm gap-2">
-                            <LucideIcon name="Sparkles" class="w-4 h-4" />
-                            批次套用
-                        </button>
-                        <button @click="selectedClassIds = []" class="btn btn-ghost btn-sm">
-                            取消
+                    <div class="flex items-center gap-4">
+                        <div v-if="selectedClassIds.length > 0" class="flex items-center gap-2">
+                            <span class="text-sm text-base-content/70 badge badge-lg">
+                                已選 {{ selectedClassIds.length }} 個班級
+                            </span>
+                            <button
+                                @click="showBatchModal = true"
+                                class="btn btn-primary btn-sm gap-2"
+                            >
+                                <LucideIcon name="Sparkles" class="w-4 h-4" />
+                                批次套用
+                            </button>
+                            <button @click="selectedClassIds = []" class="btn btn-ghost btn-sm">
+                                取消
+                            </button>
+                        </div>
+
+                        <!-- 重設系統按鈕 -->
+                        <button
+                            @click="resetSystem"
+                            class="btn btn-outline btn-error btn-sm gap-2"
+                            title="重設所有獎勵範本到初始狀態"
+                        >
+                            <LucideIcon name="RefreshCw" class="w-4 h-4" />
+                            重設回預設獎勵
                         </button>
                     </div>
                 </div>
@@ -280,6 +341,17 @@
             @save="handleTemplateSave"
             @cancel="handleTemplateCancel"
         />
+
+        <!-- 確認對話 -->
+        <ConfirmDialog
+            ref="confirmDialogRef"
+            :title="confirmDialogTitle"
+            :message="confirmDialogMessage"
+            confirm-text="確認"
+            cancel-text="取消"
+            @confirm="handleConfirm"
+            @cancel="handleCancel"
+        />
     </div>
 </template>
 
@@ -290,6 +362,8 @@ import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
 import type { ClassInfo, RewardTemplate, RewardSettings } from '~/types'
 import { buildDefaultMilestoneMessages } from '~/constants/rewards'
+import PageHeader from '~/components/PageHeader.vue'
+import ConfirmDialog from '~/components/ConfirmDialog.vue'
 
 definePageMeta({
     layout: 'default',
@@ -306,6 +380,13 @@ const selectedClass = ref<ClassInfo | null>(null)
 const selectedClassIds = ref<string[]>([])
 const showBatchModal = ref(false)
 const batchTemplateId = ref('')
+
+// 確認對話狀態
+const confirmDialogRef = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+const pendingAction = ref<(() => void) | null>(null)
+const confirmDialogTitle = ref('')
+const confirmDialogMessage = ref('')
+const activeClassesInGrouping = ref<string[]>([])
 
 // 拖曳狀態
 const draggedTemplate = ref<RewardTemplate | null>(null)
@@ -349,6 +430,45 @@ const toggleClass = (classId: string) => {
     }
 }
 
+const formatDuration = (seconds: number) => {
+    const totalSeconds = Math.max(Number(seconds) || 0, 0)
+    const minutes = Math.floor(totalSeconds / 60)
+    const remainSeconds = totalSeconds % 60
+    return `${minutes} 分 ${remainSeconds} 秒`
+}
+
+// 檢查班級是否在活動進行中
+const isClassActive = (classId: string): boolean => {
+    const cls = classesStore.classes.find((c) => c.id === classId)
+    return cls?.groupingActive || false
+}
+
+// 檢查多個班級中是否有在活動進行中
+const getActiveClassesFromList = (classIds: string[]): string[] => {
+    return classIds.filter((id) => isClassActive(id))
+}
+
+// 顯示確認對話
+const showConfirmDialog = (title: string, message: string, onConfirm: () => void) => {
+    confirmDialogTitle.value = title
+    confirmDialogMessage.value = message
+    pendingAction.value = onConfirm
+    confirmDialogRef.value?.open()
+}
+
+// 確認對話確認按鈕處理
+const handleConfirm = () => {
+    if (pendingAction.value) {
+        pendingAction.value()
+        pendingAction.value = null
+    }
+}
+
+// 確認對話取消按鈕處理
+const handleCancel = () => {
+    pendingAction.value = null
+}
+
 // 拖曳功能
 const onDragTemplate = (event: DragEvent, template: RewardTemplate) => {
     draggedTemplate.value = template
@@ -374,12 +494,33 @@ const onDropTemplate = (event: DragEvent, classId: string) => {
 
     if (draggedTemplate.value) {
         const cls = classesStore.classes.find((c) => c.id === classId)
-        const success = classesStore.applyTemplateToClass(classId, draggedTemplate.value.id)
+        const templateName = draggedTemplate.value.name
+        const className = cls?.name || '此班級'
 
-        if (success) {
-            uiStore.showSuccess(`已套用「${draggedTemplate.value.name}」到班級「${cls?.name}」`)
+        // 檢查班級是否在活動進行中
+        if (isClassActive(classId)) {
+            showConfirmDialog(
+                '活動進行中',
+                `班級「${className}」目前有活動進行中。\n\n改變獎勵範本可能導致分數計算失準。\n\n確定要套用「${templateName}」嗎？`,
+                () => {
+                    const success = classesStore.applyTemplateToClass(
+                        classId,
+                        draggedTemplate.value!.id,
+                    )
+                    if (success) {
+                        uiStore.showSuccess(`已套用「${templateName}」到班級「${className}」`)
+                    } else {
+                        uiStore.showError('套用範本失敗')
+                    }
+                },
+            )
         } else {
-            uiStore.showError('套用範本失敗')
+            const success = classesStore.applyTemplateToClass(classId, draggedTemplate.value.id)
+            if (success) {
+                uiStore.showSuccess(`已套用「${templateName}」到班級「${className}」`)
+            } else {
+                uiStore.showError('套用範本失敗')
+            }
         }
 
         draggedTemplate.value = null
@@ -400,21 +541,36 @@ const closeDrawer = () => {
 }
 
 const handleSave = (config: any) => {
-    let success = false
+    const cls = classesStore.classes.find((c) => c.id === config.classId)
+    const className = cls?.name || '此班級'
+    const isActive = isClassActive(config.classId)
 
-    if (config.mode === 'disabled') {
-        success = classesStore.setRewardSettingsMode(config.classId, 'disabled')
-    } else if (config.mode === 'template' && config.templateId) {
-        success = classesStore.applyTemplateToClass(config.classId, config.templateId)
-    } else if (config.mode === 'custom' && config.settings) {
-        success = classesStore.setCustomRewardSettings(config.classId, config.settings)
+    const performSave = () => {
+        let success = false
+
+        if (config.mode === 'disabled') {
+            success = classesStore.setRewardSettingsMode(config.classId, 'disabled')
+        } else if (config.mode === 'template' && config.templateId) {
+            success = classesStore.applyTemplateToClass(config.classId, config.templateId)
+        }
+
+        if (success) {
+            uiStore.showSuccess('班級獎勵設定已更新')
+            closeDrawer()
+        } else {
+            uiStore.showError('更新設定失敗，請稍後再試')
+        }
     }
 
-    if (success) {
-        uiStore.showSuccess('班級獎勵設定已更新')
-        closeDrawer()
+    // 檢查班級是否在活動進行中且要改變範本
+    if (isActive && config.mode === 'template') {
+        showConfirmDialog(
+            '活動進行中',
+            `班級「${className}」目前有活動進行中。\n\n改變獎勵範本可能導致分數計算失準。\n\n確定要改變設定嗎？`,
+            performSave,
+        )
     } else {
-        uiStore.showError('更新設定失敗，請稍後再試')
+        performSave()
     }
 }
 
@@ -427,18 +583,40 @@ const closeBatchModal = () => {
 const applyBatchTemplate = () => {
     if (!batchTemplateId.value) return
 
-    const success = classesStore.applyTemplateToMultipleClasses(
-        batchTemplateId.value,
-        selectedClassIds.value,
-    )
+    const activeClasses = getActiveClassesFromList(selectedClassIds.value)
+    const template = rewardsStore.getTemplateById(batchTemplateId.value)
 
-    if (success) {
-        const template = rewardsStore.getTemplateById(batchTemplateId.value)
-        uiStore.showSuccess(`已套用「${template?.name}」至 ${selectedClassIds.value.length} 個班級`)
-        selectedClassIds.value = []
-        closeBatchModal()
+    const performApply = () => {
+        const success = classesStore.applyTemplateToMultipleClasses(
+            batchTemplateId.value,
+            selectedClassIds.value,
+        )
+
+        if (success) {
+            uiStore.showSuccess(
+                `已套用「${template?.name}」至 ${selectedClassIds.value.length} 個班級`,
+            )
+            selectedClassIds.value = []
+            closeBatchModal()
+        } else {
+            uiStore.showError('套用範本失敗，請稍後再試')
+        }
+    }
+
+    // 如果有班級在活動進行中，顯示警告
+    if (activeClasses.length > 0) {
+        const activeClassNames = activeClasses
+            .map((id) => classesStore.classes.find((c) => c.id === id)?.name)
+            .filter(Boolean)
+            .join('、')
+
+        showConfirmDialog(
+            '有班級正在活動中',
+            `以下班級正在活動進行中：${activeClassNames}\n\n改變獎勵範本可能導致分數計算失準。\n\n確定要套用「${template?.name}」至所有選定班級嗎？`,
+            performApply,
+        )
     } else {
-        uiStore.showError('套用範本失敗，請稍後再試')
+        performApply()
     }
 }
 
@@ -507,6 +685,19 @@ const handleTemplateSave = (template: RewardTemplate, isNew: boolean) => {
 const handleTemplateCancel = () => {
     editingTemplate.value = null
     isCreatingNew.value = false
+}
+
+const resetSystem = () => {
+    if (
+        confirm(
+            '確定要重設系統嗎？\n\n這將：\n• 清除所有自訂獎勵範本\n• 將所有班級設定回到預設範本\n• 回到初始狀態\n\n此動作無法復原！',
+        )
+    ) {
+        rewardsStore.resetToDefault()
+        classesStore.resetAllClassesToDefault()
+        selectedClassIds.value = []
+        uiStore.showSuccess('系統已重設到初始狀態，所有班級已回到預設範本')
+    }
 }
 </script>
 

@@ -78,9 +78,8 @@
                     <span
                         v-if="queueCount > 0"
                         class="badge badge-xs border-none bg-amber-200 text-amber-700 shrink-0"
+                        >+{{ queueCount }}</span
                     >
-                        +{{ queueCount }}
-                    </span>
                 </div>
             </template>
         </div>

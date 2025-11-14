@@ -95,7 +95,9 @@
                         <template v-if="!classInfo.groupingActive">
                             <div class="flex justify-between items-center gap-3">
                                 <div class="flex items-center gap-3 truncate">
-                                    <h3 class="flex items-center gap-2 text-base font-semibold truncate">
+                                    <h3
+                                        class="flex items-center gap-2 text-base font-semibold truncate"
+                                    >
                                         <div
                                             class="w-4 h-4 rounded-full shrink-0"
                                             :style="{ backgroundColor: group.color }"
@@ -105,7 +107,12 @@
                                             getGroupMembers(group).length
                                         }}</span>
                                     </h3>
-                                    <div :class="['flex items-center gap-1 text-primary font-semibold whitespace-nowrap', groupScoreAnimation[group.id]]">
+                                    <div
+                                        :class="[
+                                            'flex items-center gap-1 text-primary font-semibold whitespace-nowrap',
+                                            groupScoreAnimation[group.id],
+                                        ]"
+                                    >
                                         <span>{{ group.totalScore }}</span>
                                     </div>
                                 </div>
@@ -152,16 +159,23 @@
                                         ></div>
                                         <span>{{ group.name }}</span>
                                     </h3>
-                                    <div :class="['flex items-center gap-1 text-primary font-semibold text-lg', groupScoreAnimation[group.id]]">
-                                    <span>{{ group.totalScore }}</span>
-                                </div>
+                                    <div
+                                        :class="[
+                                            'flex items-center gap-1 text-primary font-semibold text-lg',
+                                            groupScoreAnimation[group.id],
+                                        ]"
+                                    >
+                                        <span>{{ group.totalScore }}</span>
+                                    </div>
                                 </div>
 
                                 <GroupActionButtons
                                     :positive-label="getGroupPositiveLabel(group)"
                                     negative-label="-1"
                                     :disabled="isGroupActionDisabled(group)"
-                                    @add-positive="addGroupScore(group.id, getScoreValue(group.id, 1))"
+                                    @add-positive="
+                                        addGroupScore(group.id, getScoreValue(group.id, 1))
+                                    "
                                     @add-negative="addGroupScore(group.id, -1)"
                                 />
 
@@ -208,15 +222,22 @@
                                 :is-edit-mode="isGroupEditMode"
                                 :can-modify="canModifyGroups"
                                 :grouping-active="classInfo.groupingActive"
-                                :show-individual-scores="groupingSettings.showStudentIndividualScores"
+                                :show-individual-scores="
+                                    groupingSettings.showStudentIndividualScores
+                                "
                                 :allow-individual-scoring="groupingSettings.allowIndividualScoring"
                                 :base-scores="baseScoresForClass"
                                 :session-scores="sessionScoresForClass"
                                 :student-score-animation="studentScoreAnimation"
                                 :drop-indicator="dropIndicator"
-                                @drag-start="(studentId, originGroupId, event) => handleDragStart(studentId, originGroupId, event)"
+                                @drag-start="
+                                    (studentId, originGroupId, event) =>
+                                        handleDragStart(studentId, originGroupId, event)
+                                "
                                 @drag-end="handleDragEnd"
-                                @member-drag-over="(gid, index, event) => handleMemberDragOver(gid, index, event)"
+                                @member-drag-over="
+                                    (gid, index, event) => handleMemberDragOver(gid, index, event)
+                                "
                                 @member-drop="(gid, index) => handleMemberDrop(gid, index)"
                                 @add-individual-score="addIndividualScore"
                             />
@@ -252,7 +273,11 @@
                             <LucideIcon name="Timer" class="w-4 h-4 mt-0.5 text-info" />
                             <span
                                 >無敵狀態將持續
-                                {{ rewardInfoSummary.invincibleDurationSeconds }} 秒。</span
+                                {{
+                                    formatDurationForDisplay(
+                                        rewardInfoSummary.invincibleDurationSeconds,
+                                    )
+                                }}。</span
                             >
                         </li>
                         <li class="flex items-start gap-2">
@@ -467,7 +492,6 @@ const timers = ref<Record<string, number>>({})
 // --- Computed Properties for easier template access ---
 const activeRewardSettings = computed<RewardSettings | null>(() => {
     if (props.classInfo.rewardSettingsMode === 'disabled') return null
-    if (props.classInfo.rewardSettingsMode === 'custom') return props.classInfo.customRewardSettings
     if (props.classInfo.rewardSettingsMode === 'template') {
         return (
             rewardsStore.getTemplateById(props.classInfo.appliedRewardTemplateId)?.settings || null
@@ -668,11 +692,23 @@ const getInvincibleProgress = (groupId: string) => {
     return 1
 }
 
-const formatTime = (seconds: number) => {
-    if (isNaN(seconds) || seconds < 0) return '00:00'
+const formatTime = (seconds: number | undefined) => {
+    // 確保輸入是有效的正整數
+    if (seconds === undefined || seconds === null || isNaN(seconds) || seconds < 1) {
+        return '00:00' // 當秒數無效時回傳 00:00
+    }
     const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+    const secs = Math.round(seconds % 60)
+    // 確保秒數不超過 59
+    const finalSecs = secs >= 60 ? 0 : secs
+    return `${String(mins).padStart(2, '0')}:${String(finalSecs).padStart(2, '0')}`
+}
+
+const formatDurationForDisplay = (seconds: number) => {
+    const totalSeconds = Math.max(Number(seconds) || 0, 0)
+    const minutes = Math.floor(totalSeconds / 60)
+    const remainSeconds = totalSeconds % 60
+    return `${minutes} 分 ${remainSeconds} 秒`
 }
 
 const getScoreValue = (groupId: string, direction: 1 | -1) => {
@@ -1266,9 +1302,23 @@ const exportActivityReport = () => {
     const groupSummaryData = sortedGroups.value.map((group, index) => ({
         排行: index + 1,
         組別: group.name,
-        總分: group.totalScore,
         人數: getGroupMembers(group).length,
+        總分: group.totalScore,
+        ...(activeRewardSettings.value?.enabled && {
+            星星數: getTotalStarsForDisplay(group),
+        }),
     }))
+
+    const columnWidths = [
+        { wch: 8 }, // 排行
+        { wch: 25 }, // 組別
+        { wch: 8 }, // 人數
+        { wch: 10 }, // 總分
+    ]
+
+    if (activeRewardSettings.value?.enabled) {
+        columnWidths.push({ wch: 10 }) // 星星數
+    }
 
     const groupSheet = {
         sheetName: '分組摘要',
@@ -1279,7 +1329,7 @@ const exportActivityReport = () => {
             [],
         ],
         data: groupSummaryData,
-        columnWidths: [{ wch: 8 }, { wch: 25 }, { wch: 10 }, { wch: 10 }],
+        columnWidths,
     }
 
     // --- Sheet 2: Student Details ---
@@ -1305,19 +1355,21 @@ const exportActivityReport = () => {
         }),
     )
 
+    const studentColumnWidths = [
+        { wch: 25 }, // 組別
+        { wch: 10 }, // 座號
+        { wch: 15 }, // 姓名
+        { wch: 12 }, // 出席情況
+        { wch: 15 }, // 小組團體加分
+        { wch: 15 }, // 小組個人加分
+        { wch: 15 }, // 本次活動總得分
+        { wch: 15 }, // 活動後總分
+    ]
+
     const studentSheet = {
         sheetName: '學生得分明細',
         data: studentDetailsData,
-        columnWidths: [
-            { wch: 25 },
-            { wch: 10 },
-            { wch: 15 },
-            { wch: 12 },
-            { wch: 15 }, // 小組團體加分
-            { wch: 15 }, // 小組個人加分
-            { wch: 15 }, // 本次活動總得分
-            { wch: 15 }, // 活動後總分
-        ],
+        columnWidths: studentColumnWidths,
     }
 
     const fileName = `${dateString}-${activityName.value || '分組活動報告'}-${props.classInfo.name}`
@@ -1378,21 +1430,58 @@ watch(
 
 onMounted(() => {
     if (props.classInfo.groupingActive) {
-        // 檢查無敵狀態並更新計時器顯示
-        statusCheckInterval = setInterval(() => {
-            classesStore.checkInvincibleStatus()
-            // 更新計時器顯示 - 為每個無敵組別計算剩餘秒數
+        // 立即執行一次無敵狀態檢查和計時器更新（不等待 1 秒）
+        const updateInvincibleStatus = () => {
+            const now = Date.now()
+
+            // 首先檢查任何已過期的無敵狀態並清理
+            let needsSync = false
             if (props.classInfo.groups) {
                 props.classInfo.groups.forEach((group) => {
                     if (group.isInvincible && group.invincibleUntil) {
-                        const remainingMs = Math.max(0, group.invincibleUntil - Date.now())
-                        timers.value[group.id] = Math.floor(remainingMs / 1000)
+                        const remainingMs = group.invincibleUntil - now
+                        // 如果時間已過期或非常接近過期（<500ms），需要同步
+                        if (remainingMs <= 500) {
+                            needsSync = true
+                        }
+                    }
+                })
+            }
+
+            // 如果有過期或即將過期的無敵，先同步狀態（激活隊列或結束無敵）
+            if (needsSync) {
+                classesStore.checkInvincibleStatus()
+            }
+
+            // 更新計時器顯示 - 為每個無敵組別計算剩餘秒數
+            if (props.classInfo.groups) {
+                props.classInfo.groups.forEach((group) => {
+                    // 重新檢查狀態，以防 checkInvincibleStatus 改變了狀態
+                    if (group.isInvincible && group.invincibleUntil) {
+                        const remainingMs = group.invincibleUntil - now
+
+                        if (remainingMs <= 0) {
+                            // 時間已過期，刪除計時器
+                            delete timers.value[group.id]
+                        } else if (remainingMs < 1000) {
+                            // 0-1秒之間：顯示為 1 秒（避免閃爍 0 秒）
+                            timers.value[group.id] = 1
+                        } else {
+                            // 向上取整，確保顯示正確的秒數
+                            timers.value[group.id] = Math.ceil(remainingMs / 1000)
+                        }
                     } else {
                         delete timers.value[group.id]
                     }
                 })
             }
-        }, 1000) // 每 1000ms (1 秒) 更新一次計時器顯示，精確到秒級
+        }
+
+        // 首次立即執行，確保載入時無敵狀態被正確處理
+        updateInvincibleStatus()
+
+        // 然後每 250ms 檢查一次（頻繁同步確保計時器不會卡住）
+        statusCheckInterval = setInterval(updateInvincibleStatus, 250)
     }
 })
 

@@ -73,7 +73,7 @@ export interface ClassInfo {
     groupingActive: boolean
     createdAt: Date
     updatedAt: Date
-    rewardSettingsMode: 'template' | 'custom' | 'disabled'
+    rewardSettingsMode: 'template' | 'disabled'
     appliedRewardTemplateId: string | null
     customRewardSettings: RewardSettings | null
 }

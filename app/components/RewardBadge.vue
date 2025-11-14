@@ -35,8 +35,6 @@ const settings = computed<RewardSettings | null>(() => {
         return (
             rewardsStore.getTemplateById(props.classInfo.appliedRewardTemplateId)?.settings || null
         )
-    } else if (props.classInfo.rewardSettingsMode === 'custom') {
-        return props.classInfo.customRewardSettings
     }
     return null
 })
@@ -53,9 +51,6 @@ const displayText = computed(() => {
         const template = rewardsStore.getTemplateById(props.classInfo.appliedRewardTemplateId)
         return template?.name || '範本'
     }
-    if (props.classInfo.rewardSettingsMode === 'custom') {
-        return '自訂規則'
-    }
     return '未設定'
 })
 
@@ -66,9 +61,6 @@ const icon = computed(() => {
     }
     if (props.classInfo.rewardSettingsMode === 'template') {
         return 'BookTemplate'
-    }
-    if (props.classInfo.rewardSettingsMode === 'custom') {
-        return 'Sliders'
     }
     return 'AlertCircle'
 })
@@ -81,9 +73,6 @@ const badgeClass = computed(() => {
     }
     if (props.classInfo.rewardSettingsMode === 'template') {
         return `${base} badge-success`
-    }
-    if (props.classInfo.rewardSettingsMode === 'custom') {
-        return `${base} badge-info`
     }
     return `${base} badge-warning badge-outline`
 })

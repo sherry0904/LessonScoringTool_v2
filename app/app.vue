@@ -264,7 +264,11 @@
 
                 <!-- 頁面內容 -->
                 <div class="h-[calc(100vh-5rem)] overflow-auto custom-scrollbar">
-                    <NuxtPage />
+                    <Transition name="page-fade" mode="out-in">
+                        <div :key="$route.fullPath">
+                            <NuxtPage />
+                        </div>
+                    </Transition>
                 </div>
             </main>
         </div>
@@ -336,6 +340,10 @@ watchEffect(() => {
             ui.setCurrentTab('homework')
         } else if (path.startsWith('/students')) {
             ui.setCurrentTab('students')
+        } else if (path.startsWith('/grouping-management')) {
+            ui.setCurrentTab('grouping-management')
+        } else if (path.startsWith('/rewards')) {
+            ui.setCurrentTab('rewards')
         } else if (path.startsWith('/settings')) {
             ui.setCurrentTab('settings')
         } else {
@@ -440,6 +448,17 @@ useHead({
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* 頁面過渡動畫 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+    transition: opacity 0.15s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+    opacity: 0;
 }
 
 /* 動畫效果 */

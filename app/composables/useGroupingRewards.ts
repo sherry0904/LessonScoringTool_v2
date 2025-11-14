@@ -180,6 +180,16 @@ export const useGroupingRewards = ({
         if (group.isInvincible == null) {
             group.isInvincible = false
         }
+
+        // 驗證無敵時間戳的有效性
+        // 如果無敵時間已過期，自動清理狀態以避免卡在過期的無敵狀態
+        if (group.isInvincible && group.invincibleUntil && group.invincibleUntil <= Date.now()) {
+            // 時間戳已過期，清理無敵狀態
+            group.isInvincible = false
+            group.invincibleUntil = null
+            // 注意：invincibleStarQueue 保留，後續 checkInvincibleStatus 會處理
+        }
+
         return group
     }
 
@@ -210,7 +220,7 @@ export const useGroupingRewards = ({
         }
 
         const wasInvincible = previousGroup?.isInvincible ?? false
-        if (!wasInvincible && group.isInvincible) {
+        if (!wasInvincible && group.isInvincible && !options.skipMilestoneAnimation) {
             triggerInvincibleActivatedAnimation(group)
         }
 
