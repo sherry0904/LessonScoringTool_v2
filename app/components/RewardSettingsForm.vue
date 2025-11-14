@@ -100,7 +100,7 @@
                                         </div>
                                         <div>
                                             ⏱️ 無敵時長：<span class="font-semibold">{{
-                                                formatDuration(
+                                                formatDurationDisplay(
                                                     selectedTemplate.settings
                                                         .invincibleDurationSeconds,
                                                 )
@@ -142,6 +142,7 @@
 import { ref, computed, watch } from 'vue'
 import type { ClassInfo, RewardTemplate } from '~/types'
 import { useRewardsStore } from '~/stores/rewards'
+import { formatDurationDisplay } from '~/constants/rewards'
 
 interface Props {
     classInfo: ClassInfo
@@ -187,13 +188,6 @@ const selectedTemplate = computed(() => {
     if (!selectedTemplateId.value) return null
     return rewardsStore.getTemplateById(selectedTemplateId.value)
 })
-
-const formatDuration = (seconds: number) => {
-    const totalSeconds = Math.max(Number(seconds) || 0, 0)
-    const minutes = Math.floor(totalSeconds / 60)
-    const remainSeconds = totalSeconds % 60
-    return `${minutes} 分 ${remainSeconds} 秒`
-}
 
 // 是否可以儲存
 const canSave = computed(() => {

@@ -182,7 +182,7 @@
                                 <GroupRewardStatus
                                     v-if="activeRewardSettings?.enabled"
                                     :group="group"
-                                    :formatted-timer="formatTime(timers[group.id])"
+                                    :formatted-timer="formatCountdownTimer(timers[group.id] || 0)"
                                     :total-stars="getTotalStarsForDisplay(group)"
                                     :star-progress="getStarProgress(group)"
                                     :invincible-progress="getInvincibleProgress(group.id)"
@@ -274,7 +274,7 @@
                             <span
                                 >無敵狀態將持續
                                 {{
-                                    formatDurationForDisplay(
+                                    formatDurationDisplay(
                                         rewardInfoSummary.invincibleDurationSeconds,
                                     )
                                 }}。</span
@@ -418,6 +418,7 @@ import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
 import { useRewardsStore } from '~/stores/rewards'
 import { GROUP_CONFIG, normalizeGroupCount } from '~/constants/grouping'
+import { formatCountdownTimer, formatDurationDisplay } from '~/constants/rewards'
 import GroupRewardStatus from '~/components/grouping/GroupRewardStatus.vue'
 import GroupActionButtons from '~/components/grouping/GroupActionButtons.vue'
 import GroupingControlPanel from '~/components/grouping/GroupingControlPanel.vue'
@@ -690,25 +691,6 @@ const getInvincibleProgress = (groupId: string) => {
         return Math.max(0, Math.min(1, remainingSeconds / duration))
     }
     return 1
-}
-
-const formatTime = (seconds: number | undefined) => {
-    // 確保輸入是有效的正整數
-    if (seconds === undefined || seconds === null || isNaN(seconds) || seconds < 1) {
-        return '00:00' // 當秒數無效時回傳 00:00
-    }
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.round(seconds % 60)
-    // 確保秒數不超過 59
-    const finalSecs = secs >= 60 ? 0 : secs
-    return `${String(mins).padStart(2, '0')}:${String(finalSecs).padStart(2, '0')}`
-}
-
-const formatDurationForDisplay = (seconds: number) => {
-    const totalSeconds = Math.max(Number(seconds) || 0, 0)
-    const minutes = Math.floor(totalSeconds / 60)
-    const remainSeconds = totalSeconds % 60
-    return `${minutes} 分 ${remainSeconds} 秒`
 }
 
 const getScoreValue = (groupId: string, direction: 1 | -1) => {

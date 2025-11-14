@@ -322,7 +322,15 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import type { ClassInfo } from '~/types'
+import { useClassesStore } from '~/stores/classes'
+import { useUIStore } from '~/stores/ui'
+import { formatDate } from '~/utils/format'
+
 const classesStore = useClassesStore()
+const ui = useUIStore()
 
 // Modal refs
 const classModal = ref<HTMLDialogElement>()
@@ -554,13 +562,6 @@ const parseStudentsInput = (input: string) => {
             return null
         })
         .filter(Boolean)
-}
-
-const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('zh-TW', {
-        month: 'short',
-        day: 'numeric',
-    })
 }
 
 // 頁面標題

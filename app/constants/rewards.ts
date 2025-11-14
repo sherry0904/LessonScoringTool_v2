@@ -243,3 +243,31 @@ export function buildDefaultMilestoneMessages(starsToInvincible: number): Reward
 export function calculateRemainingStars(totalStars: number, starsToInvincible: number): number {
     return totalStars % starsToInvincible
 }
+
+/**
+ * 格式化倒計時器時間（秒）為 MM:SS 格式
+ * @param seconds - 秒數
+ * @returns 格式化後的時間字符串 (MM:SS)
+ */
+export function formatCountdownTimer(seconds: number): string {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+/**
+ * 格式化時間間隔（秒）為可讀的字符串
+ * @param seconds - 秒數
+ * @returns 格式化後的時間字符串 (例: "2分 30秒" 或 "45秒")
+ */
+export function formatDurationDisplay(seconds: number): string {
+    if (seconds < 60) {
+        return `${seconds}秒`
+    }
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    if (remainingSeconds === 0) {
+        return `${minutes}分`
+    }
+    return `${minutes}分 ${remainingSeconds}秒`
+}

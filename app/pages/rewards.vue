@@ -86,7 +86,7 @@
                         </div>
                         <div>
                             ⏱️ 無敵時長：<span class="font-semibold">{{
-                                formatDuration(template.settings.invincibleDurationSeconds)
+                                formatDurationDisplay(template.settings.invincibleDurationSeconds)
                             }}</span>
                         </div>
                         <div>
@@ -361,7 +361,7 @@ import { useRewardsStore } from '~/stores/rewards'
 import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
 import type { ClassInfo, RewardTemplate, RewardSettings } from '~/types'
-import { buildDefaultMilestoneMessages } from '~/constants/rewards'
+import { buildDefaultMilestoneMessages, formatDurationDisplay } from '~/constants/rewards'
 import PageHeader from '~/components/PageHeader.vue'
 import ConfirmDialog from '~/components/ConfirmDialog.vue'
 
@@ -430,13 +430,6 @@ const toggleClass = (classId: string) => {
     }
 }
 
-const formatDuration = (seconds: number) => {
-    const totalSeconds = Math.max(Number(seconds) || 0, 0)
-    const minutes = Math.floor(totalSeconds / 60)
-    const remainSeconds = totalSeconds % 60
-    return `${minutes} 分 ${remainSeconds} 秒`
-}
-
 // 檢查班級是否在活動進行中
 const isClassActive = (classId: string): boolean => {
     const cls = classesStore.classes.find((c) => c.id === classId)
@@ -467,6 +460,7 @@ const handleConfirm = () => {
 // 確認對話取消按鈕處理
 const handleCancel = () => {
     pendingAction.value = null
+    draggedTemplate.value = null
 }
 
 // 拖曳功能
@@ -495,6 +489,7 @@ const onDropTemplate = (event: DragEvent, classId: string) => {
     if (draggedTemplate.value) {
         const cls = classesStore.classes.find((c) => c.id === classId)
         const templateName = draggedTemplate.value.name
+        const templateId = draggedTemplate.value.id
         const className = cls?.name || '此班級'
 
         // 檢查班級是否在活動進行中
@@ -505,17 +500,18 @@ const onDropTemplate = (event: DragEvent, classId: string) => {
                 () => {
                     const success = classesStore.applyTemplateToClass(
                         classId,
-                        draggedTemplate.value!.id,
+                        templateId,
                     )
                     if (success) {
                         uiStore.showSuccess(`已套用「${templateName}」到班級「${className}」`)
                     } else {
                         uiStore.showError('套用範本失敗')
                     }
+                    draggedTemplate.value = null
                 },
             )
         } else {
-            const success = classesStore.applyTemplateToClass(classId, draggedTemplate.value.id)
+            const success = classesStore.applyTemplateToClass(classId, templateId)
             if (success) {
                 uiStore.showSuccess(`已套用「${templateName}」到班級「${className}」`)
             } else {
