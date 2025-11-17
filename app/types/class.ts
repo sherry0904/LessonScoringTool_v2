@@ -1,4 +1,23 @@
 // types/class.ts
+
+export interface RewardMilestoneMessage {
+    threshold: number
+    message: string
+}
+
+export interface RewardSettings {
+    enabled: boolean
+    pointsPerStar: number
+    starsToInvincible: number
+    invincibleDurationSeconds: number
+    /**
+     * 無敵模式下每次加分時的點數增量
+     * @remarks 替代之前的 invincibleScoreValue，命名更清楚
+     */
+    invinciblePointsPerClick: number
+    milestoneMessages?: RewardMilestoneMessage[]
+}
+
 export interface Student {
     id: string
     name: string
@@ -29,13 +48,19 @@ export interface Group {
     averageScore: number
     createdAt: Date
     color: string
+    stars: number
+    isInvincible: boolean
+    invincibleUntil: number | null
+    invincibleStarQueue: number
+    totalCollectedStars?: number
+    scorePool: number
 }
 
 export interface ClassHomeworkSettings {
-    homeworkId: string; // 對應 GlobalHomework 的 id
-    releaseDate?: string;
-    dueDate?: string;
-    studentStatus: Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>;
+    homeworkId: string // 對應 GlobalHomework 的 id
+    releaseDate?: string
+    dueDate?: string
+    studentStatus: Record<string, 'pending' | 'submitted' | 'needs_correction' | 'completed'>
 }
 
 export interface ClassInfo {
@@ -48,6 +73,9 @@ export interface ClassInfo {
     groupingActive: boolean
     createdAt: Date
     updatedAt: Date
+    rewardSettingsMode: 'template' | 'disabled'
+    appliedRewardTemplateId: string | null
+    customRewardSettings: RewardSettings | null
 }
 
 export interface ClassSession {

@@ -400,8 +400,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useClassesStore } from '~/stores/classes'
 import type { ClassInfo, Student } from '~/types'
+import { formatDateTime } from '~/utils/format'
 
 // 1. Get store and route
 const classesStore = useClassesStore()
@@ -724,14 +727,5 @@ const copyReportToClipboard = async () => {
         console.error('複製失敗:', error)
         alert('複製失敗，請手動選取文字複製。')
     }
-}
-
-const formatDateTime = (date: Date) => {
-    return new Date(date).toLocaleString('zh-TW', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    })
 }
 </script>

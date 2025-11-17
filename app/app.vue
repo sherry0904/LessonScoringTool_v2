@@ -49,7 +49,9 @@
             v-if="ui.showSecurityNotice"
             class="fixed inset-0 z-50 bg-base-100/95 backdrop-blur-sm flex items-center justify-center p-6"
         >
-            <div class="max-w-xl w-full bg-base-200 border border-warning/40 rounded-2xl shadow-xl p-6 space-y-4">
+            <div
+                class="max-w-xl w-full bg-base-200 border border-warning/40 rounded-2xl shadow-xl p-6 space-y-4"
+            >
                 <div class="flex items-start gap-3">
                     <LucideIcon name="AlertCircle" class="w-8 h-8 text-warning shrink-0" />
                     <div>
@@ -262,7 +264,11 @@
 
                 <!-- 頁面內容 -->
                 <div class="h-[calc(100vh-5rem)] overflow-auto custom-scrollbar">
-                    <NuxtPage />
+                    <Transition name="page-fade" mode="out-in">
+                        <div :key="$route.fullPath">
+                            <NuxtPage />
+                        </div>
+                    </Transition>
                 </div>
             </main>
         </div>
@@ -283,6 +289,7 @@
 <script setup lang="ts">
 import { useUIStore } from '~/stores/ui'
 import { useClassesStore } from '~/stores/classes'
+import { useRewardsStore } from '~/stores/rewards'
 import TimerWidget from '~/components/TimerWidget.vue'
 import StudentPickerWidget from '~/components/StudentPickerWidget.vue'
 import MobileBlocker from '~/components/MobileBlocker.vue'
@@ -290,6 +297,7 @@ import { watchEffect } from 'vue' // Import watchEffect
 
 const ui = useUIStore()
 const classesStore = useClassesStore()
+const rewardsStore = useRewardsStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -299,8 +307,8 @@ const tabRoute = (id: string) => {
         dashboard: '/',
         homework: '/homework',
         students: '/students',
-        groups: '/groups',
         'grouping-management': '/grouping-management',
+        rewards: '/rewards', // 新增獎勵機制路由
         settings: '/settings',
     }
     return map[id] || '/'
@@ -332,8 +340,10 @@ watchEffect(() => {
             ui.setCurrentTab('homework')
         } else if (path.startsWith('/students')) {
             ui.setCurrentTab('students')
-        } else if (path.startsWith('/groups')) {
-            ui.setCurrentTab('groups')
+        } else if (path.startsWith('/grouping-management')) {
+            ui.setCurrentTab('grouping-management')
+        } else if (path.startsWith('/rewards')) {
+            ui.setCurrentTab('rewards')
         } else if (path.startsWith('/settings')) {
             ui.setCurrentTab('settings')
         } else {
@@ -358,10 +368,10 @@ watchEffect(() => {
         ui.setCurrentTab('homework')
     } else if (path.startsWith('/students')) {
         ui.setCurrentTab('students')
-    } else if (path.startsWith('/groups')) {
-        ui.setCurrentTab('groups')
     } else if (path.startsWith('/grouping-management')) {
         ui.setCurrentTab('grouping-management')
+    } else if (path.startsWith('/rewards')) {
+        ui.setCurrentTab('rewards')
     } else if (path.startsWith('/settings')) {
         ui.setCurrentTab('settings')
     } else {
@@ -372,6 +382,9 @@ watchEffect(() => {
 // 初始化
 onMounted(() => {
     ui.setLoading(true)
+    if (!rewardsStore.isLoaded) {
+        rewardsStore.loadFromStorage()
+    }
     classesStore.loadFromStorage()
     ui.initialize()
     // A short delay to prevent flash of loading screen on fast loads
@@ -435,6 +448,17 @@ useHead({
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* 頁面過渡動畫 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+    transition: opacity 0.15s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+    opacity: 0;
 }
 
 /* 動畫效果 */

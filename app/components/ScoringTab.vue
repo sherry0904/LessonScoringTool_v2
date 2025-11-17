@@ -291,6 +291,7 @@ import type { ClassInfo, Student } from '~/types'
 import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
 import { useExcelExport } from '~/composables/useExcelExport'
+import { formatDateTime } from '~/utils/format'
 
 interface Props {
     classInfo: ClassInfo | null
@@ -380,15 +381,6 @@ const togglePresence = (studentId: string) => {
     if (student) {
         classesStore.updateStudent(classInfo.value.id, studentId, { isPresent: !student.isPresent })
     }
-}
-
-const formatDateTime = (date: Date) => {
-    return new Date(date).toLocaleString('zh-TW', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    })
 }
 
 const exportClassScores = () => {

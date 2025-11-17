@@ -26,18 +26,10 @@
                             v-for="tab in tabs"
                             :key="tab.id"
                             :to="tab.path"
-                            custom
-                            v-slot="{ href, navigate, isExactActive }"
+                            :class="['tab', { 'tab-active': $route.path === tab.path }]"
                         >
-                            <a
-                                :href="href"
-                                @click="navigate"
-                                class="tab"
-                                :class="{ 'tab-active': isExactActive }"
-                            >
-                                <LucideIcon :name="tab.icon" class="w-4 h-4 sm:mr-2" />
-                                <span class="hidden sm:inline">{{ tab.label }}</span>
-                            </a>
+                            <LucideIcon :name="tab.icon" class="w-4 h-4 sm:mr-2" />
+                            <span class="hidden sm:inline">{{ tab.label }}</span>
                         </NuxtLink>
                     </div>
                 </div>

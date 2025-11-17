@@ -1,10 +1,7 @@
 <template>
     <div class="p-6 max-w-7xl mx-auto space-y-8">
         <!-- 標題區 -->
-        <PageHeader 
-            title="學生管理" 
-            description="跨班級檢視與管理所有學生"
-        />
+        <PageHeader title="學生管理" description="跨班級檢視與管理所有學生" />
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div class="relative">
@@ -89,9 +86,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
-import PageHeader from '~/components/PageHeader.vue';
+import { formatDate } from '~/utils/format'
+import PageHeader from '~/components/PageHeader.vue'
 
 const classesStore = useClassesStore()
 const ui = useUIStore()
@@ -188,9 +188,6 @@ const goToClass = (classId: string) => {
     classesStore.selectClass(classId)
     navigateTo(`/class/${classId}`)
 }
-
-const formatDate = (date: Date) =>
-    new Date(date).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })
 
 onMounted(() => {
     searchQuery.value = ui.searchQuery || ''
