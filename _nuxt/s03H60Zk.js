@@ -1,0 +1,1 @@
+function e(t){return new Date(t).toLocaleString("zh-TW",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}function n(t){return new Date(t).toLocaleDateString("zh-TW",{month:"short",day:"numeric"})}export{e as a,n as f};
