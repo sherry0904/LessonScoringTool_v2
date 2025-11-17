@@ -298,36 +298,69 @@
 
                 <div class="form-control mb-6">
                     <label class="label pb-2">
-                        <span class="label-text font-semibold mr-2">選擇範本</span>
+                        <span class="label-text font-semibold mr-2">選擇操作</span>
                     </label>
-                    <select v-model="batchTemplateId" class="select select-bordered select-md">
-                        <option value="">-- 請選擇範本 --</option>
-                        <option
-                            v-for="template in rewardsStore.rewardTemplates"
-                            :key="template.id"
-                            :value="template.id"
-                        >
-                            {{ template.name }}
-                            <span v-if="template.isDefault"> (預設)</span>
-                        </option>
-                    </select>
+                    <div class="space-y-3">
+                        <!-- 選擇範本 -->
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="batchAction"
+                                value="template"
+                                v-model="batchAction"
+                                class="radio radio-primary"
+                            />
+                            <span class="flex-1">套用範本</span>
+                        </label>
+                        <div v-if="batchAction === 'template'" class="ml-8">
+                            <select
+                                v-model="batchTemplateId"
+                                class="select select-bordered select-md w-full"
+                            >
+                                <option value="">-- 請選擇範本 --</option>
+                                <option
+                                    v-for="template in rewardsStore.rewardTemplates"
+                                    :key="template.id"
+                                    :value="template.id"
+                                >
+                                    {{ template.name }}
+                                    <span v-if="template.isDefault"> (預設)</span>
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- 停用獎勵 -->
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="batchAction"
+                                value="disable"
+                                v-model="batchAction"
+                                class="radio radio-primary"
+                            />
+                            <span class="flex-1">停用獎勵</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="alert alert-info mb-6">
                     <LucideIcon name="Info" class="w-5 h-5 flex-shrink-0" />
                     <span class="text-sm leading-relaxed">
-                        將套用至 {{ selectedClassIds.length }} 個班級，修改將立即生效。
+                        將
+                        <span v-if="batchAction === 'template'">套用範本</span>
+                        <span v-else-if="batchAction === 'disable'">停用獎勵</span>
+                        至 {{ selectedClassIds.length }} 個班級，修改將立即生效。
                     </span>
                 </div>
 
                 <div class="modal-action">
                     <button @click="closeBatchModal" class="btn btn-ghost">取消</button>
                     <button
-                        @click="applyBatchTemplate"
+                        @click="applyBatchAction"
                         class="btn btn-primary"
-                        :disabled="!batchTemplateId"
+                        :disabled="batchAction === 'template' && !batchTemplateId"
                     >
-                        確認套用
+                        確認執行
                     </button>
                 </div>
             </div>
@@ -382,6 +415,7 @@ const selectedClass = ref<ClassInfo | null>(null)
 const selectedClassIds = ref<string[]>([])
 const showBatchModal = ref(false)
 const batchTemplateId = ref('')
+const batchAction = ref<'template' | 'disable'>('template')
 
 // 確認對話狀態
 const confirmDialogRef = ref<InstanceType<typeof ConfirmDialog> | null>(null)
@@ -566,6 +600,15 @@ const handleSave = (config: any) => {
 const closeBatchModal = () => {
     showBatchModal.value = false
     batchTemplateId.value = ''
+    batchAction.value = 'template'
+}
+
+const applyBatchAction = () => {
+    if (batchAction.value === 'template') {
+        applyBatchTemplate()
+    } else if (batchAction.value === 'disable') {
+        applyBatchDisable()
+    }
 }
 
 const applyBatchTemplate = () => {
@@ -605,6 +648,42 @@ const applyBatchTemplate = () => {
         )
     } else {
         performApply()
+    }
+}
+
+const applyBatchDisable = () => {
+    const activeClasses = getActiveClassesFromList(selectedClassIds.value)
+
+    const performDisable = () => {
+        let successCount = 0
+        selectedClassIds.value.forEach((classId) => {
+            const success = classesStore.setRewardSettingsMode(classId, 'disabled')
+            if (success) successCount++
+        })
+
+        if (successCount > 0) {
+            uiStore.showSuccess(`已停用 ${successCount} 個班級的獎勵機制`)
+            selectedClassIds.value = []
+            closeBatchModal()
+        } else {
+            uiStore.showError('停用獎勵失敗，請稍後再試')
+        }
+    }
+
+    // 如果有班級在活動進行中，顯示警告
+    if (activeClasses.length > 0) {
+        const activeClassNames = activeClasses
+            .map((id) => classesStore.classes.find((c) => c.id === id)?.name)
+            .filter(Boolean)
+            .join('、')
+
+        showConfirmDialog(
+            '有班級正在活動中',
+            `以下班級正在活動進行中：${activeClassNames}\n\n停用獎勵機制後，活動中的獎勵將無法繼續計算。\n\n確定要停用所有選定班級的獎勵嗎？`,
+            performDisable,
+        )
+    } else {
+        performDisable()
     }
 }
 
