@@ -37,7 +37,10 @@
                     </div>
                     <div class="flex justify-end items-center gap-2">
                         <template v-if="groupingActive">
-                            <div v-if="showIndividualScores" class="flex items-center gap-1 text-xs">
+                            <div
+                                v-if="showIndividualScores"
+                                class="flex items-center gap-1 text-xs"
+                            >
                                 <span class="opacity-60">{{ baseScores[member.id] ?? '' }}</span>
                                 <span class="opacity-60">分</span>
                                 <LucideIcon name="ArrowRight" class="w-3 h-3 text-success" />
@@ -71,9 +74,7 @@
                                 </button>
                             </div>
                         </template>
-                        <template v-else>
-                            {{ member.totalScore }}分
-                        </template>
+                        <template v-else> {{ member.totalScore }}分 </template>
                     </div>
                 </div>
             </template>
@@ -107,8 +108,7 @@ const memberClass = (member: Student, index: number) => {
             : member.isPresent
               ? 'bg-base-200'
               : 'bg-gray-200 text-gray-400 opacity-60',
-        props.dropIndicator?.groupId === props.groupId &&
-        props.dropIndicator.index === index
+        props.dropIndicator?.groupId === props.groupId && props.dropIndicator.index === index
             ? 'ring-2 ring-primary ring-offset-2'
             : '',
         !props.canModify && member.isPresent ? 'hover:bg-base-300' : '',

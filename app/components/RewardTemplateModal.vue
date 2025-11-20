@@ -54,31 +54,73 @@
                         獎勵參數設定
                     </div>
 
-                    <!-- 得分門檻 -->
+                    <!-- 模式選擇 -->
                     <div class="form-control -mx-4 px-4">
                         <label class="label pb-1.5">
-                            <span class="label-text text-sm text-black">得分門檻</span>
-                            <span class="label-text-alt text-xs text-black">多少分一顆星</span>
+                            <span class="label-text text-sm text-black">獎勵模式</span>
+                            <span class="label-text-alt text-xs text-black">
+                                {{ isCreatingNew ? '選擇模式類型' : '無法修改' }}
+                            </span>
                         </label>
-                        <input
-                            v-model.number="template.settings.pointsPerStar"
-                            type="number"
-                            class="input input-sm input-bordered focus:input-primary"
-                        />
+                        <select
+                            v-model="template.settings.mode"
+                            class="select select-sm select-bordered focus:select-primary"
+                            :disabled="!isCreatingNew"
+                        >
+                            <option value="class-total">全班協作模式</option>
+                            <option value="group-based">各組獨立模式</option>
+                        </select>
                     </div>
 
-                    <!-- 星星門檻 -->
-                    <div class="form-control -mx-4 px-4">
-                        <label class="label pb-1.5">
-                            <span class="label-text text-sm text-black">星星門檻</span>
-                            <span class="label-text-alt text-xs text-black">幾顆星變無敵</span>
-                        </label>
-                        <input
-                            v-model.number="template.settings.starsToInvincible"
-                            type="number"
-                            class="input input-sm input-bordered focus:input-primary"
-                        />
-                    </div>
+                    <!-- 全班協作模式參數 -->
+                    <template v-if="template.settings.mode === 'class-total'">
+                        <!-- 全班目標分數 -->
+                        <div class="form-control -mx-4 px-4">
+                            <label class="label pb-1.5">
+                                <span class="label-text text-sm text-black">全班目標分數</span>
+                                <span class="label-text-alt text-xs text-black"
+                                    >達到此分數變無敵</span
+                                >
+                            </label>
+                            <input
+                                v-model.number="template.settings.classTotalTargetPoints"
+                                type="number"
+                                min="1"
+                                class="input input-sm input-bordered focus:input-primary"
+                            />
+                        </div>
+                    </template>
+
+                    <!-- 各組獨立模式參數 -->
+                    <template v-else-if="template.settings.mode === 'group-based'">
+                        <!-- 得分門檻 -->
+                        <div class="form-control -mx-4 px-4">
+                            <label class="label pb-1.5">
+                                <span class="label-text text-sm text-black">得分門檻</span>
+                                <span class="label-text-alt text-xs text-black">多少分一顆星</span>
+                            </label>
+                            <input
+                                v-model.number="template.settings.pointsPerStar"
+                                type="number"
+                                min="1"
+                                class="input input-sm input-bordered focus:input-primary"
+                            />
+                        </div>
+
+                        <!-- 星星門檻 -->
+                        <div class="form-control -mx-4 px-4">
+                            <label class="label pb-1.5">
+                                <span class="label-text text-sm text-black">星星門檻</span>
+                                <span class="label-text-alt text-xs text-black">幾顆星變無敵</span>
+                            </label>
+                            <input
+                                v-model.number="template.settings.starsToInvincible"
+                                type="number"
+                                min="1"
+                                class="input input-sm input-bordered focus:input-primary"
+                            />
+                        </div>
+                    </template>
 
                     <!-- 無敵時間 -->
                     <div class="form-control -mx-4 px-4">
@@ -120,12 +162,16 @@
                         <input
                             v-model.number.lazy="template.settings.invinciblePointsPerClick"
                             type="number"
+                            min="1"
                             class="input input-sm input-bordered focus:input-primary"
                         />
                     </div>
 
-                    <!-- 里程碑訊息 -->
-                    <div class="border border-base-200 rounded-lg bg-base-100 px-4 py-4 space-y-4">
+                    <!-- 里程碑訊息（僅各組獨立模式） -->
+                    <div
+                        v-if="template.settings.mode === 'group-based'"
+                        class="border border-base-200 rounded-lg bg-base-100 px-4 py-4 space-y-4"
+                    >
                         <div class="flex items-center justify-between gap-3 -mx-4 px-4">
                             <div>
                                 <div class="font-semibold text-sm">星星里程碑提示</div>
@@ -231,28 +277,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 預設範本設定 -->
-                <div class="border border-base-200 rounded-lg bg-base-200/40 p-3 space-y-2">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2 font-semibold">
-                            <LucideIcon name="Star" class="w-4 h-4 text-warning" />
-                            設為預設範本
-                        </div>
-                        <input
-                            type="checkbox"
-                            class="toggle toggle-warning"
-                            :checked="assignDefault"
-                            @change="handleDefaultToggle"
-                        />
-                    </div>
-                    <p v-if="isCreatingNew" class="text-xs text-warning/90 leading-relaxed">
-                        勾選後，儲存時會立即把這個新範本設為預設，日後新增班級會自動套用。
-                    </p>
-                    <p v-else class="text-xs text-base-content/70 leading-relaxed">
-                        儲存後會更新這個範本的設定；若保持勾選，其他班級建立時會預設使用它。
-                    </p>
-                </div>
             </div>
 
             <!-- 操作按鈕 -->
@@ -289,11 +313,13 @@ import {
 interface Props {
     initialTemplate?: RewardTemplate | null
     isCreatingNew?: boolean
+    defaultSettings?: RewardSettings
 }
 
 const props = withDefaults(defineProps<Props>(), {
     initialTemplate: null,
     isCreatingNew: false,
+    defaultSettings: undefined,
 })
 
 const emit = defineEmits<{
@@ -305,22 +331,30 @@ const dialogRef = ref<HTMLDialogElement | null>(null)
 
 const isCreatingNew = ref(props.isCreatingNew)
 
-// 初始化範本資料
-const template = reactive<RewardTemplate>({
-    id: '',
-    name: '新的獎勵範本',
-    settings: {
+// 取得預設設定
+const getDefaultSettings = (): RewardSettings => {
+    if (props.defaultSettings) {
+        return JSON.parse(JSON.stringify(props.defaultSettings))
+    }
+    // 預設為 group-based 模式（向後相容）
+    return {
         enabled: true,
+        mode: 'group-based',
         pointsPerStar: 10,
         starsToInvincible: 3,
         invincibleDurationSeconds: 600,
         invinciblePointsPerClick: 2,
         milestoneMessages: buildDefaultMilestoneMessages(3),
-    },
+    }
+}
+
+// 初始化範本資料
+const template = reactive<RewardTemplate>({
+    id: '',
+    name: '新的獎勵範本',
+    settings: getDefaultSettings(),
     isDefault: false,
 })
-
-const assignDefault = ref(false)
 
 // 取得 classesStore
 const classesStore = useClassesStore()
@@ -472,21 +506,24 @@ watch(
             template.id = data.id
             template.name = data.name
             template.settings = ensureMilestones(data.settings)
-            template.isDefault = data.isDefault
-            assignDefault.value = !!data.isDefault
+            template.isDefault = false // 不再使用 isDefault
         } else {
+            // 重設為新範本時，使用 defaultSettings
             template.id = ''
             template.name = '新的獎勵範本'
-            template.settings = ensureMilestones({
-                enabled: true,
-                pointsPerStar: 10,
-                starsToInvincible: 3,
-                invincibleDurationSeconds: 600,
-                invinciblePointsPerClick: 2,
-                milestoneMessages: buildDefaultMilestoneMessages(3),
-            })
+            template.settings = ensureMilestones(getDefaultSettings())
             template.isDefault = false
-            assignDefault.value = false
+        }
+    },
+    { deep: true },
+)
+
+// 當父層提供的 defaultSettings 改變時（例如切換 Tab），同步更新新建範本設定
+watch(
+    () => props.defaultSettings,
+    () => {
+        if (isCreatingNew.value && !props.initialTemplate) {
+            template.settings = ensureMilestones(getDefaultSettings())
         }
     },
     { deep: true },
@@ -536,10 +573,34 @@ watch(
     },
 )
 
+// 監聽模式變化，確保全班協作模式有正確的 classTotalTargetPoints
+watch(
+    () => template.settings.mode,
+    (newMode) => {
+        if (newMode === 'class-total') {
+            // 如果切換到全班協作模式且沒有 classTotalTargetPoints，設定預設值
+            if (!template.settings.classTotalTargetPoints) {
+                template.settings.classTotalTargetPoints = 200
+            }
+        }
+    },
+)
+
 /**
  * 打開 Modal
  */
 const open = () => {
+    // 如果是新建範本，使用最新的 defaultSettings 重新初始化
+    if (isCreatingNew.value && !props.initialTemplate) {
+        template.id = ''
+        template.name = '新的獎勵範本'
+        template.settings = ensureMilestones(getDefaultSettings())
+        template.isDefault = false
+        console.log('🎯 打開新範本 Modal，使用 defaultSettings:', {
+            mode: template.settings.mode,
+            defaultSettingsMode: props.defaultSettings?.mode,
+        })
+    }
     if (dialogRef.value) {
         dialogRef.value.showModal()
     }
@@ -563,7 +624,6 @@ const handleSave = () => {
         return
     }
     ensureMilestones(template.settings)
-    template.isDefault = assignDefault.value
     emit('save', template, isCreatingNew.value)
     close()
 }
@@ -574,14 +634,6 @@ const handleSave = () => {
 const handleCancel = () => {
     emit('cancel')
     close()
-}
-
-/**
- * 設定為預設範本
- */
-const handleDefaultToggle = (event: Event) => {
-    const input = event.target as HTMLInputElement
-    assignDefault.value = input.checked
 }
 
 // 暴露方法給父元件

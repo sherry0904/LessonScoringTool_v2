@@ -12,7 +12,10 @@
                 <LucideIcon name="Dices" />
                 隨機抽籤
             </h3>
-            <button class="btn btn-sm btn-ghost btn-circle pointer-events-auto" @click="ui.closePicker()">
+            <button
+                class="btn btn-sm btn-ghost btn-circle pointer-events-auto"
+                @click="ui.closePicker()"
+            >
                 <LucideIcon name="X" />
             </button>
         </div>
@@ -23,9 +26,9 @@
                 <label for="picker-source" class="text-sm font-medium text-base-content/80"
                     >抽籤範圍</label
                 >
-                <select 
-                    id="picker-source" 
-                    v-model="pickerSource" 
+                <select
+                    id="picker-source"
+                    v-model="pickerSource"
                     class="select select-bordered select-sm w-full mt-1"
                     @mousedown.stop
                 >
@@ -79,7 +82,9 @@
 
                 <!-- Drawn Students List -->
                 <div v-if="(ui.pickerDrawnStudents?.length ?? 0) > 0" class="mt-6">
-                    <div class="divider text-sm">已抽過名單 ({{ ui.pickerDrawnStudents.length }}人)</div>
+                    <div class="divider text-sm">
+                        已抽過名單 ({{ ui.pickerDrawnStudents.length }}人)
+                    </div>
                     <div
                         class="bg-base-100 flex flex-wrap gap-2 justify-start items-start min-h-[32px] p-2 rounded-lg max-h-32 overflow-y-auto custom-scrollbar"
                     >

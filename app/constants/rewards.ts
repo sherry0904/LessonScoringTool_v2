@@ -1,4 +1,4 @@
-import type { RewardMilestoneMessage } from '~/types/class'
+import type { RewardMilestoneMessage, RewardSettings } from '~/types/class'
 
 export const REWARD_MILESTONE_MESSAGE_MAX_LENGTH = 10
 
@@ -16,12 +16,22 @@ export const REWARD_MILESTONE_MESSAGE_MAX_LENGTH = 10
  * 用於建立新範本或重置配置時使用
  */
 export const REWARD_DEFAULTS = {
-    // 基本設置
+    // 模式選擇
+    mode: 'group-based' as const,
+
+    // 各組模式基本設置
     pointsPerStar: 20, // 多少分數可獲得一顆星星
     starsToInvincible: 5, // 多少顆星星可觸發無敵模式
     invincibleDurationSeconds: 600, // 無敵模式持續時間（秒）
     invinciblePointsPerClick: 2, // 無敵模式下每次加分的點數
     milestoneMessages: buildDefaultMilestoneMessages(3),
+
+    // 全班總分模式設置
+    classTotalMode: {
+        pointsPerInvincible: 200, // 全班累積多少分觸發無敵
+        invincibleDurationSeconds: 30, // 無敵持續時間（秒）
+        invinciblePointsPerClick: 5, // 無敵模式下每次加分的點數
+    },
 } as const
 
 /**
@@ -31,12 +41,12 @@ export const REWARD_DEFAULTS = {
 export const REWARD_CONSTRAINTS = {
     pointsPerStar: {
         min: 1,
-        max: 100,
+        max: 1000,
         errorMessage: '分數門檻必須在 1 到 100 之間',
     },
     starsToInvincible: {
         min: 1,
-        max: 10,
+        max: 100,
         errorMessage: '星星門檻必須在 1 到 10 之間',
     },
     invincibleDurationSeconds: {
@@ -46,8 +56,14 @@ export const REWARD_CONSTRAINTS = {
     },
     invinciblePointsPerClick: {
         min: 1,
-        max: 10,
+        max: 100,
         errorMessage: '無敵加分值必須在 1 到 10 之間',
+    },
+    // 全班總分模式專用
+    classTotalPointsPerInvincible: {
+        min: 1,
+        max: 1000,
+        errorMessage: '全班觸發門檻必須在 1 到 1000 之間',
     },
 } as const
 
@@ -88,11 +104,17 @@ export const PRESET_REWARD_TEMPLATES = {
         description: '適合日常小組活動',
         settings: {
             enabled: true,
+            mode: 'group-based' as const,
             pointsPerStar: 10,
             starsToInvincible: 3,
             invincibleDurationSeconds: 600,
             invinciblePointsPerClick: 2,
             milestoneMessages: buildDefaultMilestoneMessages(3),
+            classTotalMode: {
+                pointsPerInvincible: 200,
+                invincibleDurationSeconds: 30,
+                invinciblePointsPerClick: 5,
+            },
         },
     },
     intensive: {
@@ -100,11 +122,17 @@ export const PRESET_REWARD_TEMPLATES = {
         description: '適合重要競賽或頻繁互動',
         settings: {
             enabled: true,
+            mode: 'group-based' as const,
             pointsPerStar: 5,
             starsToInvincible: 4,
             invincibleDurationSeconds: 900,
             invinciblePointsPerClick: 3,
             milestoneMessages: buildDefaultMilestoneMessages(4),
+            classTotalMode: {
+                pointsPerInvincible: 150,
+                invincibleDurationSeconds: 45,
+                invinciblePointsPerClick: 6,
+            },
         },
     },
     gentle: {
@@ -112,11 +140,35 @@ export const PRESET_REWARD_TEMPLATES = {
         description: '適合低年級或初學者',
         settings: {
             enabled: true,
+            mode: 'group-based' as const,
             pointsPerStar: 15,
             starsToInvincible: 2,
             invincibleDurationSeconds: 480,
             invinciblePointsPerClick: 1,
             milestoneMessages: buildDefaultMilestoneMessages(2),
+            classTotalMode: {
+                pointsPerInvincible: 250,
+                invincibleDurationSeconds: 20,
+                invinciblePointsPerClick: 3,
+            },
+        },
+    },
+    classTotal: {
+        name: '全班協作模式',
+        description: '全班一起努力達標，適合培養團隊精神',
+        settings: {
+            enabled: true,
+            mode: 'class-total' as const,
+            pointsPerStar: 10,
+            starsToInvincible: 3,
+            invincibleDurationSeconds: 600,
+            invinciblePointsPerClick: 2,
+            milestoneMessages: buildDefaultMilestoneMessages(3),
+            classTotalMode: {
+                pointsPerInvincible: 200,
+                invincibleDurationSeconds: 30,
+                invinciblePointsPerClick: 5,
+            },
         },
     },
     disabled: {
@@ -124,14 +176,70 @@ export const PRESET_REWARD_TEMPLATES = {
         description: '不啟用任何獎勵機制',
         settings: {
             enabled: false,
+            mode: 'group-based' as const,
             pointsPerStar: 10,
             starsToInvincible: 3,
             invincibleDurationSeconds: 600,
             invinciblePointsPerClick: 2,
             milestoneMessages: buildDefaultMilestoneMessages(3),
+            classTotalMode: {
+                pointsPerInvincible: 200,
+                invincibleDurationSeconds: 30,
+                invinciblePointsPerClick: 5,
+            },
         },
     },
 } as const
+
+const clampValue = (value: number, min: number, max: number) => {
+    return Math.min(max, Math.max(min, value))
+}
+
+export const getClassTotalThreshold = (settings: RewardSettings): number => {
+    const rawValue =
+        settings.classTotalTargetPoints ??
+        settings.classTotalMode?.pointsPerInvincible ??
+        REWARD_DEFAULTS.classTotalMode.pointsPerInvincible
+
+    console.log('🎯 getClassTotalThreshold 調試:', {
+        classTotalTargetPoints: settings.classTotalTargetPoints,
+        classTotalMode_pointsPerInvincible: settings.classTotalMode?.pointsPerInvincible,
+        rawValue,
+        selectedValue: rawValue,
+    })
+
+    return clampValue(
+        rawValue,
+        REWARD_CONSTRAINTS.classTotalPointsPerInvincible.min,
+        REWARD_CONSTRAINTS.classTotalPointsPerInvincible.max,
+    )
+}
+
+export const getClassTotalInvincibleDuration = (settings: RewardSettings): number => {
+    const rawValue =
+        settings.invincibleDurationSeconds ??
+        settings.classTotalMode?.invincibleDurationSeconds ??
+        REWARD_DEFAULTS.classTotalMode.invincibleDurationSeconds
+
+    return clampValue(
+        rawValue,
+        REWARD_CONSTRAINTS.invincibleDurationSeconds.min,
+        REWARD_CONSTRAINTS.invincibleDurationSeconds.max,
+    )
+}
+
+export const getClassTotalInvinciblePoints = (settings: RewardSettings): number => {
+    const rawValue =
+        settings.invinciblePointsPerClick ??
+        settings.classTotalMode?.invinciblePointsPerClick ??
+        REWARD_DEFAULTS.classTotalMode.invinciblePointsPerClick
+
+    return clampValue(
+        rawValue,
+        REWARD_CONSTRAINTS.invinciblePointsPerClick.min,
+        REWARD_CONSTRAINTS.invinciblePointsPerClick.max,
+    )
+}
 
 /**
  * 獎勵系統的計時常數
@@ -267,7 +375,7 @@ export function formatDurationDisplay(seconds: number): string {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
     if (remainingSeconds === 0) {
-        return `${minutes}分`
+        return `${minutes}分鐘`
     }
     return `${minutes}分 ${remainingSeconds}秒`
 }

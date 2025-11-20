@@ -1,12 +1,13 @@
 <template>
-    <div class="flex items-center gap-2">
-        <span :class="badgeClass">
-            <LucideIcon :name="icon" class="w-3 h-3" />
-            {{ displayText }}
-        </span>
-        <span v-if="showDetails && settings" class="text-xs text-base-content/60">
-            ⭐{{ settings.starsToInvincible }}星→無敵 | 💰{{ settings.pointsPerStar }}分=1星
-        </span>
+    <div class="tooltip tooltip-bottom z-50" :data-tip="tooltipText">
+        <div class="flex items-center gap-1.5">
+            <LucideIcon
+                :name="modeIcon"
+                class="w-4 h-4 flex-shrink-0"
+                :style="{ color: iconColor }"
+            />
+            <span class="text-sm">{{ displayText }}</span>
+        </div>
     </div>
 </template>
 
@@ -14,6 +15,7 @@
 import { computed } from 'vue'
 import type { ClassInfo, RewardSettings } from '~/types'
 import { useRewardsStore } from '~/stores/rewards'
+import { formatDurationDisplay } from '~/constants/rewards'
 
 interface Props {
     classInfo: ClassInfo
@@ -39,7 +41,7 @@ const settings = computed<RewardSettings | null>(() => {
     return null
 })
 
-// 顯示文字
+// 顯示文字（範本名稱或狀態）
 const displayText = computed(() => {
     if (props.classInfo.rewardSettingsMode === 'disabled') {
         return '已停用'
@@ -54,26 +56,44 @@ const displayText = computed(() => {
     return '未設定'
 })
 
-// 圖標
-const icon = computed(() => {
+// 模式 Icon（交換後）
+const modeIcon = computed(() => {
     if (props.classInfo.rewardSettingsMode === 'disabled') {
         return 'Ban'
     }
-    if (props.classInfo.rewardSettingsMode === 'template') {
-        return 'BookTemplate'
+    if (settings.value?.mode === 'class-total') {
+        return 'Users' // 全班協作 = 多人協作
+    }
+    if (settings.value?.mode === 'group-based') {
+        return 'Trophy' // 各組獨立 = 各組爭冠軍
     }
     return 'AlertCircle'
 })
 
-// Badge 樣式
-const badgeClass = computed(() => {
-    const base = 'badge badge-sm gap-1'
+// Icon 顏色（使用 HSL 色彩）
+const iconColor = computed(() => {
     if (props.classInfo.rewardSettingsMode === 'disabled') {
-        return `${base} badge-error badge-outline`
+        return 'hsl(0, 84%, 60%)' // 紅色
     }
-    if (props.classInfo.rewardSettingsMode === 'template') {
-        return `${base} badge-success`
+    if (settings.value?.mode === 'class-total') {
+        return 'hsl(217, 91%, 60%)' // 藍色
     }
-    return `${base} badge-warning badge-outline`
+    if (settings.value?.mode === 'group-based') {
+        return 'hsl(142, 76%, 36%)' // 深綠色
+    }
+    return 'hsl(38, 92%, 50%)' // 黃色
+})
+
+// Tooltip 文字（詳細資訊）
+const tooltipText = computed(() => {
+    if (!settings.value) return displayText.value
+
+    if (settings.value.mode === 'group-based') {
+        return `各組獨立｜💰 ${settings.value.pointsPerStar}分=1星 / ⭐ ${settings.value.starsToInvincible}星無敵 / ⏱️ ${formatDurationDisplay(settings.value.invincibleDurationSeconds)}`
+    } else if (settings.value.mode === 'class-total') {
+        return `全班協作｜🎯 ${settings.value.classTotalTargetPoints}分無敵 / ⏱️ ${formatDurationDisplay(settings.value.invincibleDurationSeconds)}`
+    }
+
+    return displayText.value
 })
 </script>

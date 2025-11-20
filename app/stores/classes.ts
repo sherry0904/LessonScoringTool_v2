@@ -12,6 +12,11 @@ import { useExcelExport } from '~/composables/useExcelExport'
 import { useHomeworkStore } from '~/stores/homework'
 import { useUIStore } from '~/stores/ui'
 import { useRewardsStore } from '~/stores/rewards' // 引入 rewards store
+import {
+    getClassTotalThreshold,
+    getClassTotalInvincibleDuration,
+    getClassTotalInvinciblePoints,
+} from '~/constants/rewards'
 
 const BACKUP_SCHEMA_VERSION = '2.1.0'
 
@@ -92,14 +97,48 @@ export const useClassesStore = defineStore('classes', () => {
             return false
         }
 
-        // 使用 splice 來觸發響應式更新
-        const classData = { ...classes.value[classIndex] }
+        // 直接修改 class 對象，然後用 splice 替換以觸發響應性
+        const classData = classes.value[classIndex]
+        const oldTriggerCount = classData.classTotalInvincibleCount
+
         classData.rewardSettingsMode = 'template'
         classData.appliedRewardTemplateId = templateId
         classData.customRewardSettings = null
         classData.updatedAt = new Date()
 
+        // 當切換範本時，需要重新計算全班無敵觸發次數
+        if (templateId) {
+            const template = rewardsStore.getTemplateById(templateId)
+            console.log('🎯 applyTemplateToClass 檢查模式:', {
+                templateId,
+                hasTemplate: !!template,
+                hasSettings: !!template?.settings,
+                mode: template?.settings?.mode,
+                classTotalScore: classData.classTotalScore,
+                groupingActive: classData.groupingActive,
+            })
+            if (template?.settings && template.settings.mode === 'class-total') {
+                const totalScore = classData.classTotalScore || 0
+                const threshold = getClassTotalThreshold(template.settings)
+                const newTriggerCount = Math.floor(totalScore / threshold)
+
+                console.log('✅ 重新計算 classTotalInvincibleCount:', {
+                    oldTriggerCount,
+                    totalScore,
+                    threshold,
+                    newTriggerCount,
+                    calculation: `Math.floor(${totalScore} / ${threshold}) = ${newTriggerCount}`,
+                })
+
+                classData.classTotalInvincibleCount = newTriggerCount
+            }
+        }
+
+        // 使用 splice 來觸發 Vue 的響應性
         classes.value.splice(classIndex, 1, classData)
+
+        // 強制觸發響應性更新 - 重新賦值整個數組
+        classes.value = [...classes.value]
 
         // 處理現有的星星數，檢查是否需要觸發無敵
         if (templateId && classData.groupingActive) {
@@ -421,6 +460,11 @@ export const useClassesStore = defineStore('classes', () => {
                 })
             }
 
+            // 3.5. 重設全班總分相關的狀態
+            classData.classTotalScore = 0
+            classData.classTotalInvincibleCount = 0
+            classData.classInvincibleUntil = null
+
             // 4. 啟動分組模式
             classData.groupingActive = true
             classData.updatedAt = new Date()
@@ -477,6 +521,78 @@ export const useClassesStore = defineStore('classes', () => {
         }
     }
 
+    /**
+     * 計算全班總分（所有組別的 totalScore 總和）
+     */
+    const calculateClassTotalScore = (classId: string): number => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData || !classData.groups) return 0
+
+        return classData.groups.reduce((sum, group) => sum + (group.totalScore || 0), 0)
+    }
+
+    /**
+     * 檢查並觸發全班無敵星星（僅用於全班總分模式）
+     * 當全班總分達到門檻時，所有組別同時進入無敵狀態
+     */
+    const checkAndTriggerClassTotalInvincible = (classId: string) => {
+        const classData = classes.value.find((c) => c.id === classId)
+        if (!classData || !classData.groupingActive) return false
+
+        const rewardsStore = useRewardsStore()
+        let settings: RewardSettings | null | undefined = null
+
+        if (classData.rewardSettingsMode === 'template') {
+            settings = rewardsStore.getTemplateById(classData.appliedRewardTemplateId)?.settings
+        }
+
+        // 只在全班總分模式且啟用時處理
+        if (!settings || !settings.enabled || settings.mode !== 'class-total') {
+            return false
+        }
+
+        // 計算全班當前總分
+        const totalScore = calculateClassTotalScore(classId)
+        classData.classTotalScore = totalScore
+
+        const threshold = getClassTotalThreshold(settings)
+
+        // 計算應該觸發第幾次無敵（totalScore / threshold 的整數部分）
+        const expectedTriggerCount = Math.floor(totalScore / threshold)
+        const currentTriggerCount = classData.classTotalInvincibleCount || 0
+
+        // 如果達到新的門檻，觸發全班無敵
+        if (expectedTriggerCount > currentTriggerCount) {
+            // 更新觸發計數
+            classData.classTotalInvincibleCount = expectedTriggerCount
+
+            // 所有組別同時進入無敵狀態
+            const now = Date.now()
+            const durationSeconds = getClassTotalInvincibleDuration(settings)
+            const addedDuration = durationSeconds * 1000
+
+            // 如果已在無敵狀態，延長時間；否則從現在開始
+            const currentInvincibleEnd = classData.classInvincibleUntil || 0
+            const invincibleEnd =
+                currentInvincibleEnd > now
+                    ? currentInvincibleEnd + addedDuration // 延長
+                    : now + addedDuration // 新起
+
+            classData.groups.forEach((group) => {
+                group.isInvincible = true
+                group.invincibleUntil = invincibleEnd
+            })
+
+            // 設定全班無敵結束時間
+            classData.classInvincibleUntil = invincibleEnd
+
+            saveToStorage()
+            return true // 返回 true 表示觸發了無敵
+        }
+
+        return false
+    }
+
     const addScoreToGroup = (classId: string, groupId: string, score: number) => {
         const classData = classes.value.find((c) => c.id === classId)
         if (!classData || !classData.groupingActive) return
@@ -492,15 +608,34 @@ export const useClassesStore = defineStore('classes', () => {
         }
 
         let finalScore = score
+
+        // 檢查獎勵模式
+        const isClassTotalMode = settings?.enabled && settings.mode === 'class-total'
+
+        // 記錄是否為無敵加分
+        let isInvincibleScore = false
+
         // 檢查無敵狀態並使用固定加分值
         if (group.isInvincible && group.invincibleUntil && group.invincibleUntil > Date.now()) {
             if (settings && settings.enabled && score > 0) {
-                finalScore = settings.invinciblePointsPerClick
+                isInvincibleScore = true
+                if (isClassTotalMode) {
+                    // 全班模式：使用全班模式的無敵加分值
+                    finalScore = getClassTotalInvinciblePoints(settings)
+                } else {
+                    // 各組模式：使用各組模式的無敵加分值
+                    finalScore = settings.invinciblePointsPerClick
+                }
             }
         }
 
         // 1. 更新組別的當前活動總分 (僅供顯示)
         group.totalScore += finalScore
+
+        // 追蹤全班模式下的無敵加分
+        if (isClassTotalMode && isInvincibleScore) {
+            group.classTotalInvincibleScore = (group.classTotalInvincibleScore || 0) + finalScore
+        }
 
         // 2. 為每位出席組員更新分數 (session 和 永久)
         const sessionScores = groupingSessionScores.value[classId] || {}
@@ -535,34 +670,43 @@ export const useClassesStore = defineStore('classes', () => {
         groupingSessionScores.value[classId] = sessionScores
 
         // 3. 處理獎勵機制
-        if (settings && settings.enabled && settings.pointsPerStar > 0) {
-            // 將本次獲得的分數加入計分池
-            group.scorePool = (group.scorePool || 0) + finalScore
+        if (settings && settings.enabled) {
+            if (isClassTotalMode) {
+                // ===== 全班總分模式 =====
+                // 檢查是否達到全班無敵門檻，並返回結果供呼叫端判斷
+                const wasTriggered = checkAndTriggerClassTotalInvincible(classId)
+                // 如果觸發了無敵，標記以便通知
+                group.wasInvincibleTriggered = wasTriggered
+            } else if (settings.pointsPerStar > 0) {
+                // ===== 各組模式 =====
+                // 將本次獲得的分數加入計分池
+                group.scorePool = (group.scorePool || 0) + finalScore
 
-            // 檢查計分池是否足以兌換星星
-            while (group.scorePool >= settings.pointsPerStar) {
-                // 兌換一顆星星
-                group.scorePool -= settings.pointsPerStar
-                group.stars = (group.stars || 0) + 1
-                group.totalCollectedStars = (group.totalCollectedStars || 0) + 1
+                // 檢查計分池是否足以兌換星星
+                while (group.scorePool >= settings.pointsPerStar) {
+                    // 兌換一顆星星
+                    group.scorePool -= settings.pointsPerStar
+                    group.stars = (group.stars || 0) + 1
+                    group.totalCollectedStars = (group.totalCollectedStars || 0) + 1
 
-                // 檢查是否觸發無敵狀態
-                if ((group.stars || 0) >= settings.starsToInvincible) {
-                    // 消耗所需星星
-                    group.stars -= settings.starsToInvincible
+                    // 檢查是否觸發無敵狀態
+                    if ((group.stars || 0) >= settings.starsToInvincible) {
+                        // 消耗所需星星
+                        group.stars -= settings.starsToInvincible
 
-                    if (
-                        group.isInvincible &&
-                        group.invincibleUntil &&
-                        group.invincibleUntil > Date.now()
-                    ) {
-                        // 如果已在無敵狀態，則將一次無敵機會加入佇列
-                        group.invincibleStarQueue = (group.invincibleStarQueue || 0) + 1
-                    } else {
-                        // 否則，啟動新的無敵狀態
-                        group.isInvincible = true
-                        group.invincibleUntil =
-                            Date.now() + settings.invincibleDurationSeconds * 1000
+                        if (
+                            group.isInvincible &&
+                            group.invincibleUntil &&
+                            group.invincibleUntil > Date.now()
+                        ) {
+                            // 如果已在無敵狀態，則將一次無敵機會加入佇列
+                            group.invincibleStarQueue = (group.invincibleStarQueue || 0) + 1
+                        } else {
+                            // 否則，啟動新的無敵狀態
+                            group.isInvincible = true
+                            group.invincibleUntil =
+                                Date.now() + settings.invincibleDurationSeconds * 1000
+                        }
                     }
                 }
             }
@@ -586,30 +730,49 @@ export const useClassesStore = defineStore('classes', () => {
 
             if (!settings || !settings.enabled) return
 
-            // 檢查無敵狀態
-            cls.groups.forEach((group) => {
-                if (group.isInvincible && group.invincibleUntil) {
-                    // 檢查無敵時間是否已經過期
-                    if (group.invincibleUntil <= now) {
-                        changed = true
-                        if (group.invincibleStarQueue > 0) {
-                            // 激活佇列中的下一個無敵狀態
-                            group.invincibleStarQueue--
-                            // 設置新的無敵結束時間（確保未來時間）
-                            group.invincibleUntil = Math.max(
-                                now + 100, // 確保至少有 100ms 的緩衝
-                                now + settings.invincibleDurationSeconds * 1000,
-                            )
-                            // 保持 isInvincible = true，讓新的無敵期繼續
-                        } else {
-                            // 完全結束無敵狀態
-                            group.isInvincible = false
-                            group.invincibleUntil = null
-                            group.invincibleStarQueue = 0
+            const isClassTotalMode = settings.mode === 'class-total'
+
+            if (isClassTotalMode) {
+                // ===== 全班總分模式 =====
+                // 檢查全班無敵時間是否已過期
+                if (cls.classInvincibleUntil && cls.classInvincibleUntil <= now) {
+                    changed = true
+                    // 結束全班無敵狀態
+                    cls.classInvincibleUntil = null
+
+                    // 所有組別同時結束無敵
+                    cls.groups.forEach((group) => {
+                        group.isInvincible = false
+                        group.invincibleUntil = null
+                    })
+                }
+            } else {
+                // ===== 各組模式 =====
+                // 檢查無敵狀態
+                cls.groups.forEach((group) => {
+                    if (group.isInvincible && group.invincibleUntil) {
+                        // 檢查無敵時間是否已經過期
+                        if (group.invincibleUntil <= now) {
+                            changed = true
+                            if (group.invincibleStarQueue > 0) {
+                                // 激活佇列中的下一個無敵狀態
+                                group.invincibleStarQueue--
+                                // 設置新的無敵結束時間（確保未來時間）
+                                group.invincibleUntil = Math.max(
+                                    now + 100, // 確保至少有 100ms 的緩衝
+                                    now + settings.invincibleDurationSeconds * 1000,
+                                )
+                                // 保持 isInvincible = true，讓新的無敵期繼續
+                            } else {
+                                // 完全結束無敵狀態
+                                group.isInvincible = false
+                                group.invincibleUntil = null
+                                group.invincibleStarQueue = 0
+                            }
                         }
                     }
-                }
-            })
+                })
+            }
         })
 
         if (changed) {
@@ -1313,6 +1476,8 @@ export const useClassesStore = defineStore('classes', () => {
         endClassGrouping,
         updateGroups,
         updateGroupCount,
+        calculateClassTotalScore, // 新增：計算全班總分
+        checkAndTriggerClassTotalInvincible, // 新增：檢查並觸發全班無敵
         addScoreToGroup,
         checkInvincibleStatus,
         addIndividualScoreInGroup,

@@ -5,8 +5,36 @@ export interface RewardMilestoneMessage {
     message: string
 }
 
+/**
+ * 全班總分模式專用設定
+ */
+export interface ClassTotalModeSettings {
+    /**
+     * 全班累積多少分觸發一次無敵星星
+     * 例如：200 表示 200、400、600... 都會觸發
+     */
+    pointsPerInvincible: number
+    /**
+     * 無敵模式持續時間（秒）
+     */
+    invincibleDurationSeconds: number
+    /**
+     * 無敵模式下每次加分的點數
+     */
+    invinciblePointsPerClick: number
+}
+
 export interface RewardSettings {
     enabled: boolean
+
+    /**
+     * 獎勵模式
+     * - 'group-based': 各組獨立計分，收集星星觸發無敵
+     * - 'class-total': 全班總分累積，達到門檻全班同時無敵
+     */
+    mode: 'group-based' | 'class-total'
+
+    // 各組模式設定（mode = 'group-based' 時使用）
     pointsPerStar: number
     starsToInvincible: number
     invincibleDurationSeconds: number
@@ -16,6 +44,13 @@ export interface RewardSettings {
      */
     invinciblePointsPerClick: number
     milestoneMessages?: RewardMilestoneMessage[]
+
+    // 全班總分模式設定（mode = 'class-total' 時使用）
+    classTotalMode?: ClassTotalModeSettings
+    /**
+     * 全班目標分數，達到此分數觸發無敵（全班協作模式）
+     */
+    classTotalTargetPoints?: number
 }
 
 export interface Student {
@@ -54,6 +89,8 @@ export interface Group {
     invincibleStarQueue: number
     totalCollectedStars?: number
     scorePool: number
+    // 全班模式專用：追蹤無敵加分
+    classTotalInvincibleScore?: number // 累積因無敵模式而加的分數
 }
 
 export interface ClassHomeworkSettings {
@@ -76,6 +113,23 @@ export interface ClassInfo {
     rewardSettingsMode: 'template' | 'disabled'
     appliedRewardTemplateId: string | null
     customRewardSettings: RewardSettings | null
+
+    // 全班總分模式專用欄位
+    /**
+     * 當前全班累積總分（僅在全班總分模式使用）
+     * 等於所有組別的 totalScore 總和
+     */
+    classTotalScore?: number
+    /**
+     * 已觸發過幾次全班無敵星星（僅在全班總分模式使用）
+     * 用於計算下一次觸發門檻
+     */
+    classTotalInvincibleCount?: number
+    /**
+     * 全班無敵結束時間戳（僅在全班總分模式使用）
+     * null 表示目前不在無敵狀態
+     */
+    classInvincibleUntil?: number | null
 }
 
 export interface ClassSession {

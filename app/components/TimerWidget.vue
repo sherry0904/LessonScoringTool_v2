@@ -18,7 +18,7 @@
                 </button>
             </div>
 
-            <div 
+            <div
                 @click="promptForTime"
                 class="flex items-center justify-center text-center my-4 cursor-pointer tooltip tooltip-bottom"
                 data-tip="點擊以自訂時間"
@@ -39,7 +39,12 @@
             </div>
 
             <div class="card-actions justify-end">
-                <button v-if="!ui.isTimerRunning" class="btn btn-primary btn-sm" @click="ui.startTimer" :disabled="ui.timerSecondsRemaining <= 0">
+                <button
+                    v-if="!ui.isTimerRunning"
+                    class="btn btn-primary btn-sm"
+                    @click="ui.startTimer"
+                    :disabled="ui.timerSecondsRemaining <= 0"
+                >
                     <LucideIcon name="Play" class="w-4 h-4" />
                     開始
                 </button>
@@ -66,19 +71,23 @@ const minutes = computed(() => Math.floor(ui.timerSecondsRemaining / 60))
 const seconds = computed(() => ui.timerSecondsRemaining % 60)
 
 const promptForTime = () => {
-    const newTime = prompt("請輸入時間 (分:秒)", `${minutes.value}:${seconds.value.toString().padStart(2, '0')}`);
+    const newTime = prompt(
+        '請輸入時間 (分:秒)',
+        `${minutes.value}:${seconds.value.toString().padStart(2, '0')}`,
+    )
     if (newTime && /^\d{1,3}:\d{1,2}$/.test(newTime)) {
-        const parts = newTime.split(':').map(Number);
-        const newSeconds = parts[0] * 60 + parts[1];
-        if (newSeconds > 0 && newSeconds <= 999 * 60 + 59) { // 增加上限避免輸入問題
-            ui.setTimer(newSeconds);
+        const parts = newTime.split(':').map(Number)
+        const newSeconds = parts[0] * 60 + parts[1]
+        if (newSeconds > 0 && newSeconds <= 999 * 60 + 59) {
+            // 增加上限避免輸入問題
+            ui.setTimer(newSeconds)
         } else {
-            alert("請輸入有效的時間範圍。");
+            alert('請輸入有效的時間範圍。')
         }
     } else if (newTime !== null) {
-        alert("格式錯誤，請輸入如 '5:30' 的格式。");
+        alert("格式錯誤，請輸入如 '5:30' 的格式。")
     }
-};
+}
 
 // --- Draggable Logic ---
 const widget = ref<HTMLElement | null>(null)

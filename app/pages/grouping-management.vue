@@ -1,8 +1,8 @@
 <template>
     <div class="p-4 sm:p-6 md:p-8">
         <div class="max-w-4xl mx-auto">
-            <PageHeader 
-                title="分組活動管理" 
+            <PageHeader
+                title="分組活動管理"
                 description="設定分組活動進行時，儀表板的顯示方式與互動權限。"
             />
 
@@ -60,7 +60,9 @@
                                             type="radio"
                                             name="radio-leaderboard"
                                             class="radio radio-primary"
-                                            :checked="typeof settings.leaderboardDisplayCount === 'number'"
+                                            :checked="
+                                                typeof settings.leaderboardDisplayCount === 'number'
+                                            "
                                             @change="settings.leaderboardDisplayCount = 3"
                                         />
                                         <span class="label-text">只顯示前</span>
@@ -128,7 +130,7 @@
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '~/stores/ui'
 import { watch } from 'vue'
-import PageHeader from '~/components/PageHeader.vue';
+import PageHeader from '~/components/PageHeader.vue'
 
 definePageMeta({
     layout: 'class-dashboard',

@@ -5,20 +5,72 @@
             class="w-80 border-r border-base-300 transition-all duration-300 flex flex-col"
             :class="{ '-ml-80': !showTemplates }"
         >
-            <div class="p-4 border-b flex items-center justify-between bg-base-200/50">
-                <h3 class="font-bold text-lg flex items-center gap-2">
-                    <LucideIcon name="LayoutGrid" class="w-5 h-5" />
-                    範本庫
-                </h3>
-                <button @click="showTemplates = false" class="btn btn-ghost btn-sm btn-circle">
-                    <LucideIcon name="ChevronsLeft" class="w-4 h-4" />
-                </button>
+            <div class="p-4 border-b bg-base-200/50">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <LucideIcon name="LayoutGrid" class="w-5 h-5" />
+                        範本庫
+                    </h3>
+                    <button @click="showTemplates = false" class="btn btn-ghost btn-sm btn-circle">
+                        <LucideIcon name="ChevronsLeft" class="w-4 h-4" />
+                    </button>
+                </div>
+
+                <!-- 模式類型 Tab (現代膠囊樣式) -->
+                <div
+                    role="tablist"
+                    aria-label="範本庫模式切換"
+                    class="grid grid-cols-2 items-center gap-2 bg-base-200/70 p-1 rounded-2xl"
+                >
+                    <button
+                        type="button"
+                        role="tab"
+                        :aria-selected="selectedModeTab === 'class-total'"
+                        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary"
+                        :class="{
+                            'bg-base-100 text-primary shadow-[0_6px_18px_rgba(25,39,85,0.15)] border-primary/20':
+                                selectedModeTab === 'class-total',
+                            'text-base-content/60 hover:text-base-content hover:bg-base-100/70':
+                                selectedModeTab !== 'class-total',
+                        }"
+                        @click="selectedModeTab = 'class-total'"
+                    >
+                        <LucideIcon name="Users" class="w-3.5 h-3.5" />
+                        <span>全班協作</span>
+                        <span
+                            class="ml-1 inline-flex items-center justify-center min-w-[1.35rem] h-5 rounded-full bg-base-300 text-[11px] font-semibold text-base-content/80"
+                        >
+                            {{ classTotalTemplatesCount }}
+                        </span>
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        :aria-selected="selectedModeTab === 'group-based'"
+                        class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary"
+                        :class="{
+                            'bg-base-100 text-primary shadow-[0_6px_18px_rgba(25,39,85,0.15)] border-primary/20':
+                                selectedModeTab === 'group-based',
+                            'text-base-content/60 hover:text-base-content hover:bg-base-100/70':
+                                selectedModeTab !== 'group-based',
+                        }"
+                        @click="selectedModeTab = 'group-based'"
+                    >
+                        <LucideIcon name="Trophy" class="w-3.5 h-3.5" />
+                        <span>各組獨立</span>
+                        <span
+                            class="ml-1 inline-flex items-center justify-center min-w-[1.35rem] h-5 rounded-full bg-base-300 text-[11px] font-semibold text-base-content/80"
+                        >
+                            {{ groupBasedTemplatesCount }}
+                        </span>
+                    </button>
+                </div>
             </div>
 
             <!-- 範本卡片（可拖曳排序） -->
             <div class="p-4 space-y-2 overflow-y-auto flex-1" @dragover.prevent @dragenter.prevent>
                 <div
-                    v-for="(template, index) in rewardsStore.rewardTemplates"
+                    v-for="(template, index) in filteredTemplates"
                     :key="template.id"
                     draggable="true"
                     @dragstart="onDragTemplateStart($event, index)"
@@ -37,11 +89,6 @@
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <div class="flex-1">
                             <span class="font-semibold text-sm">{{ template.name }}</span>
-                            <div class="flex items-center gap-1 mt-1">
-                                <span v-if="template.isDefault" class="badge badge-xs badge-primary"
-                                    >預設</span
-                                >
-                            </div>
                         </div>
                         <!-- 動作按鈕 -->
                         <div class="flex gap-1 flex-shrink-0 items-center">
@@ -53,15 +100,7 @@
                                     <LucideIcon name="Edit2" class="w-3 h-3" />
                                 </button>
                             </div>
-                            <div
-                                v-if="
-                                    !template.isDefault ||
-                                    rewardsStore.rewardTemplates.filter((t) => t.isDefault).length >
-                                        1
-                                "
-                                class="tooltip tooltip-left"
-                                :data-tip="template.isDefault ? '刪除此預設範本' : '刪除這個範本'"
-                            >
+                            <div class="tooltip tooltip-left" data-tip="刪除這個範本">
                                 <button
                                     @click="deleteTemplate(template.id)"
                                     class="btn btn-xs btn-ghost text-error"
@@ -79,29 +118,57 @@
                     </div>
                     <!-- 設定資訊 -->
                     <div class="text-xs space-y-1 text-base-content !text-black">
-                        <div>
-                            💰 每星需求：<span class="font-semibold">{{
-                                template.settings.pointsPerStar
-                            }}</span>
-                            分
-                        </div>
-                        <div>
-                            ⭐ 達成無敵：<span class="font-semibold">{{
-                                template.settings.starsToInvincible
-                            }}</span>
-                            星
-                        </div>
-                        <div>
-                            ⏱️ 無敵時長：<span class="font-semibold">{{
-                                formatDurationDisplay(template.settings.invincibleDurationSeconds)
-                            }}</span>
-                        </div>
-                        <div>
-                            🎯 無敵加分：<span class="font-semibold">{{
-                                template.settings.invinciblePointsPerClick
-                            }}</span>
-                            分/次
-                        </div>
+                        <!-- 全班協作模式參數 -->
+                        <template v-if="template.settings.mode === 'class-total'">
+                            <div>
+                                🎯 全班目標：<span class="font-semibold">{{
+                                    template.settings.classTotalTargetPoints
+                                }}</span>
+                                分
+                            </div>
+                            <div>
+                                ⏱️ 無敵時長：<span class="font-semibold">{{
+                                    formatDurationDisplay(
+                                        template.settings.invincibleDurationSeconds,
+                                    )
+                                }}</span>
+                            </div>
+                            <div>
+                                💎 無敵加分：<span class="font-semibold">{{
+                                    template.settings.invinciblePointsPerClick
+                                }}</span>
+                                分/次
+                            </div>
+                        </template>
+
+                        <!-- 各組獨立模式參數 -->
+                        <template v-else-if="template.settings.mode === 'group-based'">
+                            <div>
+                                💰 每星需求：<span class="font-semibold">{{
+                                    template.settings.pointsPerStar
+                                }}</span>
+                                分
+                            </div>
+                            <div>
+                                ⭐ 達成無敵：<span class="font-semibold">{{
+                                    template.settings.starsToInvincible
+                                }}</span>
+                                星
+                            </div>
+                            <div>
+                                ⏱️ 無敵時長：<span class="font-semibold">{{
+                                    formatDurationDisplay(
+                                        template.settings.invincibleDurationSeconds,
+                                    )
+                                }}</span>
+                            </div>
+                            <div>
+                                🎯 無敵加分：<span class="font-semibold">{{
+                                    template.settings.invinciblePointsPerClick
+                                }}</span>
+                                分/次
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -109,7 +176,7 @@
             <div class="p-4 border-t">
                 <button @click="createNewTemplate" class="btn btn-primary btn-sm btn-block gap-2">
                     <LucideIcon name="Plus" class="w-4 h-4" />
-                    新增範本
+                    新增{{ selectedModeTab === 'class-total' ? '全班協作' : '各組獨立' }}範本
                 </button>
             </div>
         </aside>
@@ -141,10 +208,7 @@
                             <span class="text-sm text-base-content badge badge-lg">
                                 已選 {{ selectedClassIds.length }} 個班級
                             </span>
-                            <button
-                                @click="showBatchModal = true"
-                                class="btn btn-primary btn-sm gap-2"
-                            >
+                            <button @click="openBatchModal" class="btn btn-primary btn-sm gap-2">
                                 <LucideIcon name="Sparkles" class="w-4 h-4" />
                                 批次套用
                             </button>
@@ -211,7 +275,7 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <RewardBadge :class-info="cls" :show-details="true" />
+                                        <RewardBadge :class-info="cls" />
                                     </td>
                                     <td class="text-center">
                                         <span
@@ -289,83 +353,315 @@
         </Teleport>
 
         <!-- 批次套用範本 Modal -->
-        <dialog class="modal" :class="{ 'modal-open': showBatchModal }">
-            <div class="modal-box max-w-md">
-                <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                    <LucideIcon name="Sparkles" class="w-5 h-5" />
-                    批次套用範本
-                </h3>
+        <div class="modal" :class="{ 'modal-open': showBatchModal }">
+            <div class="modal-box max-w-2xl max-h-[calc(100vh-4rem)] overflow-y-auto my-8">
+                <div class="flex flex-col gap-6">
+                    <div class="flex items-start justify-between">
+                        <h3 class="font-bold text-xl flex items-center gap-2">
+                            <LucideIcon name="Sparkles" class="w-5 h-5" />
+                            批次套用範本
+                        </h3>
+                        <span class="text-xs text-base-content/70">
+                            已選 {{ selectedClassIds.length }} 個班級
+                        </span>
+                    </div>
 
-                <div class="form-control mb-6">
-                    <label class="label pb-2">
-                        <span class="label-text font-semibold mr-2">選擇操作</span>
-                    </label>
-                    <div class="space-y-3">
-                        <!-- 選擇範本 -->
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="batchAction"
-                                value="template"
-                                v-model="batchAction"
-                                class="radio radio-primary"
-                            />
-                            <span class="flex-1">套用範本</span>
-                        </label>
-                        <div v-if="batchAction === 'template'" class="ml-8">
-                            <select
-                                v-model="batchTemplateId"
-                                class="select select-bordered select-md w-full"
+                    <section>
+                        <p
+                            class="text-xs font-semibold tracking-wide text-base-content/70 uppercase mb-3"
+                        >
+                            批次操作
+                        </p>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label
+                                class="group cursor-pointer border rounded-2xl p-4 transition-all shadow-sm"
+                                :class="{
+                                    'border-primary bg-primary/5 shadow-[0_12px_24px_rgba(25,39,85,0.12)]':
+                                        batchAction === 'template',
+                                    'border-base-300 hover:border-primary/40 hover:bg-base-200/60':
+                                        batchAction !== 'template',
+                                }"
                             >
-                                <option value="">-- 請選擇範本 --</option>
-                                <option
-                                    v-for="template in rewardsStore.rewardTemplates"
-                                    :key="template.id"
-                                    :value="template.id"
+                                <input
+                                    type="radio"
+                                    name="batchAction"
+                                    value="template"
+                                    v-model="batchAction"
+                                    class="sr-only"
+                                />
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2 text-base-content">
+                                        <LucideIcon name="Sparkles" class="w-5 h-5 text-primary" />
+                                        <span class="font-semibold">套用範本</span>
+                                    </div>
+                                    <span class="badge badge-primary badge-outline badge-sm"
+                                        >推薦</span
+                                    >
+                                </div>
+                                <p class="text-sm text-base-content/70 mt-3">
+                                    選擇全班協作或各組獨立的範本，快速同步到所有班級。
+                                </p>
+                            </label>
+
+                            <label
+                                class="group cursor-pointer border rounded-2xl p-4 transition-all shadow-sm"
+                                :class="{
+                                    'border-error bg-error/5 shadow-[0_12px_24px_rgba(190,46,37,0.12)]':
+                                        batchAction === 'disable',
+                                    'border-base-300 hover:border-error/40 hover:bg-error/10':
+                                        batchAction !== 'disable',
+                                }"
+                            >
+                                <input
+                                    type="radio"
+                                    name="batchAction"
+                                    value="disable"
+                                    v-model="batchAction"
+                                    class="sr-only"
+                                />
+                                <div class="flex items-center gap-2 text-base-content">
+                                    <LucideIcon name="Ban" class="w-5 h-5 text-error" />
+                                    <span class="font-semibold">停用獎勵</span>
+                                </div>
+                                <p class="text-sm text-base-content/70 mt-3">
+                                    停用後，這些班級的獎勵與無敵功能將立即關閉。
+                                </p>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section v-if="batchAction === 'template'" class="space-y-4">
+                        <div>
+                            <p
+                                class="text-xs font-semibold tracking-wide text-base-content/70 uppercase mb-2"
+                            >
+                                範本模式
+                            </p>
+                            <div
+                                class="flex flex-wrap items-center gap-2 bg-base-200/70 p-1.5 rounded-2xl"
+                                role="tablist"
+                                aria-label="範本模式切換"
+                            >
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    :aria-selected="batchTemplateMode === 'class-total'"
+                                    class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary"
+                                    :class="{
+                                        'bg-base-100 text-primary shadow-[0_6px_18px_rgba(25,39,85,0.15)] border-primary/20':
+                                            batchTemplateMode === 'class-total',
+                                        'text-base-content/60 hover:text-base-content hover:bg-base-100/70':
+                                            batchTemplateMode !== 'class-total',
+                                    }"
+                                    @click="batchTemplateMode = 'class-total'"
                                 >
-                                    {{ template.name }}
-                                    <span v-if="template.isDefault"> (預設)</span>
-                                </option>
-                            </select>
+                                    <LucideIcon name="Users" class="w-4 h-4" />
+                                    <span>全班協作</span>
+                                    <span class="text-xs text-base-content/50">
+                                        ({{ classTotalTemplatesCount }})
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    :aria-selected="batchTemplateMode === 'group-based'"
+                                    class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary"
+                                    :class="{
+                                        'bg-base-100 text-primary shadow-[0_6px_18px_rgba(25,39,85,0.15)] border-primary/20':
+                                            batchTemplateMode === 'group-based',
+                                        'text-base-content/60 hover:text-base-content hover:bg-base-100/70':
+                                            batchTemplateMode !== 'group-based',
+                                    }"
+                                    @click="batchTemplateMode = 'group-based'"
+                                >
+                                    <LucideIcon name="Trophy" class="w-4 h-4" />
+                                    <span>各組獨立</span>
+                                    <span class="text-xs text-base-content/50">
+                                        ({{ groupBasedTemplatesCount }})
+                                    </span>
+                                </button>
+                            </div>
+                            <p class="text-xs text-base-content/70 mt-2">
+                                顯示選定模式的範本，共 {{ batchTemplatesByMode.length }} 個選項。
+                            </p>
                         </div>
 
-                        <!-- 停用獎勵 -->
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="batchAction"
-                                value="disable"
-                                v-model="batchAction"
-                                class="radio radio-primary"
-                            />
-                            <span class="flex-1">停用獎勵</span>
-                        </label>
+                        <div>
+                            <p class="text-sm font-semibold text-base-content">選擇範本</p>
+                            <p class="text-xs text-base-content/70 mt-1">
+                                套用後將立即覆寫這 {{ selectedClassIds.length }} 個班級的獎勵設定。
+                            </p>
+
+                            <div
+                                v-if="batchTemplatesByMode.length === 0"
+                                class="rounded-2xl border border-dashed border-base-300 bg-base-200/60 p-6 text-center text-sm text-base-content/70"
+                            >
+                                <LucideIcon
+                                    name="PackageSearch"
+                                    class="w-8 h-8 mx-auto mb-2 opacity-50"
+                                />
+                                <p>這個模式還沒有可用的範本，請先在範本庫建立一個。</p>
+                            </div>
+                            <div v-else class="space-y-3 max-h-64 overflow-y-auto pr-1">
+                                <label
+                                    v-for="template in batchTemplatesByMode"
+                                    :key="template.id"
+                                    class="flex items-start gap-3 border rounded-2xl p-4 cursor-pointer transition-all"
+                                    :class="{
+                                        'border-primary bg-primary/5 shadow-[0_8px_20px_rgba(25,39,85,0.12)]':
+                                            batchTemplateId === template.id,
+                                        'border-base-300 hover:border-primary/40 hover:bg-base-200/60':
+                                            batchTemplateId !== template.id,
+                                    }"
+                                >
+                                    <input
+                                        type="radio"
+                                        class="radio radio-primary mt-1"
+                                        name="batchTemplate"
+                                        :value="template.id"
+                                        v-model="batchTemplateId"
+                                    />
+                                    <div class="flex-1">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="font-semibold text-base-content">{{
+                                                template.name
+                                            }}</span>
+                                            <span
+                                                class="badge badge-sm"
+                                                :class="
+                                                    template.settings.mode === 'class-total'
+                                                        ? 'badge-info'
+                                                        : 'badge-secondary'
+                                                "
+                                            >
+                                                {{
+                                                    template.settings.mode === 'class-total'
+                                                        ? '全班協作'
+                                                        : '各組獨立'
+                                                }}
+                                            </span>
+                                        </div>
+                                        <ul
+                                            class="mt-3 text-xs text-base-content/70 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2"
+                                        >
+                                            <template
+                                                v-if="template.settings.mode === 'group-based'"
+                                            >
+                                                <li class="flex items-center gap-2">
+                                                    <span class="text-base">💰</span>
+                                                    <span
+                                                        >每顆星
+                                                        {{ template.settings.pointsPerStar }}
+                                                        分</span
+                                                    >
+                                                </li>
+                                                <li class="flex items-center gap-2">
+                                                    <span class="text-base">⭐</span>
+                                                    <span
+                                                        >無敵門檻
+                                                        {{ template.settings.starsToInvincible }}
+                                                        顆星</span
+                                                    >
+                                                </li>
+                                                <li class="flex items-center gap-2">
+                                                    <span class="text-base">⏱️</span>
+                                                    <span>
+                                                        無敵時長
+                                                        {{
+                                                            formatDurationSafe(
+                                                                template.settings
+                                                                    .invincibleDurationSeconds,
+                                                            )
+                                                        }}
+                                                    </span>
+                                                </li>
+                                                <li class="flex items-center gap-2">
+                                                    <span class="text-base">💎</span>
+                                                    <span
+                                                        >無敵加分
+                                                        {{
+                                                            template.settings
+                                                                .invinciblePointsPerClick
+                                                        }}
+                                                        分/次</span
+                                                    >
+                                                </li>
+                                            </template>
+                                            <template v-else>
+                                                <li class="flex items-center gap-2">
+                                                    <span class="text-base">🎯</span>
+                                                    <span>
+                                                        全班目標
+                                                        {{
+                                                            template.settings
+                                                                .classTotalTargetPoints ??
+                                                            template.settings.classTotalMode
+                                                                ?.pointsPerInvincible ??
+                                                            '—'
+                                                        }}
+                                                        分
+                                                    </span>
+                                                </li>
+                                                <li class="flex items-center gap-2">
+                                                    <span class="text-base">⏱️</span>
+                                                    <span>
+                                                        無敵時長
+                                                        {{
+                                                            formatDurationSafe(
+                                                                template.settings
+                                                                    .invincibleDurationSeconds ??
+                                                                    template.settings.classTotalMode
+                                                                        ?.invincibleDurationSeconds,
+                                                            )
+                                                        }}
+                                                    </span>
+                                                </li>
+                                                <li class="flex items-center gap-2">
+                                                    <span class="text-base">💎</span>
+                                                    <span>
+                                                        無敵加分
+                                                        {{
+                                                            template.settings
+                                                                .invinciblePointsPerClick ??
+                                                            template.settings.classTotalMode
+                                                                ?.invinciblePointsPerClick ??
+                                                            '—'
+                                                        }}
+                                                        分/次
+                                                    </span>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="alert alert-info">
+                        <LucideIcon name="Info" class="w-5 h-5 flex-shrink-0" />
+                        <span class="text-sm leading-relaxed">
+                            將
+                            <span v-if="batchAction === 'template'">套用範本</span>
+                            <span v-else-if="batchAction === 'disable'">停用獎勵</span>
+                            至 {{ selectedClassIds.length }} 個班級，修改將立即生效。
+                        </span>
+                    </div>
+
+                    <div class="modal-action">
+                        <button @click="closeBatchModal" class="btn btn-ghost">取消</button>
+                        <button
+                            @click="applyBatchAction"
+                            class="btn btn-primary"
+                            :disabled="batchAction === 'template' && !batchTemplateId"
+                        >
+                            確認執行
+                        </button>
                     </div>
                 </div>
-
-                <div class="alert alert-info mb-6">
-                    <LucideIcon name="Info" class="w-5 h-5 flex-shrink-0" />
-                    <span class="text-sm leading-relaxed">
-                        將
-                        <span v-if="batchAction === 'template'">套用範本</span>
-                        <span v-else-if="batchAction === 'disable'">停用獎勵</span>
-                        至 {{ selectedClassIds.length }} 個班級，修改將立即生效。
-                    </span>
-                </div>
-
-                <div class="modal-action">
-                    <button @click="closeBatchModal" class="btn btn-ghost">取消</button>
-                    <button
-                        @click="applyBatchAction"
-                        class="btn btn-primary"
-                        :disabled="batchAction === 'template' && !batchTemplateId"
-                    >
-                        確認執行
-                    </button>
-                </div>
             </div>
-            <div class="modal-backdrop" @click="closeBatchModal"></div>
-        </dialog>
+            <label class="modal-backdrop" @click="closeBatchModal"></label>
+        </div>
 
         <!-- 範本編輯 Modal -->
         <RewardTemplateModal
@@ -391,7 +687,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRewardsStore } from '~/stores/rewards'
 import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
@@ -417,6 +713,71 @@ const showBatchModal = ref(false)
 const batchTemplateId = ref('')
 const batchAction = ref<'template' | 'disable'>('template')
 
+const batchTemplateMode = ref<'group-based' | 'class-total'>('class-total')
+
+// 模式類型 Tab（預設為全班協作模式）
+const selectedModeTab = ref<'group-based' | 'class-total'>('class-total')
+
+// 根據 Tab 篩選範本
+const filteredTemplates = computed(() => {
+    return rewardsStore.rewardTemplates.filter(
+        (template) => template.settings.mode === selectedModeTab.value,
+    )
+})
+
+// 各模式範本數量
+const classTotalTemplatesCount = computed(() => {
+    return rewardsStore.rewardTemplates.filter((t) => t.settings.mode === 'class-total').length
+})
+
+const groupBasedTemplatesCount = computed(() => {
+    return rewardsStore.rewardTemplates.filter((t) => t.settings.mode === 'group-based').length
+})
+
+if (classTotalTemplatesCount.value === 0 && groupBasedTemplatesCount.value > 0) {
+    batchTemplateMode.value = 'group-based'
+}
+
+const batchTemplatesByMode = computed(() => {
+    return rewardsStore.rewardTemplates.filter(
+        (template) => template.settings.mode === batchTemplateMode.value,
+    )
+})
+
+const resolveDefaultBatchMode = (): 'group-based' | 'class-total' => {
+    if (classTotalTemplatesCount.value === 0 && groupBasedTemplatesCount.value > 0) {
+        return 'group-based'
+    }
+    return 'class-total'
+}
+
+const formatDurationSafe = (seconds?: number | null) => {
+    if (typeof seconds !== 'number' || Number.isNaN(seconds)) {
+        return '—'
+    }
+    return formatDurationDisplay(seconds)
+}
+
+watch(batchTemplateMode, () => {
+    const template = rewardsStore.getTemplateById(batchTemplateId.value)
+    if (template?.settings.mode !== batchTemplateMode.value) {
+        batchTemplateId.value = ''
+    }
+})
+
+watch(batchAction, (newAction) => {
+    if (newAction !== 'template') {
+        batchTemplateId.value = ''
+    }
+})
+
+watch([classTotalTemplatesCount, groupBasedTemplatesCount], () => {
+    const hasTemplates = classTotalTemplatesCount.value + groupBasedTemplatesCount.value > 0
+    if (hasTemplates && batchTemplatesByMode.value.length === 0) {
+        batchTemplateMode.value = resolveDefaultBatchMode()
+    }
+})
+
 // 確認對話狀態
 const confirmDialogRef = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const pendingAction = ref<(() => void) | null>(null)
@@ -432,13 +793,29 @@ const dragOverTemplateIndex = ref<number | null>(null)
 const templateModalRef = ref<any>(null)
 const editingTemplate = ref<RewardTemplate | null>(null)
 const isCreatingNew = ref(false)
-const defaultTemplateSettings = ref<RewardSettings>({
-    enabled: true,
-    pointsPerStar: 10,
-    starsToInvincible: 3,
-    invincibleDurationSeconds: 30,
-    invinciblePointsPerClick: 5,
-    milestoneMessages: buildDefaultMilestoneMessages(3),
+
+// 預設範本設定（根據 Tab 決定初始 mode）
+const defaultTemplateSettings = computed<RewardSettings>(() => {
+    if (selectedModeTab.value === 'class-total') {
+        return {
+            enabled: true,
+            mode: 'class-total',
+            classTotalTargetPoints: 100,
+            invincibleDurationSeconds: 30,
+            invinciblePointsPerClick: 5,
+            milestoneMessages: buildDefaultMilestoneMessages(3),
+        }
+    } else {
+        return {
+            enabled: true,
+            mode: 'group-based',
+            pointsPerStar: 10,
+            starsToInvincible: 3,
+            invincibleDurationSeconds: 30,
+            invinciblePointsPerClick: 5,
+            milestoneMessages: buildDefaultMilestoneMessages(3),
+        }
+    }
 })
 
 // 全選邏輯
@@ -540,7 +917,19 @@ const onDropTemplate = (event: DragEvent, toIndex: number) => {
         return
     }
 
-    const success = rewardsStore.moveTemplate(draggedTemplateIndex.value, toIndex)
+    const templates = filteredTemplates.value
+    const draggedTemplate = templates[draggedTemplateIndex.value]
+    if (!draggedTemplate) {
+        draggedTemplateIndex.value = null
+        dragOverTemplateIndex.value = null
+        return
+    }
+
+    const success = rewardsStore.moveTemplateWithinMode(
+        draggedTemplate.settings.mode,
+        draggedTemplate.id,
+        toIndex,
+    )
     if (success) {
         uiStore.showSuccess('範本排序已更新')
     }
@@ -597,10 +986,20 @@ const handleSave = (config: any) => {
 }
 
 // 批次套用
+const resetBatchModalState = () => {
+    batchAction.value = 'template'
+    batchTemplateId.value = ''
+    batchTemplateMode.value = resolveDefaultBatchMode()
+}
+
+const openBatchModal = () => {
+    resetBatchModalState()
+    showBatchModal.value = true
+}
+
 const closeBatchModal = () => {
     showBatchModal.value = false
-    batchTemplateId.value = ''
-    batchAction.value = 'template'
+    resetBatchModalState()
 }
 
 const applyBatchAction = () => {
@@ -712,37 +1111,15 @@ const deleteTemplate = (templateId: string) => {
 }
 
 const handleTemplateSave = (template: RewardTemplate, isNew: boolean) => {
-    const shouldSetDefault = !!template.isDefault
-
     if (isNew) {
         const newTemplate = rewardsStore.addTemplate(template.name, template.settings)
         if (newTemplate) {
-            if (shouldSetDefault) {
-                rewardsStore.setDefaultTemplate(newTemplate.id)
-                uiStore.showSuccess('範本已建立並設為預設')
-            } else {
-                uiStore.showSuccess('範本已建立')
-            }
+            uiStore.showSuccess('範本已建立')
             editingTemplate.value = null
             isCreatingNew.value = false
         }
     } else {
         rewardsStore.updateTemplate(template.id, template)
-
-        if (shouldSetDefault) {
-            rewardsStore.setDefaultTemplate(template.id)
-        } else {
-            const currentDefaultId = rewardsStore.defaultTemplate?.id
-            if (currentDefaultId === template.id) {
-                const fallback = rewardsStore.rewardTemplates.find((t) => t.id !== template.id)
-                if (fallback) {
-                    rewardsStore.setDefaultTemplate(fallback.id)
-                } else {
-                    rewardsStore.setDefaultTemplate(template.id)
-                }
-            }
-        }
-
         uiStore.showSuccess('範本已更新')
         editingTemplate.value = null
         isCreatingNew.value = false
@@ -757,13 +1134,13 @@ const handleTemplateCancel = () => {
 const resetSystem = () => {
     if (
         confirm(
-            '確定要重設系統嗎？\n\n這將：\n• 清除所有自訂獎勵範本\n• 將所有班級設定回到預設範本\n• 回到初始狀態\n\n此動作無法復原！',
+            '確定要重設系統嗎？\n\n這將：\n• 清除所有自訂獎勵範本\n• 恢復兩個初始範本（各組獨立 + 全班協作）\n• 所有班級的獎勵設定將被停用\n\n此動作無法復原！',
         )
     ) {
         rewardsStore.resetToDefault()
         classesStore.resetAllClassesToDefault()
         selectedClassIds.value = []
-        uiStore.showSuccess('系統已重設到初始狀態，所有班級已回到預設範本')
+        uiStore.showSuccess('系統已重設到初始狀態')
     }
 }
 </script>
