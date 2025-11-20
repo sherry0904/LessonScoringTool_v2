@@ -1090,7 +1090,7 @@ const applyBatchDisable = () => {
 const createNewTemplate = () => {
     editingTemplate.value = null
     isCreatingNew.value = true
-    templateModalRef.value?.open()
+    templateModalRef.value?.open(defaultTemplateSettings.value)
 }
 
 const editTemplate = (template: RewardTemplate) => {

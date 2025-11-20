@@ -589,12 +589,16 @@ watch(
 /**
  * 打開 Modal
  */
-const open = () => {
+const open = (overrideSettings?: RewardSettings) => {
     // 如果是新建範本，使用最新的 defaultSettings 重新初始化
     if (isCreatingNew.value && !props.initialTemplate) {
         template.id = ''
         template.name = '新的獎勵範本'
-        template.settings = ensureMilestones(getDefaultSettings())
+        if (overrideSettings) {
+            template.settings = ensureMilestones(JSON.parse(JSON.stringify(overrideSettings)))
+        } else {
+            template.settings = ensureMilestones(getDefaultSettings())
+        }
         template.isDefault = false
         console.log('🎯 打開新範本 Modal，使用 defaultSettings:', {
             mode: template.settings.mode,
