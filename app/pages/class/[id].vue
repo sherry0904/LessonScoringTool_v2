@@ -100,8 +100,15 @@
         </dialog>
     </div>
 
+    <div v-else-if="showLoading" class="min-h-screen flex items-center justify-center">
+        <div class="text-center flex flex-col items-center gap-3">
+            <span class="loading loading-spinner loading-lg text-primary"></span>
+            <p class="text-base-content/70">正在載入班級資料...</p>
+        </div>
+    </div>
+
     <!-- 未選擇班級 -->
-    <div v-else class="min-h-screen flex items-center justify-center">
+    <div v-else-if="showMissing" class="min-h-screen flex items-center justify-center">
         <div class="text-center">
             <LucideIcon name="AlertCircle" class="w-16 h-16 mx-auto text-warning mb-4" />
             <h2 class="text-xl font-semibold mb-2">找不到班級</h2>
@@ -109,16 +116,18 @@
             <button @click="backToPrev" class="btn btn-primary">返回上一頁</button>
         </div>
     </div>
+    <div v-else class="min-h-screen"></div>
 </template>
 
 <script setup lang="ts">
+import { ref, reactive, computed, watch } from 'vue'
 import { useClassesStore } from '~/stores/classes'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const classesStore = useClassesStore()
 const route = useRoute()
-const { currentClass } = storeToRefs(classesStore)
+const { currentClass, isLoaded, currentClassId } = storeToRefs(classesStore)
 
 // Modal refs
 const studentModal = ref<HTMLDialogElement>()
@@ -132,14 +141,50 @@ const studentForm = reactive({
 })
 
 // 更新的頁籤陣列，包含路由路徑
+const targetClassId = computed(() => {
+    const rawId = route.params.id
+    return typeof rawId === 'string' && rawId.trim() ? rawId : null
+})
+
 const tabs = computed(() => {
-    const classId = route.params.id as string
+    const classId = targetClassId.value || 'overview'
     return [
         { id: 'scoring', label: '個人計分', icon: 'Star', path: `/class/${classId}` },
         { id: 'homework', label: '作業管理', icon: 'BookOpen', path: `/class/${classId}/homework` },
         { id: 'grouping', label: '分組模式', icon: 'Users', path: `/class/${classId}/grouping` },
         { id: 'grades', label: '成績結算', icon: 'BarChart3', path: `/class/${classId}/grades` },
     ]
+})
+
+watch(
+    () => [targetClassId.value, isLoaded.value],
+    ([classId, loaded]) => {
+        if (!loaded) return
+        classesStore.selectClass(classId ?? null)
+    },
+    { immediate: true },
+)
+
+const classExists = computed(() => {
+    const id = targetClassId.value
+    if (!id) return false
+    return classesStore.classes.some((c) => c.id === id)
+})
+
+const showLoading = computed(() => {
+    const id = targetClassId.value
+    if (!id) return false
+    if (!isLoaded.value) return true
+    if (currentClassId.value !== id) return true
+    if (!currentClass.value) return true
+    return false
+})
+
+const showMissing = computed(() => {
+    const id = targetClassId.value
+    if (!id) return true
+    if (!isLoaded.value) return false
+    return !classExists.value
 })
 
 // Methods
