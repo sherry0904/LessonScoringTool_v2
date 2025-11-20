@@ -48,7 +48,7 @@
             "
             @startGroupEditing="startGroupEditing"
             @startGrouping="startGrouping"
-            @exportActivityReport="exportActivityReport"
+            @exportActivityReport="(markAsEnded: boolean) => exportActivityReport(markAsEnded)"
             @showGroupScoreboard="showGroupScoreboard"
             @endGrouping="endGrouping"
         />
@@ -443,7 +443,7 @@
                         <div class="flex justify-between items-center flex-wrap gap-y-2 gap-x-4">
                             <div class="flex gap-2 flex-wrap">
                                 <button
-                                    @click="exportActivityReport"
+                                    @click="() => exportActivityReport(true)"
                                     class="btn btn-info"
                                     :disabled="!activityName.trim()"
                                 >
@@ -475,7 +475,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { ClassInfo, Group, RewardSettings } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
@@ -513,6 +513,17 @@ const { exportToExcel } = useExcelExport()
 
 // Expose Math to template for use in v-for with Math.min
 const Math = globalThis.Math
+
+const formatDateTimeDisplay = (value?: Date | string | number | null) => {
+    if (!value) return '—'
+    const date =
+        value instanceof Date
+            ? value
+            : typeof value === 'number'
+              ? new Date(value)
+              : new Date(value)
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('zh-TW')
+}
 
 // --- Use Store as the Single Source of Truth ---
 const {
@@ -561,7 +572,6 @@ const dragContext = ref<{ studentIds: string[]; sourceGroupId: string | null }>(
 })
 const isGroupEditMode = ref(false)
 const isGroupLocked = ref(true)
-let statusCheckInterval: NodeJS.Timeout | null = null
 const timers = ref<Record<string, number>>({})
 
 // --- Computed Properties for easier template access ---
@@ -757,6 +767,7 @@ const invincibleCelebrationState = ref({
 let invincibleCelebrationTimeout: ReturnType<typeof setTimeout> | null = null
 let classCelebrationTimeout: ReturnType<typeof setTimeout> | null = null
 let celebrationAudio: HTMLAudioElement | null = null
+let statusCheckInterval: ReturnType<typeof setInterval> | null = null
 
 const CELEBRATION_AUTO_CLOSE_MS = 1000
 
@@ -808,6 +819,47 @@ const playStarAudio = () => {
     starAudio.play().catch((error) => {
         console.warn('無法播放星星音效：', error)
     })
+}
+
+const updateInvincibleStatus = () => {
+    if (!props.classInfo.groupingActive) return
+
+    const now = Date.now()
+    syncClassTotalRemaining(now)
+
+    let needsSync = false
+    if (props.classInfo.groups) {
+        props.classInfo.groups.forEach((group) => {
+            if (group.isInvincible && group.invincibleUntil) {
+                const remainingMs = group.invincibleUntil - now
+                if (remainingMs <= 500) {
+                    needsSync = true
+                }
+            }
+        })
+    }
+
+    if (needsSync) {
+        classesStore.checkInvincibleStatus()
+    }
+
+    if (props.classInfo.groups) {
+        props.classInfo.groups.forEach((group) => {
+            if (group.isInvincible && group.invincibleUntil) {
+                const remainingMs = group.invincibleUntil - now
+
+                if (remainingMs <= 0) {
+                    delete timers.value[group.id]
+                } else if (remainingMs < 1000) {
+                    timers.value[group.id] = 1
+                } else {
+                    timers.value[group.id] = Math.ceil(remainingMs / 1000)
+                }
+            } else {
+                delete timers.value[group.id]
+            }
+        })
+    }
 }
 
 const triggerInvincibleCelebrationOverlay = (group: Group, settings: RewardSettings | null) => {
@@ -1562,24 +1614,29 @@ const closeScoreboardModal = () => {
     isEndingFlow.value = false // Reset state
 }
 
-const exportActivityReport = () => {
-    const today = new Date()
-    const dateString = today.toISOString().split('T')[0]
+const exportActivityReport = (markAsEnded = false) => {
+    const exportTimestamp = new Date()
+    const dateString = exportTimestamp.toISOString().split('T')[0]
     const isClassTotalModeExport = isClassTotalMode
     const invinciblePointsPerClickExport = activeRewardSettings.value?.invinciblePointsPerClick ?? 0
+
+    if (markAsEnded) {
+        classesStore.updateClass(props.classInfo.id, {
+            groupingEndedAt: exportTimestamp,
+        })
+    }
 
     // --- Sheet 1: Group Summary ---
     let groupSummaryData
     let columnWidths
 
     if (isClassTotalModeExport && activeRewardSettings.value?.enabled) {
-        // 全班模式：顯示全班累積分數、無敵觸發次數、無敵加分
+        // 全班模式：顯示全班累積分數、無敵觸發次數
         groupSummaryData = sortedGroups.value.map((group, index) => ({
             排行: index + 1,
             組別: group.name,
             人數: getGroupMembers(group).length,
             總分: group.totalScore,
-            無敵模式加分: group.classTotalInvincibleScore ?? 0,
         }))
 
         columnWidths = [
@@ -1587,7 +1644,6 @@ const exportActivityReport = () => {
             { wch: 25 }, // 組別
             { wch: 8 }, // 人數
             { wch: 10 }, // 總分
-            { wch: 15 }, // 無敵模式加分
         ]
     } else {
         // 各組模式：顯示星星數
@@ -1613,17 +1669,25 @@ const exportActivityReport = () => {
         }
     }
 
+    const latestClassData =
+        classesStore.classes.find((cls) => cls.id === props.classInfo.id) || props.classInfo
+
     const groupSheetHeader: any[] = [
         [`活動名稱:`, activityName.value || '未命名'],
-        [`班級:`, props.classInfo.name],
-        [`匯出日期:`, today.toLocaleString('zh-TW')],
+        [`班級:`, latestClassData.name],
+        [`匯出日期:`, exportTimestamp.toLocaleString('zh-TW')],
+        [`活動開始時間:`, formatDateTimeDisplay(latestClassData.groupingStartedAt ?? null)],
+        [`活動結束時間:`, formatDateTimeDisplay(latestClassData.groupingEndedAt ?? null)],
     ]
 
     // 全班模式時加上統計資訊
     if (isClassTotalModeExport && activeRewardSettings.value?.enabled) {
         groupSheetHeader.push([`全班累積分數:`, classTotalScore.value])
-        groupSheetHeader.push([`無敵模式觸發次數:`, props.classInfo.classTotalInvincibleCount ?? 0])
         groupSheetHeader.push([`無敵模式每次加分:`, invinciblePointsPerClickExport])
+        groupSheetHeader.push([
+            `無敵模式觸發次數:`,
+            latestClassData.classTotalInvincibleCount ?? 0,
+        ])
         groupSheetHeader.push([])
     } else {
         groupSheetHeader.push([])
@@ -1676,8 +1740,49 @@ const exportActivityReport = () => {
         columnWidths: studentColumnWidths,
     }
 
+    const invincibleEvents = Array.isArray(latestClassData.invincibleEvents)
+        ? latestClassData.invincibleEvents
+        : []
+    const sortedInvincibleEvents = [...invincibleEvents]
+        .map((event) => ({
+            ...event,
+            timestamp:
+                event.timestamp instanceof Date
+                    ? event.timestamp
+                    : new Date(event.timestamp as any),
+        }))
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+    const invincibleEventsData =
+        sortedInvincibleEvents.length > 0
+            ? sortedInvincibleEvents.map((event, index) => ({
+                  序號: index + 1,
+                  組別: event.groupName,
+                  觸發時間: formatDateTimeDisplay(event.timestamp),
+                  無敵加分: event.points,
+              }))
+            : [
+                  {
+                      序號: '—',
+                      組別: '—',
+                      觸發時間: '目前尚無無敵模式加分紀錄',
+                      無敵加分: '—',
+                  },
+              ]
+
+    const invincibleSheet = {
+        sheetName: '無敵模式紀錄',
+        data: invincibleEventsData,
+        columnWidths: [
+            { wch: 8 },
+            { wch: 20 },
+            { wch: 26 },
+            { wch: 12 },
+        ],
+    }
+
     const fileName = `${dateString}-${activityName.value || '分組活動報告'}-${props.classInfo.name}`
-    exportToExcel([groupSheet, studentSheet], fileName)
+    exportToExcel([groupSheet, studentSheet, invincibleSheet], fileName)
 }
 
     watch(
@@ -1728,75 +1833,27 @@ watch(
             isGroupLocked.value = true
             clearStudentSelection()
             syncClassTotalRemaining()
+            updateInvincibleStatus()
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval)
+            }
+            statusCheckInterval = setInterval(updateInvincibleStatus, 250)
         } else {
             classTotalRemainingSeconds.value = 0
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval)
+                statusCheckInterval = null
+            }
+            timers.value = {}
         }
     },
     { immediate: true },
 )
 
-onMounted(() => {
-    if (props.classInfo.groupingActive) {
-        // 立即執行一次無敵狀態檢查和計時器更新（不等待 1 秒）
-        const updateInvincibleStatus = () => {
-            const now = Date.now()
-
-            syncClassTotalRemaining(now)
-
-            // 首先檢查任何已過期的無敵狀態並清理
-            let needsSync = false
-            if (props.classInfo.groups) {
-                props.classInfo.groups.forEach((group) => {
-                    if (group.isInvincible && group.invincibleUntil) {
-                        const remainingMs = group.invincibleUntil - now
-                        // 如果時間已過期或非常接近過期（<500ms），需要同步
-                        if (remainingMs <= 500) {
-                            needsSync = true
-                        }
-                    }
-                })
-            }
-
-            // 如果有過期或即將過期的無敵，先同步狀態（激活隊列或結束無敵）
-            if (needsSync) {
-                classesStore.checkInvincibleStatus()
-            }
-
-            // 更新計時器顯示 - 為每個無敵組別計算剩餘秒數
-            if (props.classInfo.groups) {
-                props.classInfo.groups.forEach((group) => {
-                    // 重新檢查狀態，以防 checkInvincibleStatus 改變了狀態
-                    if (group.isInvincible && group.invincibleUntil) {
-                        const remainingMs = group.invincibleUntil - now
-
-                        if (remainingMs <= 0) {
-                            // 時間已過期，刪除計時器
-                            delete timers.value[group.id]
-                        } else if (remainingMs < 1000) {
-                            // 0-1秒之間：顯示為 1 秒（避免閃爍 0 秒）
-                            timers.value[group.id] = 1
-                        } else {
-                            // 向上取整，確保顯示正確的秒數
-                            timers.value[group.id] = Math.ceil(remainingMs / 1000)
-                        }
-                    } else {
-                        delete timers.value[group.id]
-                    }
-                })
-            }
-        }
-
-        // 首次立即執行，確保載入時無敵狀態被正確處理
-        updateInvincibleStatus()
-
-        // 然後每 250ms 檢查一次（頻繁同步確保計時器不會卡住）
-        statusCheckInterval = setInterval(updateInvincibleStatus, 250)
-    }
-})
-
 onUnmounted(() => {
     if (statusCheckInterval) {
         clearInterval(statusCheckInterval)
+        statusCheckInterval = null
     }
     if (invincibleCelebrationTimeout) {
         clearTimeout(invincibleCelebrationTimeout)

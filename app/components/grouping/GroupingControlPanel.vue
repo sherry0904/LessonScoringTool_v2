@@ -157,7 +157,7 @@
                             {{ groupsCollapsed ? '展開組員' : '收合組員' }}
                         </button>
                         <button
-                            @click="$emit('exportActivityReport')"
+                            @click="$emit('exportActivityReport', false)"
                             class="btn btn-sm btn-info gap-1"
                             :disabled="!activityName.trim()"
                             title="匯出活動報告"
@@ -214,7 +214,7 @@ defineEmits<{
     (e: 'toggleGroupsCollapsed'): void
     (e: 'startGroupEditing'): void
     (e: 'startGrouping'): void
-    (e: 'exportActivityReport'): void
+    (e: 'exportActivityReport', markAsEnded: boolean): void
     (e: 'showGroupScoreboard'): void
     (e: 'endGrouping'): void
 }>()

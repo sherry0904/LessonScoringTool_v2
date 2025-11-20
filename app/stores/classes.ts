@@ -7,6 +7,7 @@ import type {
     Group,
     StudentScore,
     RewardSettings,
+    InvincibleEventLog,
 } from '~/types/class'
 import { useExcelExport } from '~/composables/useExcelExport'
 import { useHomeworkStore } from '~/stores/homework'
@@ -275,6 +276,9 @@ export const useClassesStore = defineStore('classes', () => {
             groups: [],
             groupCount: 4,
             groupingActive: false,
+            groupingStartedAt: null,
+            groupingEndedAt: null,
+            invincibleEvents: [],
             createdAt: new Date(),
             updatedAt: new Date(),
             // 初始化獎勵機制設定：新班級預設不套用範本，由老師手動選擇
@@ -457,6 +461,7 @@ export const useClassesStore = defineStore('classes', () => {
                     group.invincibleUntil = null
                     group.totalCollectedStars = 0
                     group.scorePool = 0 // 初始化計分池
+                    group.classTotalInvincibleScore = 0
                 })
             }
 
@@ -464,6 +469,11 @@ export const useClassesStore = defineStore('classes', () => {
             classData.classTotalScore = 0
             classData.classTotalInvincibleCount = 0
             classData.classInvincibleUntil = null
+
+            // 3.6. 記錄活動時間與事件
+            classData.groupingStartedAt = new Date()
+            classData.groupingEndedAt = null
+            classData.invincibleEvents = []
 
             // 4. 啟動分組模式
             classData.groupingActive = true
@@ -479,6 +489,7 @@ export const useClassesStore = defineStore('classes', () => {
         // 結束分組模式
         classData.groupingActive = false
         classData.updatedAt = new Date()
+        classData.groupingEndedAt = new Date()
 
         // 重置無敵狀態和星星
         if (Array.isArray(classData.groups)) {
@@ -597,6 +608,13 @@ export const useClassesStore = defineStore('classes', () => {
         const classData = classes.value.find((c) => c.id === classId)
         if (!classData || !classData.groupingActive) return
 
+        if (!classData.groupingStartedAt) {
+            classData.groupingStartedAt = new Date()
+        }
+        if (!Array.isArray(classData.invincibleEvents)) {
+            classData.invincibleEvents = []
+        }
+
         const group = classData.groups.find((g) => g.id === groupId)
         if (!group) return
 
@@ -635,6 +653,17 @@ export const useClassesStore = defineStore('classes', () => {
         // 追蹤全班模式下的無敵加分
         if (isClassTotalMode && isInvincibleScore) {
             group.classTotalInvincibleScore = (group.classTotalInvincibleScore || 0) + finalScore
+        }
+
+        if (isInvincibleScore) {
+            const event: InvincibleEventLog = {
+                id: `invincible_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+                groupId: group.id,
+                groupName: group.name,
+                points: finalScore,
+                timestamp: new Date(),
+            }
+            classData.invincibleEvents.push(event)
         }
 
         // 2. 為每位出席組員更新分數 (session 和 永久)
@@ -1164,8 +1193,47 @@ export const useClassesStore = defineStore('classes', () => {
                               typeof group?.invincibleStarQueue === 'number'
                                   ? group.invincibleStarQueue
                                   : 0,
+                          classTotalInvincibleScore:
+                              typeof group?.classTotalInvincibleScore === 'number'
+                                  ? group.classTotalInvincibleScore
+                                  : 0,
                       }
                   })
+                : []
+
+            const normalizedInvincibleEvents: InvincibleEventLog[] = Array.isArray(
+                cls.invincibleEvents,
+            )
+                ? cls.invincibleEvents
+                      .map((event: any, index: number) => {
+                          if (!event) return null
+                          const timestamp = parseDate(event.timestamp)
+                          const id =
+                              typeof event.id === 'string' && event.id.trim()
+                                  ? event.id
+                                  : `invincible_${timestamp.getTime()}_${index}`
+                          const groupId =
+                              typeof event.groupId === 'string' && event.groupId.trim()
+                                  ? event.groupId
+                                  : `group_${index}`
+                          const groupName =
+                              typeof event.groupName === 'string' && event.groupName.trim()
+                                  ? event.groupName
+                                  : '未命名組'
+                          const points =
+                              typeof event.points === 'number'
+                                  ? event.points
+                                  : Number(event.points) || 0
+
+                          return {
+                              id,
+                              groupId,
+                              groupName,
+                              points,
+                              timestamp,
+                          }
+                      })
+                      .filter((event): event is InvincibleEventLog => Boolean(event))
                 : []
 
             const normalized: ClassInfo = {
@@ -1178,6 +1246,21 @@ export const useClassesStore = defineStore('classes', () => {
                         ? cls.groupCount
                         : Math.max(2, normalizedGroups.length || 4),
                 groupingActive: Boolean(cls.groupingActive),
+                classTotalScore:
+                    typeof cls.classTotalScore === 'number' ? cls.classTotalScore : 0,
+                classTotalInvincibleCount:
+                    typeof cls.classTotalInvincibleCount === 'number'
+                        ? cls.classTotalInvincibleCount
+                        : 0,
+                classInvincibleUntil:
+                    typeof cls.classInvincibleUntil === 'number'
+                        ? cls.classInvincibleUntil
+                        : typeof cls.classInvincibleUntil === 'string'
+                          ? Number(cls.classInvincibleUntil) || null
+                          : null,
+                groupingStartedAt: cls.groupingStartedAt ? parseDate(cls.groupingStartedAt) : null,
+                groupingEndedAt: cls.groupingEndedAt ? parseDate(cls.groupingEndedAt) : null,
+                invincibleEvents: normalizedInvincibleEvents,
                 createdAt: parseDate(cls.createdAt),
                 updatedAt: parseDate(cls.updatedAt),
                 // 填充獎勵機制設定

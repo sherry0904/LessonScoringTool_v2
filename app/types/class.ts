@@ -5,6 +5,17 @@ export interface RewardMilestoneMessage {
     message: string
 }
 
+export interface InvincibleEventLog {
+    id: string
+    groupId: string
+    groupName: string
+    points: number
+    /**
+     * 觸發的實際時間
+     */
+    timestamp: Date
+}
+
 /**
  * 全班總分模式專用設定
  */
@@ -130,6 +141,15 @@ export interface ClassInfo {
      * null 表示目前不在無敵狀態
      */
     classInvincibleUntil?: number | null
+    /**
+     * 分組活動開始與結束的時間戳
+     */
+    groupingStartedAt?: Date | null
+    groupingEndedAt?: Date | null
+    /**
+     * 紀錄本次活動中每一次無敵加分事件
+     */
+    invincibleEvents?: InvincibleEventLog[]
 }
 
 export interface ClassSession {
