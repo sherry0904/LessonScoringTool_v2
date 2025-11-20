@@ -599,30 +599,13 @@ const isClassTotalMode = computed(() => {
 
 const classTotalThreshold = computed(() => {
     if (!activeRewardSettings.value) {
-        console.log('🎯 classTotalThreshold: activeRewardSettings 為 null，使用預設值 200')
         return REWARD_DEFAULTS.classTotalMode.pointsPerInvincible
     }
-    const result = getClassTotalThreshold(activeRewardSettings.value)
-    console.log('🎯 classTotalThreshold computed:', {
-        result,
-        mode: activeRewardSettings.value?.mode,
-        classTotalTargetPoints: activeRewardSettings.value?.classTotalTargetPoints,
-        templateId: props.classInfo.appliedRewardTemplateId,
-    })
-    return result
+    return getClassTotalThreshold(activeRewardSettings.value)
 })
 
 // 調試：監視全班門檻值
-watch(classTotalThreshold, (newThreshold) => {
-    if (isClassTotalMode.value) {
-        console.log('🎯 全班門檻更新:', {
-            threshold: newThreshold,
-            mode: activeRewardSettings.value?.mode,
-            classTotalTargetPoints: activeRewardSettings.value?.classTotalTargetPoints,
-            templateId: props.classInfo.appliedRewardTemplateId,
-        })
-    }
-})
+// 保留計算屬性即可，額外偵測僅供過去除錯使用，現已移除
 
 const classTotalInvincibleDuration = computed(() => {
     if (!activeRewardSettings.value) {
@@ -798,8 +781,8 @@ const playCelebrationAudio = () => {
     }
 
     celebrationAudio.currentTime = 0
-    celebrationAudio.play().catch((error) => {
-        console.warn('無法播放無敵星星音效：', error)
+    celebrationAudio.play().catch(() => {
+        /* suppress audio errors */
     })
 }
 
@@ -816,8 +799,8 @@ const playStarAudio = () => {
     }
 
     starAudio.currentTime = 0
-    starAudio.play().catch((error) => {
-        console.warn('無法播放星星音效：', error)
+    starAudio.play().catch(() => {
+        /* suppress audio errors */
     })
 }
 

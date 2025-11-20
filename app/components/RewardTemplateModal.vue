@@ -382,10 +382,6 @@ const activeGroupingClassesUsingTemplate = computed(() => {
         }
     })
 
-    console.log(
-        `🎯 RewardTemplateModal: templateId=${template.id}, isCreatingNew=${isCreatingNew.value}, matchingClasses=${matchingClasses.length}`,
-    )
-
     return matchingClasses
 })
 
@@ -600,10 +596,6 @@ const open = (overrideSettings?: RewardSettings) => {
             template.settings = ensureMilestones(getDefaultSettings())
         }
         template.isDefault = false
-        console.log('🎯 打開新範本 Modal，使用 defaultSettings:', {
-            mode: template.settings.mode,
-            defaultSettingsMode: props.defaultSettings?.mode,
-        })
     }
     if (dialogRef.value) {
         dialogRef.value.showModal()

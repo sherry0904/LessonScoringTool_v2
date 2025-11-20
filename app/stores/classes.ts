@@ -110,27 +110,10 @@ export const useClassesStore = defineStore('classes', () => {
         // 當切換範本時，需要重新計算全班無敵觸發次數
         if (templateId) {
             const template = rewardsStore.getTemplateById(templateId)
-            console.log('🎯 applyTemplateToClass 檢查模式:', {
-                templateId,
-                hasTemplate: !!template,
-                hasSettings: !!template?.settings,
-                mode: template?.settings?.mode,
-                classTotalScore: classData.classTotalScore,
-                groupingActive: classData.groupingActive,
-            })
             if (template?.settings && template.settings.mode === 'class-total') {
                 const totalScore = classData.classTotalScore || 0
                 const threshold = getClassTotalThreshold(template.settings)
                 const newTriggerCount = Math.floor(totalScore / threshold)
-
-                console.log('✅ 重新計算 classTotalInvincibleCount:', {
-                    oldTriggerCount,
-                    totalScore,
-                    threshold,
-                    newTriggerCount,
-                    calculation: `Math.floor(${totalScore} / ${threshold}) = ${newTriggerCount}`,
-                })
-
                 classData.classTotalInvincibleCount = newTriggerCount
             }
         }

@@ -201,13 +201,6 @@ export const getClassTotalThreshold = (settings: RewardSettings): number => {
         settings.classTotalMode?.pointsPerInvincible ??
         REWARD_DEFAULTS.classTotalMode.pointsPerInvincible
 
-    console.log('🎯 getClassTotalThreshold 調試:', {
-        classTotalTargetPoints: settings.classTotalTargetPoints,
-        classTotalMode_pointsPerInvincible: settings.classTotalMode?.pointsPerInvincible,
-        rawValue,
-        selectedValue: rawValue,
-    })
-
     return clampValue(
         rawValue,
         REWARD_CONSTRAINTS.classTotalPointsPerInvincible.min,

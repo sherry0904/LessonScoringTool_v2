@@ -182,11 +182,11 @@ const playSound = () => {
     try {
         const audio = new Audio('/super-star.mp3')
         audio.volume = 0.65
-        audio.play().catch((error) => {
-            console.warn('無法播放慶祝音效：', error)
+        audio.play().catch(() => {
+            /* 靜默忽略音效錯誤 */
         })
-    } catch (error) {
-        console.warn('音效載入失敗：', error)
+    } catch {
+        /* ignore audio load errors */
     }
 }
 

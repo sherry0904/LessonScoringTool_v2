@@ -250,17 +250,6 @@ const emit = defineEmits<{
     cancel: []
 }>()
 
-// 調試：監控 groupingActive
-watch(
-    () => props.classInfo.groupingActive,
-    (newVal) => {
-        console.log(
-            `🎯 RewardSettingsForm: classInfo.groupingActive = ${newVal}, classId = ${props.classInfo.id}`,
-        )
-    },
-    { immediate: true },
-)
-
 const rewardsStore = useRewardsStore()
 
 // 本地狀態

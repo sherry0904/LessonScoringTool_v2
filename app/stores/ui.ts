@@ -349,12 +349,10 @@ export const useUIStore = defineStore('ui', () => {
 
                     if (playPromise !== undefined) {
                         await playPromise
-                        console.log(`✓ Alarm played successfully with ${format.src}`)
                         played = true
                         break
                     }
                 } catch (error) {
-                    console.warn(`✗ Failed to play ${format.src}:`, error)
                     lastError = error
                     continue
                 }
@@ -364,7 +362,7 @@ export const useUIStore = defineStore('ui', () => {
                 console.error('All audio formats failed:', lastError)
                 if (lastError.name === 'NotAllowedError') {
                     // 瀏覽器自動播放政策限制，不顯示警告
-                    console.log('Autoplay policy restriction detected')
+                    // 靜默處理自動播放限制
                 } else if (lastError.name === 'NotSupportedError') {
                     showWarning('瀏覽器不支援此音效格式，請檢查音檔是否存在')
                 } else {

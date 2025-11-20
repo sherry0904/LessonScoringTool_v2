@@ -103,12 +103,6 @@ function normalizeRewardSettings(settings: Partial<RewardSettings>): RewardSetti
     const enabled = settings.enabled ?? true
     const mode = settings.mode ?? REWARD_DEFAULTS.mode
 
-    console.log('🎯 normalizeRewardSettings 輸入:', {
-        mode: settings.mode,
-        classTotalTargetPoints: settings.classTotalTargetPoints,
-        classTotalMode: settings.classTotalMode,
-    })
-
     const pointsPerStar = Math.max(
         REWARD_CONSTRAINTS.pointsPerStar.min,
         Math.min(
@@ -182,12 +176,6 @@ function normalizeRewardSettings(settings: Partial<RewardSettings>): RewardSetti
 
     // 規範化全班協作模式的目標分數
     const classTotalTargetPoints = sanitizedClassTotalTarget
-
-    console.log('🎯 normalizeRewardSettings 輸出:', {
-        mode,
-        classTotalTargetPoints,
-        classTotalMode_pointsPerInvincible: classTotalMode.pointsPerInvincible,
-    })
 
     return {
         enabled,
@@ -266,13 +254,6 @@ export const useRewardsStore = defineStore('rewards', () => {
     }
 
     function updateTemplate(templateId: string, updates: Partial<RewardTemplate>) {
-        console.log('🎯 updateTemplate 被呼叫:', {
-            templateId,
-            hasUpdates: !!updates,
-            hasSettings: !!updates?.settings,
-            updates: Object.keys(updates || {}),
-        })
-
         const index = rewardTemplates.value.findIndex((t) => t.id === templateId)
         if (index === -1) {
             throw new Error(`找不到 ID 為 ${templateId} 的範本`)
@@ -308,17 +289,7 @@ export const useRewardsStore = defineStore('rewards', () => {
                     c.rewardSettingsMode === 'template' && c.appliedRewardTemplateId === templateId,
             )
 
-            console.log('🎯 updateTemplate 發現受影響的班級:', {
-                templateId,
-                affectedClassCount: affectedClasses.length,
-                affectedClassIds: affectedClasses.map((c) => c.id),
-            })
-
             for (const classData of affectedClasses) {
-                console.log('🎯 重新應用範本到班級:', {
-                    classId: classData.id,
-                    templateId,
-                })
                 classesStore.applyTemplateToClass(classData.id, templateId)
             }
         }

@@ -106,18 +106,8 @@ const props = defineProps<{
     invincibleDurationSeconds?: number
 }>()
 
-console.log('🎯 ClassTotalBottomBar 接收到的 props:', {
-    pointsPerInvincible: props.pointsPerInvincible,
-    triggerCount: props.triggerCount,
-})
-
 const nextThreshold = computed(() => {
     const result = (props.triggerCount + 1) * props.pointsPerInvincible
-    console.log('🎯 nextThreshold 計算:', {
-        triggerCount: props.triggerCount,
-        pointsPerInvincible: props.pointsPerInvincible,
-        result,
-    })
     return result
 })
 
