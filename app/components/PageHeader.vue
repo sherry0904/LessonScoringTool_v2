@@ -26,15 +26,11 @@ interface Props {
 defineProps<Props>()
 
 const router = useRouter()
-const route = useRoute()
-
 const goBack = () => {
-    // 如果當前路由是 /rewards，返回到儀表板首頁
-    if (route.path === '/rewards') {
-        router.push('/')
-    } else {
-        // 其他情況使用瀏覽器返回
+    if (process.client && window.history.length > 1) {
         router.back()
+    } else {
+        router.push('/')
     }
 }
 </script>

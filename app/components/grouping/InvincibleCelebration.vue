@@ -1,12 +1,7 @@
 <template>
     <Teleport to="body">
         <transition name="celebration-fade">
-            <div
-                v-if="visible"
-                class="celebration-overlay"
-                role="status"
-                aria-live="assertive"
-            >
+            <div v-if="visible" class="celebration-overlay" role="status" aria-live="assertive">
                 <div class="celebration-backdrop"></div>
                 <div class="celebration-content">
                     <div class="glow-ring"></div>
@@ -15,9 +10,7 @@
                         <span class="star-shadow">★</span>
                     </div>
                     <p class="subtitle">Invincible Mode Activated</p>
-                    <h2 class="headline">
-                        {{ groupName }} 進入無敵星星！
-                    </h2>
+                    <h2 class="headline">{{ groupName }} 進入無敵星星！</h2>
                     <p class="details">
                         接下來
                         <strong>{{ duration }}</strong>
@@ -30,7 +23,11 @@
                     </button>
                 </div>
                 <div class="particle-layer">
-                    <span v-for="index in 14" :key="index" :class="['particle', `particle-${index}`]"></span>
+                    <span
+                        v-for="index in 14"
+                        :key="index"
+                        :class="['particle', `particle-${index}`]"
+                    ></span>
                 </div>
             </div>
         </transition>
@@ -79,7 +76,9 @@ defineEmits<{
     border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 28px;
     background: linear-gradient(145deg, rgba(26, 26, 28, 0.92), rgba(55, 55, 65, 0.88));
-    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.35), 0 0 120px rgba(255, 214, 102, 0.4);
+    box-shadow:
+        0 40px 90px rgba(0, 0, 0, 0.35),
+        0 0 120px rgba(255, 214, 102, 0.4);
     color: #fffbea;
     text-align: center;
 }
@@ -155,7 +154,9 @@ defineEmits<{
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 600;
-    transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+    transition:
+        transform 0.18s ease-out,
+        box-shadow 0.18s ease-out;
 }
 
 .dismiss-btn:hover {

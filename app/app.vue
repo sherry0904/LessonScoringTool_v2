@@ -105,14 +105,14 @@
                 </div>
 
                 <!-- 導航選單 -->
-                <nav class="p-2">
+                <nav class="p-2 flex-1 overflow-y-auto sidebar-nav custom-scrollbar">
                     <ul class="space-y-1">
                         <li v-for="tab in ui.tabs" :key="tab.id">
                             <NuxtLink
                                 :to="tabRoute(tab.id)"
                                 @click.prevent="goTab(tab.id)"
                                 :class="[
-                                    'w-full flex items-center p-3 rounded-lg transition-colors duration-200',
+                                    'nav-item w-full flex items-center p-3 rounded-lg transition-colors duration-200',
                                     ui.currentTab === tab.id
                                         ? 'bg-primary text-primary-content'
                                         : 'hover:bg-base-300 text-base-content',
@@ -135,7 +135,7 @@
                         <li>
                             <button
                                 @click="ui.toggleTimer()"
-                                class="w-full flex items-center p-3 rounded-lg transition-colors duration-200 hover:bg-base-300 text-base-content"
+                                class="nav-item w-full flex items-center p-3 rounded-lg transition-colors duration-200 hover:bg-base-300 text-base-content"
                                 :title="!ui.isSidebarOpen ? '課堂計時器' : ''"
                             >
                                 <LucideIcon name="Hourglass" class="w-5 h-5 shrink-0" />
@@ -150,7 +150,7 @@
                             <button
                                 @click="ui.openPicker()"
                                 :disabled="!classesStore.currentClass"
-                                class="w-full flex items-center p-3 rounded-lg transition-colors duration-200 text-base-content"
+                                class="nav-item w-full flex items-center p-3 rounded-lg transition-colors duration-200 text-base-content"
                                 :class="{
                                     'hover:bg-base-300': !!classesStore.currentClass,
                                     'opacity-50 cursor-not-allowed': !classesStore.currentClass,
@@ -175,31 +175,12 @@
                 </nav>
 
                 <!-- 底部工具 -->
-                <div class="mt-auto mb-4 px-2 w-full">
+                <div class="mt-auto mb-4 px-2 w-full sidebar-footer">
                     <div class="space-y-2 flex flex-col items-start">
-                        <!-- 主題切換 -->
-                        <button
-                            @click="ui.toggleTheme()"
-                            class="flex items-center p-3 rounded-lg hover:bg-base-300 text-base-content transition-colors"
-                            :class="ui.isSidebarOpen ? 'w-full' : 'w-auto'"
-                            :title="!ui.isSidebarOpen ? '切換主題' : ''"
-                        >
-                            <LucideIcon
-                                :name="ui.isDarkMode ? 'Sun' : 'Moon'"
-                                class="w-5 h-5 shrink-0"
-                            />
-                            <span
-                                v-if="ui.isSidebarOpen"
-                                class="ml-3 font-medium whitespace-nowrap"
-                            >
-                                切換主題
-                            </span>
-                        </button>
-
                         <!-- 側邊欄切換 -->
                         <button
                             @click="ui.toggleSidebar()"
-                            class="flex items-center p-3 rounded-lg hover:bg-base-300 text-base-content transition-colors"
+                            class="nav-item flex items-center p-3 rounded-lg hover:bg-base-300 text-base-content transition-colors"
                             :class="ui.isSidebarOpen ? 'w-full' : 'w-auto'"
                             :title="!ui.isSidebarOpen ? '展開選單' : '收合選單'"
                         >
@@ -440,6 +421,57 @@ useHead({
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: theme('colors.base-content/30');
+}
+
+.sidebar-nav {
+    padding-right: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+    background: theme('colors.base-content/20');
+}
+
+.nav-item {
+    min-height: 2.5rem;
+}
+
+.sidebar-footer .nav-item {
+    width: 100%;
+}
+
+@media (max-height: 720px) {
+    .nav-item {
+        padding-top: 0.45rem !important;
+        padding-bottom: 0.45rem !important;
+    }
+
+    .sidebar-nav {
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+    }
+
+    .sidebar-footer {
+        padding-bottom: 0.5rem;
+    }
+
+    .sidebar-footer .nav-item span {
+        font-size: 0.85rem;
+    }
 }
 
 /* 漸層文字效果 */

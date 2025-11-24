@@ -56,9 +56,9 @@
 
 ```vue
 <template>
-  <div>
-    <p>{{ greeting }}</p>
-  </div>
+    <div>
+        <p>{{ greeting }}</p>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -66,12 +66,12 @@ import { ref, computed } from 'vue'
 import type { Student } from '~/types'
 
 interface Props {
-  student: Student
-  isActive?: boolean
+    student: Student
+    isActive?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  isActive: false,
+    isActive: false,
 })
 
 const greeting = computed(() => `Hello, ${props.student.name}`)
@@ -90,9 +90,9 @@ const currentClass = computed(() => classesStore.currentClass)
 
 // 執行 action
 const updateScore = (studentId: string, newScore: number) => {
-  if (currentClass.value) {
-    classesStore.updateStudentScore(currentClass.value.id, studentId, newScore)
-  }
+    if (currentClass.value) {
+        classesStore.updateStudentScore(currentClass.value.id, studentId, newScore)
+    }
 }
 ```
 

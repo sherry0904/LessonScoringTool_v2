@@ -1,9 +1,6 @@
 <template>
     <div class="p-6 max-w-5xl mx-auto space-y-10">
-        <PageHeader 
-            title="系統設定" 
-            description="調整偏好、外觀與資料"
-        />
+        <PageHeader title="系統設定" description="調整偏好、外觀與資料" />
 
         <!-- 外觀 / 偏好 -->
         <div class="grid gap-6 md:grid-cols-2">
@@ -92,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import PageHeader from '~/components/PageHeader.vue';
+import PageHeader from '~/components/PageHeader.vue'
 
 const ui = useUIStore()
 const classesStore = useClassesStore()

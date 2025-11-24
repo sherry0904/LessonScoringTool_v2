@@ -9,20 +9,36 @@ import {
     buildDefaultMilestoneMessages,
     validateRewardSetting,
 } from '~/constants/rewards'
+import { useClassesStore } from '~/stores/classes'
 
 const REWARDS_STORAGE_KEY = 'reward-templates-data'
 
 const createDefaultTemplate = (): RewardTemplate => ({
     id: `template_${Date.now()}`,
-    name: '預設獎勵規則',
-    isDefault: true,
+    name: '預設獎勵規則（各組獨立）',
+    isDefault: false, // 不再自動設為預設
     settings: {
         enabled: true,
+        mode: 'group-based',
         pointsPerStar: REWARD_DEFAULTS.pointsPerStar,
         starsToInvincible: REWARD_DEFAULTS.starsToInvincible,
         invincibleDurationSeconds: REWARD_DEFAULTS.invincibleDurationSeconds,
         invinciblePointsPerClick: REWARD_DEFAULTS.invinciblePointsPerClick,
         milestoneMessages: [...REWARD_DEFAULTS.milestoneMessages],
+    },
+})
+
+const createClassTotalDefaultTemplate = (): RewardTemplate => ({
+    id: `template_class_total_${Date.now()}`,
+    name: '預設獎勵規則（全班協作）',
+    isDefault: false, // 不再自動設為預設
+    settings: {
+        enabled: true,
+        mode: 'class-total',
+        classTotalTargetPoints: 200,
+        invincibleDurationSeconds: 600, // 10 分鐘
+        invinciblePointsPerClick: 2,
+        milestoneMessages: [],
     },
 })
 
@@ -85,6 +101,8 @@ function sanitizeMilestoneMessages(
 
 function normalizeRewardSettings(settings: Partial<RewardSettings>): RewardSettings {
     const enabled = settings.enabled ?? true
+    const mode = settings.mode ?? REWARD_DEFAULTS.mode
+
     const pointsPerStar = Math.max(
         REWARD_CONSTRAINTS.pointsPerStar.min,
         Math.min(
@@ -119,13 +137,56 @@ function normalizeRewardSettings(settings: Partial<RewardSettings>): RewardSetti
         starsToInvincible,
     )
 
+    // 規範化全班總分模式設定
+    const resolvedClassTotalTargetRaw =
+        settings.classTotalTargetPoints ??
+        settings.classTotalMode?.pointsPerInvincible ??
+        REWARD_DEFAULTS.classTotalMode.pointsPerInvincible
+
+    const sanitizedClassTotalTarget = Math.max(
+        REWARD_CONSTRAINTS.classTotalPointsPerInvincible.min,
+        Math.min(resolvedClassTotalTargetRaw, REWARD_CONSTRAINTS.classTotalPointsPerInvincible.max),
+    )
+
+    const resolvedClassTotalDurationRaw =
+        settings.classTotalMode?.invincibleDurationSeconds ??
+        (settings.mode === 'class-total' ? invincibleDurationSeconds : undefined) ??
+        REWARD_DEFAULTS.classTotalMode.invincibleDurationSeconds
+
+    const sanitizedClassTotalDuration = Math.max(
+        REWARD_CONSTRAINTS.invincibleDurationSeconds.min,
+        Math.min(resolvedClassTotalDurationRaw, REWARD_CONSTRAINTS.invincibleDurationSeconds.max),
+    )
+
+    const resolvedClassTotalPointsRaw =
+        settings.classTotalMode?.invinciblePointsPerClick ??
+        (settings.mode === 'class-total' ? invinciblePointsPerClick : undefined) ??
+        REWARD_DEFAULTS.classTotalMode.invinciblePointsPerClick
+
+    const sanitizedClassTotalPointsPerClick = Math.max(
+        REWARD_CONSTRAINTS.invinciblePointsPerClick.min,
+        Math.min(resolvedClassTotalPointsRaw, REWARD_CONSTRAINTS.invinciblePointsPerClick.max),
+    )
+
+    const classTotalMode = {
+        pointsPerInvincible: sanitizedClassTotalTarget,
+        invincibleDurationSeconds: sanitizedClassTotalDuration,
+        invinciblePointsPerClick: sanitizedClassTotalPointsPerClick,
+    }
+
+    // 規範化全班協作模式的目標分數
+    const classTotalTargetPoints = sanitizedClassTotalTarget
+
     return {
         enabled,
+        mode,
         pointsPerStar,
         starsToInvincible,
         invincibleDurationSeconds,
         invinciblePointsPerClick,
         milestoneMessages,
+        classTotalMode,
+        classTotalTargetPoints,
     }
 }
 
@@ -133,9 +194,8 @@ export const useRewardsStore = defineStore('rewards', () => {
     const rewardTemplates = ref<RewardTemplate[]>([])
     const isLoaded = ref(false)
 
-    const defaultTemplate = computed(
-        () => rewardTemplates.value.find((t) => t.isDefault) || rewardTemplates.value[0],
-    )
+    // defaultTemplate 保留但僅用於向後兼容，不建議使用
+    const defaultTemplate = computed(() => rewardTemplates.value[0] || null)
 
     function saveToStorage() {
         if (!process.client) return
@@ -158,19 +218,15 @@ export const useRewardsStore = defineStore('rewards', () => {
                     settings: normalizeRewardSettings(t.settings),
                 }))
             } else {
-                rewardTemplates.value = [createDefaultTemplate()]
+                // 初始化時創建兩個預設範本（各組獨立 + 全班協作）
+                rewardTemplates.value = [createDefaultTemplate(), createClassTotalDefaultTemplate()]
             }
 
-            if (!rewardTemplates.value.some((t) => t.isDefault)) {
-                if (rewardTemplates.value.length > 0) {
-                    rewardTemplates.value[0].isDefault = true
-                } else {
-                    rewardTemplates.value.push(createDefaultTemplate())
-                }
-            }
+            // 移除自動設定預設範本的邏輯
+            // 不再需要 isDefault 欄位
         } catch (error) {
             console.error('載入獎勵範本失敗:', error)
-            rewardTemplates.value = [createDefaultTemplate()]
+            rewardTemplates.value = [createDefaultTemplate(), createClassTotalDefaultTemplate()]
         } finally {
             isLoaded.value = true
             saveToStorage()
@@ -224,19 +280,25 @@ export const useRewardsStore = defineStore('rewards', () => {
         }
 
         saveToStorage()
+
+        // 當範本設定改變時，重新應用到所有正在使用該範本的班級
+        if (updates.settings) {
+            const classesStore = useClassesStore()
+            const affectedClasses = classesStore.classes.filter(
+                (c) =>
+                    c.rewardSettingsMode === 'template' && c.appliedRewardTemplateId === templateId,
+            )
+
+            for (const classData of affectedClasses) {
+                classesStore.applyTemplateToClass(classData.id, templateId)
+            }
+        }
     }
 
     function deleteTemplate(templateId: string) {
         const index = rewardTemplates.value.findIndex((t) => t.id === templateId)
         if (index > -1) {
-            const wasDefault = rewardTemplates.value[index].isDefault
             rewardTemplates.value.splice(index, 1)
-            if (wasDefault && rewardTemplates.value.length > 0) {
-                rewardTemplates.value[0].isDefault = true
-            }
-            if (rewardTemplates.value.length === 0) {
-                rewardTemplates.value.push(createDefaultTemplate())
-            }
             saveToStorage()
             return true
         }
@@ -261,7 +323,7 @@ export const useRewardsStore = defineStore('rewards', () => {
     }
 
     function resetToDefault() {
-        rewardTemplates.value = [createDefaultTemplate()]
+        rewardTemplates.value = [createDefaultTemplate(), createClassTotalDefaultTemplate()]
         saveToStorage()
     }
 
@@ -287,6 +349,38 @@ export const useRewardsStore = defineStore('rewards', () => {
         return true
     }
 
+
+    function moveTemplateWithinMode(
+        mode: RewardSettings['mode'],
+        templateId: string,
+        toIndex: number,
+    ) {
+        const templatesInMode = rewardTemplates.value.filter((t) => t.settings.mode === mode)
+        const fromModeIndex = templatesInMode.findIndex((t) => t.id === templateId)
+        if (fromModeIndex === -1) {
+            return false
+        }
+
+        const [removed] = templatesInMode.splice(fromModeIndex, 1)
+        const safeInsertionIndex = Math.max(0, Math.min(toIndex, templatesInMode.length))
+        templatesInMode.splice(safeInsertionIndex, 0, removed)
+
+        const reordered: RewardTemplate[] = []
+        let modePointer = 0
+
+        for (const template of rewardTemplates.value) {
+            if (template.settings.mode === mode) {
+                reordered.push(templatesInMode[modePointer++])
+            } else {
+                reordered.push(template)
+            }
+        }
+
+        rewardTemplates.value = reordered
+        saveToStorage()
+        return true
+    }
+
     return {
         rewardTemplates,
         isLoaded,
@@ -299,6 +393,7 @@ export const useRewardsStore = defineStore('rewards', () => {
         getTemplateById,
         resetToDefault,
         moveTemplate,
+        moveTemplateWithinMode,
         // 匯出驗證函數供組件使用
         normalizeRewardSettings,
     }

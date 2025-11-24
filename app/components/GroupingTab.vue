@@ -1,12 +1,26 @@
 <template>
-    <div class="space-y-6">
+    <div class="space-y-6 relative">
+        <!-- 各組模式慶祝動畫 -->
         <InvincibleCelebration
+            v-if="!isClassTotalMode"
             :visible="invincibleCelebrationState.visible"
             :group-name="invincibleCelebrationState.groupName"
             :duration="invincibleCelebrationState.duration"
             :points-per-click="invincibleCelebrationState.pointsPerClick"
             @close="hideInvincibleCelebration"
         />
+
+        <!-- 全班模式慶祝動畫 -->
+        <ClassInvincibleBurstCelebration
+            v-if="isClassTotalMode"
+            :visible="classTotalCelebrationState.visible"
+            :achieved-score="classTotalCelebrationState.achievedScore"
+            :duration="classTotalCelebrationState.duration"
+            :show-countdown="true"
+            :countdown-seconds="classTotalRemainingSeconds"
+            @close="hideClassTotalCelebration"
+        />
+
         <GroupingControlPanel
             :grouping-active="classInfo.groupingActive"
             :is-group-edit-mode="isGroupEditMode"
@@ -34,13 +48,13 @@
             "
             @startGroupEditing="startGroupEditing"
             @startGrouping="startGrouping"
-            @exportActivityReport="exportActivityReport"
+            @exportActivityReport="(markAsEnded: boolean) => exportActivityReport(markAsEnded)"
             @showGroupScoreboard="showGroupScoreboard"
             @endGrouping="endGrouping"
         />
 
         <!-- 分組容器 -->
-        <div class="flex gap-6 h-[calc(100vh-220px)]">
+        <div :class="['flex gap-6 h-[calc(100vh-220px)]', isClassTotalMode && 'pb-10']">
             <GroupingSidebar
                 :collapsed="isUngroupedCollapsed"
                 :grouping-active="classInfo.groupingActive"
@@ -51,7 +65,7 @@
                 :can-modify-groups="canModifyGroups"
                 :leaderboard-groups="leaderboardGroups"
                 :group-star-counts="groupStarCounts"
-                :show-reward-stars="activeRewardSettings?.enabled ?? false"
+                :show-reward-stars="showGroupStarUI"
                 :show-group-total-scores="groupingSettings.showGroupTotalScores"
                 @toggle-collapse="(val: boolean) => (isUngroupedCollapsed = val)"
                 @update:ungroupedSearch="(val: string) => (ungroupedSearch = val)"
@@ -180,7 +194,7 @@
                                 />
 
                                 <GroupRewardStatus
-                                    v-if="activeRewardSettings?.enabled"
+                                    v-if="showGroupStarUI"
                                     :group="group"
                                     :formatted-timer="formatCountdownTimer(timers[group.id] || 0)"
                                     :total-stars="getTotalStarsForDisplay(group)"
@@ -247,6 +261,18 @@
             </main>
         </div>
 
+        <!-- 全班模式底部狀態列 -->
+        <ClassTotalBottomBar
+            v-if="isClassTotalMode && classInfo.groupingActive"
+            :current-total="classTotalScore"
+            :points-per-invincible="classTotalThreshold"
+            :trigger-count="classInfo.classTotalInvincibleCount || 0"
+            :is-invincible="classTotalRemainingSeconds > 0"
+            :invincible-seconds-remaining="classTotalRemainingSeconds"
+            :invincible-points="classTotalInvinciblePoints"
+            :invincible-duration-seconds="classTotalInvincibleTotalDuration"
+        />
+
         <!-- 獎勵機制說明 -->
         <dialog ref="rewardInfoModal" class="modal">
             <div class="modal-box max-w-md space-y-4">
@@ -255,44 +281,83 @@
                     獎勵機制說明
                 </h3>
                 <div v-if="rewardInfoSummary.enabled" class="space-y-3 text-sm leading-relaxed">
-                    <p>
-                        每累積
-                        <span class="font-semibold">{{ rewardInfoSummary.pointsPerStar }}</span>
-                        分可獲得 <span class="font-semibold">1 顆星</span>。
-                    </p>
-                    <ul class="space-y-2">
-                        <li class="flex items-start gap-2">
-                            <LucideIcon name="Star" class="w-4 h-4 mt-0.5 text-yellow-400" />
-                            <span
-                                >集滿
-                                {{ rewardInfoSummary.starsToInvincible }}
-                                顆星即可啟動無敵星星模式。</span
-                            >
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <LucideIcon name="Timer" class="w-4 h-4 mt-0.5 text-info" />
-                            <span
-                                >無敵狀態將持續
-                                {{
-                                    formatDurationDisplay(
-                                        rewardInfoSummary.invincibleDurationSeconds,
-                                    )
-                                }}。</span
-                            >
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <LucideIcon name="Target" class="w-4 h-4 mt-0.5 text-success" />
-                            <span
-                                >無敵期間每次加分 = +{{
-                                    rewardInfoSummary.invinciblePointsPerClick
-                                }}
-                                分。</span
-                            >
-                        </li>
-                    </ul>
-                    <p class="text-xs text-base-content/60">
-                        當任何小組啟動無敵星星模式，系統會跳出提醒，請把握黃金時段！
-                    </p>
+                    <!-- 全班協作模式 -->
+                    <template v-if="rewardInfoSummary.mode === 'class-total'">
+                        <p>
+                            全班累積達到
+                            <span class="font-semibold">{{
+                                rewardInfoSummary.classTotalTargetPoints
+                            }}</span>
+                            分即可啟動無敵星星模式。
+                        </p>
+                        <ul class="space-y-2">
+                            <li class="flex items-start gap-2">
+                                <LucideIcon name="Timer" class="w-4 h-4 mt-0.5 text-info" />
+                                <span
+                                    >無敵狀態將持續
+                                    {{
+                                        formatDurationDisplay(
+                                            rewardInfoSummary.invincibleDurationSeconds,
+                                        )
+                                    }}。</span
+                                >
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <LucideIcon name="Target" class="w-4 h-4 mt-0.5 text-success" />
+                                <span
+                                    >無敵期間每次加分 = +{{
+                                        rewardInfoSummary.invinciblePointsPerClick
+                                    }}
+                                    分。</span
+                                >
+                            </li>
+                        </ul>
+                        <p class="text-xs text-base-content/60">
+                            當全班達成目標啟動無敵星星模式，系統會跳出提醒，請把握黃金時段！
+                        </p>
+                    </template>
+
+                    <!-- 各組獨立模式 -->
+                    <template v-else>
+                        <p>
+                            每累積
+                            <span class="font-semibold">{{ rewardInfoSummary.pointsPerStar }}</span>
+                            分可獲得 <span class="font-semibold">1 顆星</span>。
+                        </p>
+                        <ul class="space-y-2">
+                            <li class="flex items-start gap-2">
+                                <LucideIcon name="Star" class="w-4 h-4 mt-0.5 text-yellow-400" />
+                                <span
+                                    >集滿
+                                    {{ rewardInfoSummary.starsToInvincible }}
+                                    顆星即可啟動無敵星星模式。</span
+                                >
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <LucideIcon name="Timer" class="w-4 h-4 mt-0.5 text-info" />
+                                <span
+                                    >無敵狀態將持續
+                                    {{
+                                        formatDurationDisplay(
+                                            rewardInfoSummary.invincibleDurationSeconds,
+                                        )
+                                    }}。</span
+                                >
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <LucideIcon name="Target" class="w-4 h-4 mt-0.5 text-success" />
+                                <span
+                                    >無敵期間每次加分 = +{{
+                                        rewardInfoSummary.invinciblePointsPerClick
+                                    }}
+                                    分。</span
+                                >
+                            </li>
+                        </ul>
+                        <p class="text-xs text-base-content/60">
+                            當任何小組啟動無敵星星模式，系統會跳出提醒，請把握黃金時段！
+                        </p>
+                    </template>
                 </div>
                 <div v-else class="text-sm text-base-content/70">
                     目前此班級尚未啟用獎勵機制，點擊右上角「獎勵設定」可進行調整。
@@ -351,7 +416,7 @@
                             class="flex items-center gap-2 shrink-0"
                         >
                             <div
-                                v-if="rewardInfoSummary.enabled"
+                                v-if="showGroupStarUI"
                                 class="badge badge-sm gap-1 bg-amber-100 text-amber-600 border border-amber-200"
                             >
                                 <LucideIcon name="Star" class="w-4 h-4" />
@@ -378,7 +443,7 @@
                         <div class="flex justify-between items-center flex-wrap gap-y-2 gap-x-4">
                             <div class="flex gap-2 flex-wrap">
                                 <button
-                                    @click="exportActivityReport"
+                                    @click="() => exportActivityReport(true)"
                                     class="btn btn-info"
                                     :disabled="!activityName.trim()"
                                 >
@@ -410,7 +475,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { ClassInfo, Group, RewardSettings } from '~/types'
 import { useExcelExport } from '~/composables/useExcelExport'
@@ -418,7 +483,14 @@ import { useClassesStore } from '~/stores/classes'
 import { useUIStore } from '~/stores/ui'
 import { useRewardsStore } from '~/stores/rewards'
 import { GROUP_CONFIG, normalizeGroupCount } from '~/constants/grouping'
-import { formatCountdownTimer, formatDurationDisplay } from '~/constants/rewards'
+import {
+    formatCountdownTimer,
+    formatDurationDisplay,
+    getClassTotalThreshold,
+    getClassTotalInvincibleDuration,
+    getClassTotalInvinciblePoints,
+    REWARD_DEFAULTS,
+} from '~/constants/rewards'
 import GroupRewardStatus from '~/components/grouping/GroupRewardStatus.vue'
 import GroupActionButtons from '~/components/grouping/GroupActionButtons.vue'
 import GroupingControlPanel from '~/components/grouping/GroupingControlPanel.vue'
@@ -426,6 +498,8 @@ import GroupingSidebar from '~/components/grouping/GroupingSidebar.vue'
 import GroupCard from '~/components/grouping/GroupCard.vue'
 import GroupMembersList from '~/components/grouping/GroupMembersList.vue'
 import InvincibleCelebration from '~/components/grouping/InvincibleCelebration.vue'
+import ClassTotalBottomBar from '~/components/grouping/ClassTotalBottomBar.vue'
+import ClassInvincibleBurstCelebration from '~/components/grouping/ClassInvincibleBurstCelebration.vue'
 
 interface Props {
     classInfo: ClassInfo
@@ -439,6 +513,17 @@ const { exportToExcel } = useExcelExport()
 
 // Expose Math to template for use in v-for with Math.min
 const Math = globalThis.Math
+
+const formatDateTimeDisplay = (value?: Date | string | number | null) => {
+    if (!value) return '—'
+    const date =
+        value instanceof Date
+            ? value
+            : typeof value === 'number'
+              ? new Date(value)
+              : new Date(value)
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('zh-TW')
+}
 
 // --- Use Store as the Single Source of Truth ---
 const {
@@ -487,7 +572,6 @@ const dragContext = ref<{ studentIds: string[]; sourceGroupId: string | null }>(
 })
 const isGroupEditMode = ref(false)
 const isGroupLocked = ref(true)
-let statusCheckInterval: NodeJS.Timeout | null = null
 const timers = ref<Record<string, number>>({})
 
 // --- Computed Properties for easier template access ---
@@ -500,6 +584,75 @@ const activeRewardSettings = computed<RewardSettings | null>(() => {
     }
     return null
 })
+
+const showGroupStarUI = computed(() => {
+    return (
+        activeRewardSettings.value?.enabled === true &&
+        activeRewardSettings.value?.mode === 'group-based'
+    )
+})
+
+// 判斷是否為全班模式
+const isClassTotalMode = computed(() => {
+    return activeRewardSettings.value?.mode === 'class-total'
+})
+
+const classTotalThreshold = computed(() => {
+    if (!activeRewardSettings.value) {
+        return REWARD_DEFAULTS.classTotalMode.pointsPerInvincible
+    }
+    return getClassTotalThreshold(activeRewardSettings.value)
+})
+
+// 調試：監視全班門檻值
+// 保留計算屬性即可，額外偵測僅供過去除錯使用，現已移除
+
+const classTotalInvincibleDuration = computed(() => {
+    if (!activeRewardSettings.value) {
+        return REWARD_DEFAULTS.classTotalMode.invincibleDurationSeconds
+    }
+    return getClassTotalInvincibleDuration(activeRewardSettings.value)
+})
+
+const classTotalInvinciblePoints = computed(() => {
+    if (!activeRewardSettings.value) {
+        return REWARD_DEFAULTS.classTotalMode.invinciblePointsPerClick
+    }
+    return getClassTotalInvinciblePoints(activeRewardSettings.value)
+})
+
+const classTotalRemainingSeconds = ref(0)
+const classTotalInvincibleTotalDuration = ref(0)
+
+const syncClassTotalRemaining = (nowParam?: number) => {
+    const now = nowParam ?? Date.now()
+
+    if (!props.classInfo.groupingActive || !isClassTotalMode.value) {
+        classTotalRemainingSeconds.value = 0
+        return
+    }
+
+    const invincibleUntil = props.classInfo.classInvincibleUntil
+    if (invincibleUntil && invincibleUntil > now) {
+        classTotalRemainingSeconds.value = Math.max(0, Math.ceil((invincibleUntil - now) / 1000))
+    } else {
+        classTotalRemainingSeconds.value = 0
+    }
+}
+
+// 全班總分
+const classTotalScore = computed(() => {
+    if (!isClassTotalMode.value) return 0
+    return classesStore.calculateClassTotalScore(props.classInfo.id)
+})
+
+// 全班模式的慶祝動畫狀態
+const classTotalCelebrationState = ref({
+    visible: false,
+    achievedScore: 0,
+    duration: 0,
+})
+
 const rewardInfoSummary = computed(() => {
     const settings = activeRewardSettings.value
     if (!settings) {
@@ -507,12 +660,31 @@ const rewardInfoSummary = computed(() => {
             enabled: false,
         }
     }
+
+    const enabled = !!settings.enabled
+    const mode = settings.mode
+    const invincibleDurationSeconds = settings.invincibleDurationSeconds
+    const invinciblePointsPerClick = settings.invinciblePointsPerClick
+
+    if (mode === 'class-total') {
+        const classTotalTargetPoints = getClassTotalThreshold(settings)
+        return {
+            enabled,
+            mode,
+            classTotalTargetPoints,
+            invincibleDurationSeconds,
+            invinciblePointsPerClick,
+        }
+    }
+
+    // group-based mode
     return {
-        enabled: !!settings.enabled,
+        enabled,
+        mode,
         pointsPerStar: settings.pointsPerStar,
         starsToInvincible: settings.starsToInvincible,
-        invincibleDurationSeconds: settings.invincibleDurationSeconds,
-        invinciblePointsPerClick: settings.invinciblePointsPerClick,
+        invincibleDurationSeconds,
+        invinciblePointsPerClick,
     }
 })
 
@@ -536,6 +708,36 @@ watch(
     { immediate: true },
 )
 
+watch(
+    isClassTotalMode,
+    (isClassMode) => {
+        if (!isClassMode) {
+            classTotalRemainingSeconds.value = 0
+            return
+        }
+        syncClassTotalRemaining()
+    },
+    { immediate: true },
+)
+
+watch(
+    () => props.classInfo.classInvincibleUntil,
+    () => {
+        syncClassTotalRemaining()
+        // 同時更新當前無敵的實際總時長
+        const now = Date.now()
+        const invincibleUntil = props.classInfo.classInvincibleUntil
+        if (invincibleUntil && invincibleUntil > now) {
+            classTotalInvincibleTotalDuration.value = Math.max(
+                0,
+                Math.ceil((invincibleUntil - now) / 1000),
+            )
+        } else {
+            classTotalInvincibleTotalDuration.value = 0
+        }
+    },
+)
+
 const runtimeConfig = useRuntimeConfig()
 
 const invincibleCelebrationState = ref({
@@ -545,14 +747,26 @@ const invincibleCelebrationState = ref({
     pointsPerClick: 0,
 })
 
-let celebrationTimeout: ReturnType<typeof setTimeout> | null = null
+let invincibleCelebrationTimeout: ReturnType<typeof setTimeout> | null = null
+let classCelebrationTimeout: ReturnType<typeof setTimeout> | null = null
 let celebrationAudio: HTMLAudioElement | null = null
+let statusCheckInterval: ReturnType<typeof setInterval> | null = null
+
+const CELEBRATION_AUTO_CLOSE_MS = 1000
 
 const hideInvincibleCelebration = () => {
     invincibleCelebrationState.value.visible = false
-    if (celebrationTimeout) {
-        clearTimeout(celebrationTimeout)
-        celebrationTimeout = null
+    if (invincibleCelebrationTimeout) {
+        clearTimeout(invincibleCelebrationTimeout)
+        invincibleCelebrationTimeout = null
+    }
+}
+
+const hideClassTotalCelebration = () => {
+    classTotalCelebrationState.value.visible = false
+    if (classCelebrationTimeout) {
+        clearTimeout(classCelebrationTimeout)
+        classCelebrationTimeout = null
     }
 }
 
@@ -567,9 +781,68 @@ const playCelebrationAudio = () => {
     }
 
     celebrationAudio.currentTime = 0
-    celebrationAudio.play().catch((error) => {
-        console.warn('無法播放無敵星星音效：', error)
+    celebrationAudio.play().catch(() => {
+        /* suppress audio errors */
     })
+}
+
+let starAudio: HTMLAudioElement | null = null
+
+const playStarAudio = () => {
+    if (!process.client) return
+    if (!userPreferences.value.enableSounds) return
+
+    const baseURL = runtimeConfig.app.baseURL || '/'
+    if (!starAudio) {
+        starAudio = new Audio(`${baseURL}star.mp3`)
+        starAudio.volume = 0.5
+    }
+
+    starAudio.currentTime = 0
+    starAudio.play().catch(() => {
+        /* suppress audio errors */
+    })
+}
+
+const updateInvincibleStatus = () => {
+    if (!props.classInfo.groupingActive) return
+
+    const now = Date.now()
+    syncClassTotalRemaining(now)
+
+    let needsSync = false
+    if (props.classInfo.groups) {
+        props.classInfo.groups.forEach((group) => {
+            if (group.isInvincible && group.invincibleUntil) {
+                const remainingMs = group.invincibleUntil - now
+                if (remainingMs <= 500) {
+                    needsSync = true
+                }
+            }
+        })
+    }
+
+    if (needsSync) {
+        classesStore.checkInvincibleStatus()
+    }
+
+    if (props.classInfo.groups) {
+        props.classInfo.groups.forEach((group) => {
+            if (group.isInvincible && group.invincibleUntil) {
+                const remainingMs = group.invincibleUntil - now
+
+                if (remainingMs <= 0) {
+                    delete timers.value[group.id]
+                } else if (remainingMs < 1000) {
+                    timers.value[group.id] = 1
+                } else {
+                    timers.value[group.id] = Math.ceil(remainingMs / 1000)
+                }
+            } else {
+                delete timers.value[group.id]
+            }
+        })
+    }
 }
 
 const triggerInvincibleCelebrationOverlay = (group: Group, settings: RewardSettings | null) => {
@@ -580,15 +853,39 @@ const triggerInvincibleCelebrationOverlay = (group: Group, settings: RewardSetti
         pointsPerClick: Math.max(settings?.invinciblePointsPerClick ?? 1, 1),
     }
 
-    if (celebrationTimeout) {
-        clearTimeout(celebrationTimeout)
+    if (invincibleCelebrationTimeout) {
+        clearTimeout(invincibleCelebrationTimeout)
     }
 
     playCelebrationAudio()
 
-    celebrationTimeout = setTimeout(() => {
+    invincibleCelebrationTimeout = setTimeout(() => {
         hideInvincibleCelebration()
-    }, 2800)
+    }, CELEBRATION_AUTO_CLOSE_MS)
+}
+
+// 全班模式慶祝動畫觸發
+const triggerClassTotalCelebration = (achievedScore: number) => {
+    classTotalCelebrationState.value = {
+        visible: true,
+        achievedScore,
+        duration: Math.max(classTotalInvincibleDuration.value, 0),
+    }
+
+    // 立即初始化倒數計時
+    classTotalRemainingSeconds.value = Math.max(classTotalInvincibleDuration.value, 0)
+    syncClassTotalRemaining()
+
+    if (classCelebrationTimeout) {
+        clearTimeout(classCelebrationTimeout)
+    }
+
+    playCelebrationAudio()
+
+    // 1 秒後自動關閉慶祝畫面，讓倒數接手
+    classCelebrationTimeout = setTimeout(() => {
+        hideClassTotalCelebration()
+    }, 1000)
 }
 
 const {
@@ -1193,8 +1490,32 @@ const addGroupScore = (groupId: string, score: number) => {
             groupScoreAnimation.value[groupId] = null
         }
     }, 500)
+
+    // 如果是全班模式，記錄加分前的總分
+    let previousTriggerCount = 0
+    if (isClassTotalMode.value && score > 0) {
+        previousTriggerCount = props.classInfo.classTotalInvincibleCount || 0
+    }
+
     // The store action now handles all the logic
     classesStore.addScoreToGroup(props.classInfo.id, groupId, score)
+
+    // 在全班模式無敵狀態下，播放星星音效
+    if (isClassTotalMode.value && score > 0 && classTotalRemainingSeconds.value > 0) {
+        playStarAudio()
+    }
+
+    // 如果是全班模式且加分，檢查是否觸發了新的無敵
+    if (isClassTotalMode.value && score > 0) {
+        const newTriggerCount = props.classInfo.classTotalInvincibleCount || 0
+
+        // 如果觸發計數增加，表示觸發了新的無敵
+        if (newTriggerCount > previousTriggerCount) {
+            const threshold = classTotalThreshold.value
+            const achievedScore = newTriggerCount * threshold
+            triggerClassTotalCelebration(achievedScore)
+        }
+    }
 }
 
 const editGroupName = (groupId: string) => {
@@ -1276,40 +1597,88 @@ const closeScoreboardModal = () => {
     isEndingFlow.value = false // Reset state
 }
 
-const exportActivityReport = () => {
-    const today = new Date()
-    const dateString = today.toISOString().split('T')[0]
+const exportActivityReport = (markAsEnded = false) => {
+    const exportTimestamp = new Date()
+    const dateString = exportTimestamp.toISOString().split('T')[0]
+    const isClassTotalModeExport = isClassTotalMode
+    const invinciblePointsPerClickExport = activeRewardSettings.value?.invinciblePointsPerClick ?? 0
+
+    if (markAsEnded) {
+        classesStore.updateClass(props.classInfo.id, {
+            groupingEndedAt: exportTimestamp,
+        })
+    }
 
     // --- Sheet 1: Group Summary ---
-    const groupSummaryData = sortedGroups.value.map((group, index) => ({
-        排行: index + 1,
-        組別: group.name,
-        人數: getGroupMembers(group).length,
-        總分: group.totalScore,
-        ...(activeRewardSettings.value?.enabled && {
-            星星數: getTotalStarsForDisplay(group),
-        }),
-    }))
+    let groupSummaryData
+    let columnWidths
 
-    const columnWidths = [
-        { wch: 8 }, // 排行
-        { wch: 25 }, // 組別
-        { wch: 8 }, // 人數
-        { wch: 10 }, // 總分
+    if (isClassTotalModeExport && activeRewardSettings.value?.enabled) {
+        // 全班模式：顯示全班累積分數、無敵觸發次數
+        groupSummaryData = sortedGroups.value.map((group, index) => ({
+            排行: index + 1,
+            組別: group.name,
+            人數: getGroupMembers(group).length,
+            總分: group.totalScore,
+        }))
+
+        columnWidths = [
+            { wch: 8 }, // 排行
+            { wch: 25 }, // 組別
+            { wch: 8 }, // 人數
+            { wch: 10 }, // 總分
+        ]
+    } else {
+        // 各組模式：顯示星星數
+        groupSummaryData = sortedGroups.value.map((group, index) => ({
+            排行: index + 1,
+            組別: group.name,
+            人數: getGroupMembers(group).length,
+            總分: group.totalScore,
+            ...(activeRewardSettings.value?.enabled && {
+                星星數: getTotalStarsForDisplay(group),
+            }),
+        }))
+
+        columnWidths = [
+            { wch: 8 }, // 排行
+            { wch: 25 }, // 組別
+            { wch: 8 }, // 人數
+            { wch: 10 }, // 總分
+        ]
+
+        if (activeRewardSettings.value?.enabled) {
+            columnWidths.push({ wch: 10 }) // 星星數
+        }
+    }
+
+    const latestClassData =
+        classesStore.classes.find((cls) => cls.id === props.classInfo.id) || props.classInfo
+
+    const groupSheetHeader: any[] = [
+        [`活動名稱:`, activityName.value || '未命名'],
+        [`班級:`, latestClassData.name],
+        [`匯出日期:`, exportTimestamp.toLocaleString('zh-TW')],
+        [`活動開始時間:`, formatDateTimeDisplay(latestClassData.groupingStartedAt ?? null)],
+        [`活動結束時間:`, formatDateTimeDisplay(latestClassData.groupingEndedAt ?? null)],
     ]
 
-    if (activeRewardSettings.value?.enabled) {
-        columnWidths.push({ wch: 10 }) // 星星數
+    // 全班模式時加上統計資訊
+    if (isClassTotalModeExport && activeRewardSettings.value?.enabled) {
+        groupSheetHeader.push([`全班累積分數:`, classTotalScore.value])
+        groupSheetHeader.push([`無敵模式每次加分:`, invinciblePointsPerClickExport])
+        groupSheetHeader.push([
+            `無敵模式觸發次數:`,
+            latestClassData.classTotalInvincibleCount ?? 0,
+        ])
+        groupSheetHeader.push([])
+    } else {
+        groupSheetHeader.push([])
     }
 
     const groupSheet = {
         sheetName: '分組摘要',
-        header: [
-            [`活動名稱:`, activityName.value || '未命名'],
-            [`班級:`, props.classInfo.name],
-            [`匯出日期:`, today.toLocaleString('zh-TW')],
-            [],
-        ],
+        header: groupSheetHeader,
         data: groupSummaryData,
         columnWidths,
     }
@@ -1354,11 +1723,52 @@ const exportActivityReport = () => {
         columnWidths: studentColumnWidths,
     }
 
+    const invincibleEvents = Array.isArray(latestClassData.invincibleEvents)
+        ? latestClassData.invincibleEvents
+        : []
+    const sortedInvincibleEvents = [...invincibleEvents]
+        .map((event) => ({
+            ...event,
+            timestamp:
+                event.timestamp instanceof Date
+                    ? event.timestamp
+                    : new Date(event.timestamp as any),
+        }))
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+    const invincibleEventsData =
+        sortedInvincibleEvents.length > 0
+            ? sortedInvincibleEvents.map((event, index) => ({
+                  序號: index + 1,
+                  組別: event.groupName,
+                  觸發時間: formatDateTimeDisplay(event.timestamp),
+                  無敵加分: event.points,
+              }))
+            : [
+                  {
+                      序號: '—',
+                      組別: '—',
+                      觸發時間: '目前尚無無敵模式加分紀錄',
+                      無敵加分: '—',
+                  },
+              ]
+
+    const invincibleSheet = {
+        sheetName: '無敵模式紀錄',
+        data: invincibleEventsData,
+        columnWidths: [
+            { wch: 8 },
+            { wch: 20 },
+            { wch: 26 },
+            { wch: 12 },
+        ],
+    }
+
     const fileName = `${dateString}-${activityName.value || '分組活動報告'}-${props.classInfo.name}`
-    exportToExcel([groupSheet, studentSheet], fileName)
+    exportToExcel([groupSheet, studentSheet, invincibleSheet], fileName)
 }
 
-watch(
+    watch(
     () => props.classInfo.groups,
     (groups) => {
         syncGroupsFromProps(groups as Group[])
@@ -1405,81 +1815,43 @@ watch(
             isGroupEditMode.value = false
             isGroupLocked.value = true
             clearStudentSelection()
+            syncClassTotalRemaining()
+            updateInvincibleStatus()
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval)
+            }
+            statusCheckInterval = setInterval(updateInvincibleStatus, 250)
+        } else {
+            classTotalRemainingSeconds.value = 0
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval)
+                statusCheckInterval = null
+            }
+            timers.value = {}
         }
     },
     { immediate: true },
 )
 
-onMounted(() => {
-    if (props.classInfo.groupingActive) {
-        // 立即執行一次無敵狀態檢查和計時器更新（不等待 1 秒）
-        const updateInvincibleStatus = () => {
-            const now = Date.now()
-
-            // 首先檢查任何已過期的無敵狀態並清理
-            let needsSync = false
-            if (props.classInfo.groups) {
-                props.classInfo.groups.forEach((group) => {
-                    if (group.isInvincible && group.invincibleUntil) {
-                        const remainingMs = group.invincibleUntil - now
-                        // 如果時間已過期或非常接近過期（<500ms），需要同步
-                        if (remainingMs <= 500) {
-                            needsSync = true
-                        }
-                    }
-                })
-            }
-
-            // 如果有過期或即將過期的無敵，先同步狀態（激活隊列或結束無敵）
-            if (needsSync) {
-                classesStore.checkInvincibleStatus()
-            }
-
-            // 更新計時器顯示 - 為每個無敵組別計算剩餘秒數
-            if (props.classInfo.groups) {
-                props.classInfo.groups.forEach((group) => {
-                    // 重新檢查狀態，以防 checkInvincibleStatus 改變了狀態
-                    if (group.isInvincible && group.invincibleUntil) {
-                        const remainingMs = group.invincibleUntil - now
-
-                        if (remainingMs <= 0) {
-                            // 時間已過期，刪除計時器
-                            delete timers.value[group.id]
-                        } else if (remainingMs < 1000) {
-                            // 0-1秒之間：顯示為 1 秒（避免閃爍 0 秒）
-                            timers.value[group.id] = 1
-                        } else {
-                            // 向上取整，確保顯示正確的秒數
-                            timers.value[group.id] = Math.ceil(remainingMs / 1000)
-                        }
-                    } else {
-                        delete timers.value[group.id]
-                    }
-                })
-            }
-        }
-
-        // 首次立即執行，確保載入時無敵狀態被正確處理
-        updateInvincibleStatus()
-
-        // 然後每 250ms 檢查一次（頻繁同步確保計時器不會卡住）
-        statusCheckInterval = setInterval(updateInvincibleStatus, 250)
-    }
-})
-
 onUnmounted(() => {
     if (statusCheckInterval) {
         clearInterval(statusCheckInterval)
+        statusCheckInterval = null
     }
-    if (celebrationTimeout) {
-        clearTimeout(celebrationTimeout)
-        celebrationTimeout = null
+    if (invincibleCelebrationTimeout) {
+        clearTimeout(invincibleCelebrationTimeout)
+        invincibleCelebrationTimeout = null
+    }
+    if (classCelebrationTimeout) {
+        clearTimeout(classCelebrationTimeout)
+        classCelebrationTimeout = null
     }
     if (celebrationAudio) {
         celebrationAudio.pause()
         celebrationAudio = null
     }
     hideInvincibleCelebration()
+    classTotalRemainingSeconds.value = 0
     cleanupRewards()
 })
 </script>
